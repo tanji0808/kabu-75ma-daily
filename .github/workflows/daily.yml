@@ -34,7 +34,7 @@ jobs:
         run: python kabu_75ma_search.py
       - name: 画面を用意
         run: |
-          cp web/index.html _site/index.html
+          cp web/index.html web/manifest.json web/*.png _site/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
