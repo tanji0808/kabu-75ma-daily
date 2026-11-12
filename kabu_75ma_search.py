@@ -269,6 +269,38 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
         f.write(page)
 
 
+def write_data_json(master: pd.DataFrame, prices: dict, path: str, days: int = 260) -> None:
+    """全銘柄の日足を、Webのスクリーナーが読める軽いJSONにする。"""
+    import json
+    dates = sorted(set().union(*[set(df.index) for df in prices.values()]))[-days:]
+    idx = pd.DatetimeIndex(dates)
+    stocks = []
+    for _, m in master.iterrows():
+        df = prices.get(m["コード"])
+        if df is None:
+            continue
+        d = df.reindex(idx)
+        d["Close"] = d["Close"].ffill()
+        for col in ("Open", "High", "Low"):
+            d[col] = d[col].fillna(d["Close"])
+        d["Volume"] = d["Volume"].fillna(0)
+        d = d.dropna(subset=["Close"])
+        if len(d) < 30:
+            continue
+        # 容量を減らすため、価格は0.1円単位の整数にし、終値は前日との差、始値・高値・安値は終値との差で持つ
+        c10 = (d["Close"] * 10).round().astype("int64")
+        rel = lambda col: [int(x) for x in ((d[col] * 10).round().astype("int64") - c10)]
+        stocks.append({"c": m["コード"], "n": m["銘柄名"], "s": m["業種"], "st": len(idx) - len(d),
+                       "dc": [int(c10.iloc[0])] + [int(x) for x in c10.diff().iloc[1:]],
+                       "o": rel("Open"), "h": rel("High"), "l": rel("Low"),
+                       "v": [int(round(x / 100)) for x in d["Volume"]]})
+    data = {"asof": idx[-1].strftime("%Y-%m-%d"), "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "market": "プライム", "fmt": 2, "dates": [x.strftime("%Y-%m-%d") for x in idx], "stocks": stocks}
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"スクリーナー用データ: {path}（{len(stocks)}銘柄）")
+
+
 def main() -> None:
     try:
         import yfinance  # noqa: F401
@@ -304,6 +336,8 @@ def main() -> None:
 
     page = os.path.join(out_dir, os.environ.get("KABU_PAGE_NAME", f"75日線ブレイク候補_{today}.html"))
     build_page(rows, prices, data_date, len(prices), page)
+    if os.environ.get("KABU_DATA_JSON"):
+        write_data_json(master, prices, os.path.join(out_dir, os.environ["KABU_DATA_JSON"]))
 
     if not rows:
         print("\n条件に合う銘柄はありませんでした。設定（APPROACH_GAP や DROP_MIN など）をゆるめて再実行してください。")

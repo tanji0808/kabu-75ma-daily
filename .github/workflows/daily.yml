@@ -6,10 +6,12 @@ on:
   workflow_dispatch:          # 「Run workflow」ボタンで手動実行もできる
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: daily-search
+  group: pages
   cancel-in-progress: false
 
 jobs:
@@ -26,13 +28,24 @@ jobs:
       - name: 東証プライムを検索
         env:
           TZ: Asia/Tokyo
-          KABU_OUTDIR: docs
-          KABU_PAGE_NAME: index.html
+          KABU_OUTDIR: _site
+          KABU_PAGE_NAME: cards.html
+          KABU_DATA_JSON: data.json
         run: python kabu_75ma_search.py
-      - name: 結果を保存
+      - name: 画面を用意
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs
-          git commit -m "候補を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
-          git push
+          cp web/index.html _site/index.html
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: search
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
