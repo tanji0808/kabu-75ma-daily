@@ -61,8 +61,9 @@ CROSS_WITHIN = 5              # 「突破直後」：何営業日以内の上抜
 CROSS_GAP_MAX = 0.03          # 「突破直後」：75日線からの上抜け幅の上限
 RISING_DAYS = 5               # 「突破目前」：何日前より終値が上がっていること
 
+JPX_LIST_PAGE = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
 JPX_LIST_URL = ("https://www.jpx.co.jp/markets/statistics-equities/misc/"
-                "tvdivq0000001vg2-att/data_j.xls")
+                "tvdivq0000001vg2-att/data_j.xls")   # 一覧ページから見つからなかったときの予備
 PRIME_LABEL = "プライム（内国株式）"
 CHUNK = 150                   # 一度にダウンロードする銘柄数
 # ==================================================================
@@ -70,10 +71,31 @@ CHUNK = 150                   # 一度にダウンロードする銘柄数
 
 def load_prime_list() -> pd.DataFrame:
     """JPXの上場銘柄一覧からプライム（内国株式）を取り出す。"""
+    import re
+    from urllib.parse import urljoin
     print("東証の上場銘柄一覧を取得しています…")
-    req = urllib.request.Request(JPX_LIST_URL, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        raw = r.read()
+    ua = {"User-Agent": "Mozilla/5.0"}
+    urls = []
+    try:   # 一覧ページに載っている最新のExcelファイルの場所を探す（場所は時々変わる）
+        with urllib.request.urlopen(urllib.request.Request(JPX_LIST_PAGE, headers=ua), timeout=60) as r:
+            page = r.read().decode("utf-8", "ignore")
+        links = re.findall(r'href="([^"]+\.xlsx?)"', page)
+        links.sort(key=lambda u: "data_j" not in u)
+        urls += [urljoin(JPX_LIST_PAGE, u) for u in links]
+    except Exception as e:
+        print(f"  一覧ページを読めませんでした（{e}）")
+    urls.append(JPX_LIST_URL)
+    raw = None
+    for u in urls:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(u, headers=ua), timeout=60) as r:
+                raw = r.read()
+            print(f"  取得元: {u}")
+            break
+        except Exception as e:
+            print(f"  取得できませんでした: {u}（{e}）")
+    if raw is None:
+        sys.exit("東証の上場銘柄一覧を取得できませんでした。")
     df = pd.read_excel(io.BytesIO(raw), dtype=str)
     df = df[df["市場・商品区分"] == PRIME_LABEL]
     out = pd.DataFrame({
