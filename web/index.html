@@ -636,7 +636,8 @@ function fundComment(s){
     else if(r>=0.2)add('m',`PERは${F.per.toFixed(1)}倍で、同業種の中央値（${S.per.toFixed(1)}倍）より${Math.round(r*100)}%高く、成長期待がすでに株価に織り込まれている水準です。`);
     else add('n',`PERは${F.per.toFixed(1)}倍で、同業種の中央値（${S.per.toFixed(1)}倍）とほぼ同じ水準です。`);}
   if(F.eps!=null&&F.feps!=null&&F.eps>0){const g=F.feps/F.eps-1;
-    if(g>=0.1)add('p',`予想EPS（${F.feps.toFixed(1)}円）が実績EPS（${F.eps.toFixed(1)}円）を${Math.round(g*100)}%上回っており、増益が見込まれています。予想PERは${F.fper.toFixed(1)}倍です。`);
+    if(Math.abs(g)>=0.4)add('n',`予想EPS（${F.feps.toFixed(1)}円）と実績EPS（${F.eps.toFixed(1)}円）の差が${Math.round(Math.abs(g)*100)}%と大きくなっています。一時的な利益・損失や、予想の基準の違いの可能性があるので、決算短信で確認してください。`);
+    else if(g>=0.1)add('p',`予想EPS（${F.feps.toFixed(1)}円）が実績EPS（${F.eps.toFixed(1)}円）を${Math.round(g*100)}%上回っており、増益が見込まれています。予想PERは${F.fper.toFixed(1)}倍です。`);
     else if(g<=-0.1)add('m',`予想EPS（${F.feps.toFixed(1)}円）が実績EPS（${F.eps.toFixed(1)}円）を${Math.round(-g*100)}%下回っており、減益が見込まれています。`);}
   if(F.pbr!=null){
     if(F.pbr<1)add(F.roe!=null&&F.roe<5?'n':'p',`PBRは${F.pbr.toFixed(2)}倍で1倍を下回っています（株価が1株あたり純資産より安い）。資産面では割安ですが、${F.roe!=null&&F.roe<5?'ROEが低いため、市場の評価が低いままになりやすい点に注意が必要です。':'東証が改善を求めている水準で、株主還元策などが出ると見直される余地があります。'}`);
@@ -672,7 +673,7 @@ function renderFund(s){
   const x1=v=>fmtX(v,1),x2=v=>fmtX(v,2),pc=v=>v==null?'—':v.toFixed(1)+'%',pc2=v=>v==null?'—':v.toFixed(2)+'%';
   let h=`<h3>PER・PBR（同業種との比較）<small>${esc(s.sector)}・${S.n||0}社の中央値と比較</small></h3>
   <table class="ftbl"><tr><th>指標</th><th>この銘柄</th><th>業種中央値</th><th>判定</th></tr>
-  ${row('PER（実績）',F.per,S.per,x1,true)}${row('PER（予想）',F.fper,S.fper,x1,true)}${row('PBR',F.pbr,S.pbr,x2,true)}
+  ${row('PER（実績）',F.per,S.per,x1,true)}${row('PER（予想）※',F.fper,S.fper,x1,true)}${row('PBR',F.pbr,S.pbr,x2,true)}
   ${row('ROE',F.roe,S.roe,pc)}${row('営業利益率',F.om,S.om,pc)}${row('配当利回り',F.dy,S.dy,pc2)}</table>`;
   // ライバル：同業種で時価総額が近い会社
   const peers=DATA.filter(p=>p.sector===s.sector&&p.code!==s.code&&fund(p).mcap).map(p=>({p,F:fund(p)}));
@@ -688,7 +689,7 @@ function renderFund(s){
   }
   const C=fundComment(s);
   h+=`<h3>ファンダメンタル分析コメント</h3>${C.sum?`<div class="cm-sum">${C.sum}</div>`:''}<ul class="cm">${C.items.map(([t,x])=>`<li class="${t}">${x}</li>`).join('')}</ul>
-  <p class="fnote">財務データ：Yahoo Finance（${esc(F.t||'')}取得）。PER・PBR・配当利回りは${esc(s.bars[s.bars.length-1].d)}の終値で計算。コメントは数値から機械的に作ったもので、売買のおすすめではありません。</p>`;
+  <p class="fnote">財務データ：Yahoo Finance（${esc(F.t||'')}取得）。※予想PERはYahooのアナリスト予想EPSで計算しており、会社予想とは異なることがあります。PER・PBR・配当利回りは${esc(s.bars[s.bars.length-1].d)}の終値で計算。コメントは数値から機械的に作ったもので、売買のおすすめではありません。</p>`;
   box.innerHTML=h;
   box.querySelectorAll('tr.peer').forEach(tr=>tr.onclick=()=>select(tr.dataset.c));
 }
