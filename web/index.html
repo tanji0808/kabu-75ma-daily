@@ -112,7 +112,7 @@ td.name{font-weight:500}
 .seg button{border:0;background:#fff;padding:4px 11px;font-size:12px;cursor:pointer;border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
 .seg button.on{background:var(--accent);color:#fff}
-.toggles{display:flex;gap:12px;font-size:12px;color:var(--sub)}
+.toggles{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--sub)}
 .toggles label{display:flex;gap:4px;align-items:center;cursor:pointer}
 .toggles input{accent-color:var(--accent);margin:0}
 .legend{display:flex;gap:14px;font-size:11.5px;color:var(--sub);margin:4px 0 6px;flex-wrap:wrap}
@@ -217,9 +217,12 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
             <button data-r="60">3ヶ月</button><button data-r="120" class="on">6ヶ月</button><button data-r="250">1年</button>
           </div>
           <div class="toggles">
-            <label><input type="checkbox" id="tMA" checked>移動平均</label>
-            <label><input type="checkbox" id="tBB">ボリンジャー</label>
+            <label><input type="checkbox" id="tM5" checked>5日線</label>
+            <label><input type="checkbox" id="tM25" checked>25日線</label>
+            <label><input type="checkbox" id="tM75" checked>75日線</label>
+            <label><input type="checkbox" id="tBB">ボリンジャー±2σ</label>
           </div>
+          <button class="btn" id="btnBook" style="padding:4px 10px;font-size:12px">本の見方にする</button>
         </div>
         <div class="legend" id="legend"></div>
         <canvas id="chart"></canvas>
@@ -350,7 +353,7 @@ function rsi(a,n=14){const o=new Array(a.length).fill(null);if(a.length<=n)retur
   o[n]=l===0?100:100-100/(1+g/l);
   for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;o[i]=l===0?100:100-100/(1+g/l);}
   return o;}
-function boll(a,n=20,k=2){const m=sma(a,n),u=new Array(a.length).fill(null),d=new Array(a.length).fill(null);
+function boll(a,n=25,k=2){const m=sma(a,n),u=new Array(a.length).fill(null),d=new Array(a.length).fill(null);
   for(let i=n-1;i<a.length;i++){let s=0;for(let j=i-n+1;j<=i;j++)s+=(a[j]-m[i])**2;const sd=Math.sqrt(s/n);u[i]=m[i]+k*sd;d[i]=m[i]-k*sd;}
   return {m,u,d};}
 
@@ -430,9 +433,9 @@ const CONDS=[
     p:{w:{t:'num',v:3,pre:'直近',post:'日以内',min:1,max:60}},
     test:(s,p)=>{const I=ind(s);return crossDown(I.macd,I.sig,p.w,I.L);},
     tag:p=>`MACD DC（${p.w}日以内）`},
-  {g:'ボラティリティ',id:'bbu',label:'ボリンジャーバンド +2σ超え',desc:'終値が20日線の+2σを上回った',p:{},
+  {g:'ボラティリティ',id:'bbu',label:'ボリンジャーバンド +2σ超え',desc:'終値がボリンジャーバンド(25日)の+2σを上回った',p:{},
     test:s=>{const I=ind(s);return I.bb.u[I.L]!=null&&I.c[I.L]>I.bb.u[I.L];},tag:()=>'BB +2σ超え'},
-  {g:'ボラティリティ',id:'bbl',label:'ボリンジャーバンド -2σ割れ',desc:'終値が20日線の-2σを下回った',p:{},
+  {g:'ボラティリティ',id:'bbl',label:'ボリンジャーバンド -2σ割れ',desc:'終値がボリンジャーバンド(25日)の-2σを下回った',p:{},
     test:s=>{const I=ind(s);return I.bb.d[I.L]!=null&&I.c[I.L]<I.bb.d[I.L];},tag:()=>'BB -2σ割れ'},
   {g:'出来高・高安値',id:'vol',label:'出来高急増',desc:'当日の出来高が過去20日平均の何倍か',
     p:{x:{t:'num',v:2,post:'倍以上',step:0.1,min:0}},
@@ -715,7 +718,7 @@ function select(code){
   $('dStats').innerHTML=st.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
   renderFund(s);
   drawChart();
-  if(window.innerWidth<900)$('detailCard').scrollIntoView({behavior:'smooth'});
+  if(window.innerWidth<900&&!new URLSearchParams(location.search).get('c'))$('detailCard').scrollIntoView({behavior:'smooth'});
 }
 
 const MA_COL={5:'#e08a00',25:'#2a8a4a',75:'#7a4fbf'};
@@ -726,8 +729,8 @@ function drawChart(){
   const I=ind(s),cv=$('chart'),dpr=window.devicePixelRatio||1;
   const W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-  const showMA=$('tMA').checked,showBB=$('tBB').checked;
-  $('legend').innerHTML=(showMA?Object.entries(MA_COL).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:#9aa6b2"></i>ボリンジャー(20,±2σ)</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
+  const MAS=[5,25,75].filter(n=>$('tM'+n).checked),showBB=$('tBB').checked;
+  $('legend').innerHTML=(MAS.length?Object.entries(MA_COL).filter(([n])=>MAS.includes(+n)).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:#9aa6b2"></i>ボリンジャー(25日,±2σ)</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
   const n=Math.min(range,I.L+1),st=I.L+1-n;
   const padL=8,padR=62,top=8;
   const pH=H*0.62,vTop=pH+18,vH=H*0.13,rTop=vTop+vH+18,rH=H-rTop-20;
@@ -735,7 +738,7 @@ function drawChart(){
   const X=i=>padL+(i-st+0.5)*cw;
   let mn=Infinity,mx=-Infinity;
   for(let i=st;i<=I.L;i++){const lo=chartType==='line'?I.c[i]:I.l[i],hi=chartType==='line'?I.c[i]:I.h[i];mn=Math.min(mn,lo);mx=Math.max(mx,hi);
-    if(showMA)[5,25,75].forEach(p=>{const v=I.getSma(p)[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}});
+    MAS.forEach(p=>{const v=I.getSma(p)[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}});
     if(showBB&&I.bb.u[i]!=null){mn=Math.min(mn,I.bb.d[i]);mx=Math.max(mx,I.bb.u[i]);}}
   const pad=(mx-mn)*0.06;mn-=pad;mx+=pad;
   const Y=v=>top+(mx-v)/(mx-mn)*(pH-top);
@@ -765,7 +768,7 @@ function drawChart(){
     const y1=Y(Math.max(b.o,b.c)),y2=Y(Math.min(b.o,b.c));
     if(b.c>=b.o){ctx.fillStyle='#fff';ctx.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));ctx.strokeRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));}
     else ctx.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));}
-  if(showMA)Object.entries(MA_COL).forEach(([p,c])=>line(ctx,I.getSma(+p),st,I.L,X,Y,c,[]));
+  Object.entries(MA_COL).filter(([p])=>MAS.includes(+p)).forEach(([p,c])=>line(ctx,I.getSma(+p),st,I.L,X,Y,c,[]));
   // volume
   let vmx=0;for(let i=st;i<=I.L;i++)vmx=Math.max(vmx,I.v[i]);
   ctx.fillStyle='#8a8983';ctx.fillText('出来高',padL,vTop-7);
@@ -794,7 +797,15 @@ $('rangeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if
 $('typeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;chartType=b.dataset.t;try{localStorage.setItem('chartType',chartType);}catch(_){}
   [...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x===b));drawChart();});
 [...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.t===chartType));
-$('tMA').onchange=drawChart;$('tBB').onchange=drawChart;
+['tM5','tM25','tM75','tBB'].forEach(id=>$(id).onchange=drawChart);
+function setChartView(type,mas,bb,rng){
+  chartType=type;[...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.t===type));
+  [5,25,75].forEach(n=>$('tM'+n).checked=mas.includes(n));$('tBB').checked=bb;
+  range=rng;[...$('rangeSeg').children].forEach(x=>x.classList.toggle('on',+x.dataset.r===rng));
+  drawChart();
+}
+// 本の見方：線グラフ・25日線・75日線・ボリンジャー±2σ・6ヶ月
+$('btnBook').onclick=()=>setChartView('line',[25,75],true,120);
 window.addEventListener('resize',()=>{if(selected)drawChart();});
 
 /* ---------------- CSV取り込み ---------------- */
@@ -855,6 +866,13 @@ fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status
     return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
   LIVE_LABEL=`東証プライム ${LIVE.length}銘柄・${j.asof} 終値（${j.updated} 更新）`;
   DATA=LIVE;afterDataChange();applyPreset(PRESETS[0]);
+  // カード表示などから ?c=コード&v=book で開かれたとき
+  const q=new URLSearchParams(location.search),qc=q.get('c');
+  if(qc&&DATA.some(x=>x.code===qc)){
+    if(q.get('v')==='book'){chartType='line';[5,25,75].forEach(n=>$('tM'+n).checked=n!==5);$('tBB').checked=true;range=120;
+      [...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.t==='line'));[...$('rangeSeg').children].forEach(x=>x.classList.toggle('on',+x.dataset.r===120));}
+    select(qc);setTimeout(()=>$('typeSeg').parentElement.scrollIntoView({behavior:'auto',block:'start'}),400);
+  }
 }).catch(e=>{$('dataBadge').textContent='データを読み込めませんでした';
   $('tbody').innerHTML=`<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
 })();

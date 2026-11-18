@@ -215,27 +215,30 @@ def screen(df: pd.DataFrame) -> dict | None:
 
 
 def _svg_chart(df: pd.DataFrame, days: int = 120) -> str:
-    """6ヶ月分の終値（ローソク足の代わりに線）と75日線の小さなチャート。"""
-    ma = df["Close"].rolling(MA).mean()
-    d = df.iloc[-days:]
-    m = ma.iloc[-days:]
-    vals = list(d["Low"]) + list(d["High"]) + [x for x in m if pd.notna(x)]
+    """約6ヶ月の線グラフに、25日線・75日線・ボリンジャーバンド(25日,±2σ)を重ねた小さなチャート。"""
+    c = df["Close"]
+    ma25, ma75 = c.rolling(25).mean(), c.rolling(MA).mean()
+    sd = c.rolling(25).std(ddof=0)
+    bu, bd = ma25 + 2 * sd, ma25 - 2 * sd
+    cl, m25, m75, u, d = (x.iloc[-days:] for x in (c, ma25, ma75, bu, bd))
+    vals = [v for ser in (cl, m25, m75, u, d) for v in ser if pd.notna(v)]
     lo, hi = min(vals), max(vals)
-    pad = (hi - lo) * 0.06 or 1
+    pad = (hi - lo) * 0.05 or 1
     lo, hi = lo - pad, hi + pad
-    W, H, n = 340, 130, len(d)
+    W, H, n = 340, 130, len(cl)
     X = lambda i: 4 + i * (W - 8) / max(n - 1, 1)
     Y = lambda v: 4 + (hi - v) / (hi - lo) * (H - 8)
-    bars = []
-    bw = max(1.0, (W - 8) / n * 0.6)
-    for i, (_, b) in enumerate(d.iterrows()):
-        col = "#c8312b" if b["Close"] >= b["Open"] else "#1f5fbf"
-        y1, y2 = Y(max(b["Open"], b["Close"])), Y(min(b["Open"], b["Close"]))
-        bars.append(f'<line x1="{X(i):.1f}" y1="{Y(b["High"]):.1f}" x2="{X(i):.1f}" y2="{Y(b["Low"]):.1f}" stroke="{col}" stroke-width=".7"/>'
-                    f'<rect x="{X(i) - bw / 2:.1f}" y="{y1:.1f}" width="{bw:.1f}" height="{max(y2 - y1, .6):.1f}" fill="{col}"/>')
-    ma_pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(m) if pd.notna(v))
-    return (f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="ch">{"".join(bars)}'
-            f'<polyline points="{ma_pts}" fill="none" stroke="#7a4fbf" stroke-width="1.8"/></svg>')
+    pts = lambda ser: " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(ser) if pd.notna(v))
+    up_pts = [(X(i), Y(v)) for i, v in enumerate(u) if pd.notna(v)]
+    dn_pts = [(X(i), Y(v)) for i, v in enumerate(d) if pd.notna(v)]
+    band = " ".join(f"{x:.1f},{y:.1f}" for x, y in up_pts + dn_pts[::-1])
+    return (f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="ch">'
+            f'<polygon points="{band}" fill="rgba(154,166,178,.18)"/>'
+            f'<polyline points="{pts(u)}" fill="none" stroke="#9aa6b2" stroke-width="1"/>'
+            f'<polyline points="{pts(d)}" fill="none" stroke="#9aa6b2" stroke-width="1"/>'
+            f'<polyline points="{pts(m25)}" fill="none" stroke="#2a8a4a" stroke-width="1.6"/>'
+            f'<polyline points="{pts(m75)}" fill="none" stroke="#7a4fbf" stroke-width="1.8"/>'
+            f'<polyline points="{pts(cl)}" fill="none" stroke="#1d1d1b" stroke-width="1.5"/></svg>')
 
 
 def build_page(rows: list[dict], prices: dict, data_date: str, checked: int, path: str) -> None:
@@ -246,14 +249,15 @@ def build_page(rows: list[dict], prices: dict, data_date: str, checked: int, pat
     for r in rows:
         tone = "brk" if r["状態"] != "突破目前" else "near"
         gap = r["75日線との差(%)"]
-        cards.append(f"""<a class="card" href="{h.escape(r['Yahoo!ファイナンス'])}">
+        cards.append(f"""<div class="item"><a class="card" href="index.html?c={h.escape(r['コード'])}&amp;v=book">
   <div class="top"><span class="st {tone}">{h.escape(r['状態'])}</span><span class="code">{h.escape(r['コード'])}</span>
   <span class="nm">{h.escape(r['銘柄名'])}</span></div>
   <div class="sub">{h.escape(str(r['業種']))}</div>
   {_svg_chart(prices[r['コード']])}
   <div class="kv"><div><b>{r['株価']:,.1f}</b><i>株価</i></div><div><b>{gap:+.2f}%</b><i>75日線との差</i></div>
   <div><b>{r['半年高値からの下落(%)']:.1f}%</b><i>半年高値から</i></div><div><b>{r['出来高']:,}</b><i>出来高</i></div></div>
-</a>""")
+</a>
+<a class="ylink" href="{h.escape(r['Yahoo!ファイナンス'])}" target="_blank" rel="noopener">Yahoo!ファイナンスで見る ↗</a></div>""")
     body = "\n".join(cards) if cards else '<p class="none">今日は条件に合う銘柄がありませんでした。</p>'
     page = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>75日線ブレイク候補 {data_date}</title>
@@ -270,13 +274,17 @@ h1{{font-size:18px;margin:0 0 4px}} .meta{{font-size:12px;color:#6b6a65;line-hei
 .ch{{width:100%;height:130px;display:block;background:#faf9f6;border-radius:6px}}
 .kv{{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;text-align:center}}
 .kv b{{display:block;font-size:13px;font-family:ui-monospace,monospace}} .kv i{{font-style:normal;font-size:10px;color:#6b6a65}}
+.item{{display:flex;flex-direction:column}} .item .card{{border-radius:12px 12px 0 0;border-bottom:0}}
+.ylink{{display:block;background:#fff;border:1px solid #e3e1db;border-top:1px dashed #e3e1db;border-radius:0 0 12px 12px;padding:9px 12px;font-size:12.5px;color:#1f4e79;text-decoration:none;text-align:right}}
+.lg2{{display:inline-block;width:14px;height:2px;vertical-align:middle;margin:0 4px 0 8px}}
 .none{{text-align:center;color:#6b6a65;padding:40px}} .lg{{display:inline-block;width:14px;height:2px;background:#7a4fbf;vertical-align:middle;margin-right:4px}}
 footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color:#6b6a65;line-height:1.6}}
 </style></head><body>
 <header><h1>75日線ブレイク候補　{len(rows)}銘柄</h1>
 <div class="meta">{data_date} 終値時点（{now} 更新）｜東証プライム {checked}銘柄から検索<br>
 条件：3ヶ月以上の下落後、75日線を下から突き抜けそう／抜けた直後・出来高{MIN_VOLUME:,}株以上<br>
-<span class="lg"></span>紫の線＝75日線（チャートは約6ヶ月）。カードをタップするとYahoo!ファイナンスのチャートが開きます。</div></header>
+チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#9aa6b2"></span>ボリンジャー±2σ<br>
+カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a></div></header>
 <div class="wrap">{body}</div>
 <footer>機械的に条件で拾った候補で、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。データ：Yahoo Finance（yfinance）／東証上場銘柄一覧</footer>
 </body></html>"""
