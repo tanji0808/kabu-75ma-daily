@@ -131,6 +131,26 @@ canvas{width:100%;display:block}
 .msg.err{color:var(--up)} .msg.ok{color:#2a7a3b}
 .dropzone{border:1.5px dashed #c9c6bd;border-radius:8px;padding:18px;text-align:center;color:var(--sub);font-size:13px;margin-top:10px;cursor:pointer}
 .dropzone.over{border-color:var(--accent);background:var(--accent-soft)}
+
+.fund{margin:4px 0 16px}
+.fund h3{font-size:13.5px;margin:16px 0 8px;font-weight:700}
+.fund h3 small{font-weight:400;color:var(--sub);font-size:11.5px;margin-left:6px}
+.ftbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.ftbl th{font-weight:500;color:var(--sub);font-size:11.5px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ftbl th:first-child,.ftbl td:first-child{text-align:left}
+.ftbl td{padding:7px 8px;border-bottom:1px solid var(--soft);text-align:right;font-family:var(--mono);white-space:nowrap}
+.ftbl td:first-child{font-family:'Noto Sans JP',sans-serif}
+.ftbl tr.me td{background:var(--accent-soft);font-weight:700}
+.ftbl tr.peer{cursor:pointer} .ftbl tr.peer:hover td{background:#faf9f6}
+.jd{display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;font-family:'Noto Sans JP',sans-serif;font-weight:500}
+.jd.lo{background:#e6f3ea;color:#2a7a3b} .jd.hi{background:#fff4e0;color:var(--warn)} .jd.eq{background:var(--soft);color:var(--sub)}
+.cm{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.cm li{font-size:13px;line-height:1.6;padding:8px 10px 8px 30px;border-radius:8px;background:#faf9f6;position:relative}
+.cm li:before{position:absolute;left:10px;top:8px;font-weight:700}
+.cm li.p:before{content:'＋';color:#2a7a3b} .cm li.m:before{content:'－';color:var(--up)} .cm li.n:before{content:'・';color:var(--sub)}
+.cm-sum{font-size:13.5px;font-weight:700;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px}
+.fnote{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6}
+.tblc .jd{margin-left:4px}
 footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color:var(--sub)}
 </style>
 </head>
@@ -190,6 +210,9 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
         </div>
         <div class="stats" id="dStats"></div>
         <div class="chart-tools">
+          <div class="seg" id="typeSeg">
+            <button data-t="candle" class="on">ローソク足</button><button data-t="line">線</button>
+          </div>
           <div class="seg" id="rangeSeg">
             <button data-r="60">3ヶ月</button><button data-r="120" class="on">6ヶ月</button><button data-r="250">1年</button>
           </div>
@@ -200,6 +223,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
         </div>
         <div class="legend" id="legend"></div>
         <canvas id="chart"></canvas>
+        <div class="fund" id="dFund"></div>
       </div>
     </section>
   </main>
@@ -373,7 +397,7 @@ const CONDS=[
     test:(s,p)=>ma75Break(s,p)!=null,
     tag:p=>`下落${p.dd}日→75日線ブレイク（-${p.ap}%〜上抜け${p.cw}日以内）`},
   {g:'本の手法',id:'vmin',label:'出来高の下限',desc:'直近の営業日の出来高が指定株数以上',
-    p:{x:{t:'num',v:300000,post:'株以上',step:10000,min:0}},
+    p:{x:{t:'num',v:500000,post:'株以上',step:10000,min:0}},
     test:(s,p)=>{const I=ind(s);return I.v[I.L]>=p.x;},tag:p=>`出来高 ${Number(p.x).toLocaleString('ja-JP')}株以上`},
   {g:'移動平均',id:'gc',label:'ゴールデンクロス',desc:'短期線が長期線を下から上に抜けた',
     p:{s:{t:'sel',o:MA_OPTS,v:5,pre:'短期'},l:{t:'sel',o:MA_OPTS,v:25,pre:'× 長期'},w:{t:'num',v:5,pre:'直近',post:'日以内',min:1,max:60}},
@@ -425,7 +449,7 @@ const CONDS=[
 ];
 
 const PRESETS=[
-  {name:'★ 75日線ブレイク（本の手法）',market:'プライム',on:{ma75:{dd:60,ap:5,cw:5,dr:15},vmin:{x:300000}}},
+  {name:'★ 75日線ブレイク（本の手法）',market:'プライム',on:{ma75:{dd:60,ap:5,cw:5,dr:15},vmin:{x:500000}}},
   {name:'トレンド転換の初動',on:{gc:{s:5,l:25,w:10},macd:{w:10,zero:'問わない'}}},
   {name:'押し目買い候補',on:{above:{n:75,dir:'上'},rsi:{mn:0,mx:45},dev:{n:25,mn:-12,mx:0}}},
   {name:'高値ブレイク',on:{hi:{w:10},above:{n:25,dir:'上'}}},
@@ -518,6 +542,8 @@ const COLS=[
   {k:'sector',l:'業種',v:s=>s.sector||''},
   {k:'price',l:'株価',num:1,v:s=>ind(s).c[ind(s).L]},
   {k:'chg',l:'前日比',num:1,v:s=>ind(s).chgPct},
+  {k:'per',l:'PER',num:1,v:s=>fund(s).per},
+  {k:'pbr',l:'PBR',num:1,v:s=>fund(s).pbr},
   {k:'rsi',l:'RSI',num:1,v:s=>ind(s).rsi[ind(s).L]},
   {k:'dev',l:'25日乖離',num:1,v:s=>dev(s,25)},
   {k:'volr',l:'出来高倍率',num:1,v:s=>ind(s).volRatio},
@@ -557,12 +583,114 @@ function update(){
     return `<tr data-c="${esc(s.code)}" class="${selected===s.code?'sel':''}">
       <td class="code">${esc(s.code)}</td><td class="name">${esc(s.name)}</td><td style="color:var(--sub);font-size:12px">${esc(s.sector||'—')}</td>
       <td class="num">${fmtP(I.c[L])}</td><td class="num ${cls(I.chgPct)}">${fmtPct(I.chgPct)}</td>
+      <td class="num tblc">${fmtX(fund(s).per)}${judge(fund(s).per,secStat(s.sector).per,true)}</td>
+      <td class="num tblc">${fmtX(fund(s).pbr,2)}${judge(fund(s).pbr,secStat(s.sector).pbr,true)}</td>
       <td class="num ${r>=70?'down':r<=30?'up':''}">${r==null?'—':r.toFixed(1)}</td>
       <td class="num ${cls(d)}">${fmtPct(d,1)}</td>
       <td class="num">${I.volRatio==null?'—':I.volRatio.toFixed(2)+'倍'}</td>
       <td>${signals(s).map(([t,k])=>`<span class="sig ${k}">${t}</span>`).join('')}</td></tr>`;}).join('');
   $('empty').style.display=rows.length?'none':'block';
   [...$('tbody').children].forEach(tr=>tr.onclick=()=>select(tr.dataset.c));
+}
+
+
+/* ---------------- ファンダメンタル ---------------- */
+function fund(s){
+  const L=s.bars.length-1,c=s.bars[L].c,f=s.f||{};
+  const pos=v=>v!=null&&v>0;
+  return {per:pos(f.eps)?c/f.eps:null, perNeg:f.eps!=null&&f.eps<=0, fper:pos(f.feps)?c/f.feps:null,
+    pbr:pos(f.bps)?c/f.bps:null, mcap:pos(f.sh)?f.sh*c:null,
+    dy:(f.div!=null?f.div:f.tdiv)!=null?(f.div!=null?f.div:f.tdiv)/c*100:null,
+    roe:f.roe!=null?f.roe*100:null, om:f.om!=null?f.om*100:null, rg:f.rg!=null?f.rg*100:null, eg:f.eg!=null?f.eg*100:null,
+    de:f.de!=null?f.de:null, eps:f.eps, feps:f.feps, t:f.t, has:!!s.f};
+}
+let SEC=null;
+function median(a){if(!a.length)return null;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function secStat(sector){
+  if(!SEC){SEC={};const g={};
+    DATA.forEach(s=>{const k=s.sector||'';(g[k]=g[k]||[]).push(fund(s));});
+    for(const [k,arr] of Object.entries(g)){
+      const pick=(key,lo,hi)=>arr.map(x=>x[key]).filter(v=>v!=null&&v>lo&&v<hi);
+      SEC[k]={n:arr.length,per:median(pick('per',0,200)),fper:median(pick('fper',0,200)),pbr:median(pick('pbr',0,30)),
+        roe:median(pick('roe',-100,100)),om:median(pick('om',-100,100)),dy:median(pick('dy',-1,20))};}}
+  return SEC[sector||'']||{};
+}
+function fmtX(v,d=1,u='倍'){return v==null?'—':v.toFixed(d)+u;}
+function fmtYen(v){if(v==null)return '—';if(v>=1e12)return (v/1e12).toFixed(2)+'兆円';if(v>=1e8)return Math.round(v/1e8).toLocaleString('ja-JP')+'億円';return Math.round(v).toLocaleString('ja-JP')+'円';}
+// lowGood=true: 低いほど割安（PER・PBR）
+function judge(v,m,lowGood,small){
+  if(v==null||m==null)return '';
+  const r=v/m-1;
+  if(Math.abs(r)<0.1)return '<span class="jd eq">並</span>';
+  const low=r<0;
+  return low?'<span class="jd lo">低</span>':'<span class="jd hi">高</span>';
+}
+function pctDiff(v,m){if(v==null||m==null)return '';const r=(v/m-1)*100;return `${r>0?'+':''}${r.toFixed(0)}%`;}
+
+function fundComment(s){
+  const F=fund(s),S=secStat(s.sector),out=[];let sc=0;
+  const add=(t,txt)=>{out.push([t,txt]);sc+=t==='p'?1:t==='m'?-1:0;};
+  if(F.perNeg)add('m','直近12ヶ月の利益が赤字（または0）のため、PERは計算できません。業績の回復が株価の前提になります。');
+  else if(F.per!=null&&S.per!=null){const r=F.per/S.per-1;
+    if(r<=-0.2)add('p',`PERは${F.per.toFixed(1)}倍で、同業種の中央値（${S.per.toFixed(1)}倍）より${Math.round(-r*100)}%低く、利益に対して株価は割安な水準です。`);
+    else if(r>=0.2)add('m',`PERは${F.per.toFixed(1)}倍で、同業種の中央値（${S.per.toFixed(1)}倍）より${Math.round(r*100)}%高く、成長期待がすでに株価に織り込まれている水準です。`);
+    else add('n',`PERは${F.per.toFixed(1)}倍で、同業種の中央値（${S.per.toFixed(1)}倍）とほぼ同じ水準です。`);}
+  if(F.eps!=null&&F.feps!=null&&F.eps>0){const g=F.feps/F.eps-1;
+    if(g>=0.1)add('p',`予想EPS（${F.feps.toFixed(1)}円）が実績EPS（${F.eps.toFixed(1)}円）を${Math.round(g*100)}%上回っており、増益が見込まれています。予想PERは${F.fper.toFixed(1)}倍です。`);
+    else if(g<=-0.1)add('m',`予想EPS（${F.feps.toFixed(1)}円）が実績EPS（${F.eps.toFixed(1)}円）を${Math.round(-g*100)}%下回っており、減益が見込まれています。`);}
+  if(F.pbr!=null){
+    if(F.pbr<1)add(F.roe!=null&&F.roe<5?'n':'p',`PBRは${F.pbr.toFixed(2)}倍で1倍を下回っています（株価が1株あたり純資産より安い）。資産面では割安ですが、${F.roe!=null&&F.roe<5?'ROEが低いため、市場の評価が低いままになりやすい点に注意が必要です。':'東証が改善を求めている水準で、株主還元策などが出ると見直される余地があります。'}`);
+    else if(S.pbr!=null&&F.pbr>S.pbr*1.5)add('n',`PBRは${F.pbr.toFixed(2)}倍で、同業種の中央値（${S.pbr.toFixed(2)}倍）より高く、資産より収益力や将来性で評価されている銘柄です。`);
+    else if(S.pbr!=null)add('n',`PBRは${F.pbr.toFixed(2)}倍（同業種の中央値 ${S.pbr.toFixed(2)}倍）です。`);}
+  if(F.roe!=null){
+    if(F.roe>=15)add('p',`ROEは${F.roe.toFixed(1)}%と高く、株主のお金を効率よく利益に変えています。`);
+    else if(F.roe>=8)add('n',`ROEは${F.roe.toFixed(1)}%で、日本企業の目安とされる8%を上回っています。`);
+    else if(F.roe>=0)add('m',`ROEは${F.roe.toFixed(1)}%で、目安の8%を下回っており、資本効率は低めです。`);
+    else add('m',`ROEは${F.roe.toFixed(1)}%でマイナス（赤字）です。`);}
+  if(F.om!=null&&S.om!=null){
+    if(F.om>=S.om*1.5&&F.om>5)add('p',`営業利益率は${F.om.toFixed(1)}%で、同業種の中央値（${S.om.toFixed(1)}%）より高く、稼ぐ力が強い会社です。`);
+    else if(F.om<S.om*0.5)add('m',`営業利益率は${F.om.toFixed(1)}%で、同業種の中央値（${S.om.toFixed(1)}%）より低めです。`);}
+  if(F.rg!=null||F.eg!=null){
+    const t=[];if(F.rg!=null)t.push(`売上高 ${F.rg>0?'+':''}${F.rg.toFixed(1)}%`);if(F.eg!=null)t.push(`利益 ${F.eg>0?'+':''}${F.eg.toFixed(1)}%`);
+    const good=(F.rg??0)>=5&&(F.eg??0)>=5, bad=(F.rg??0)<0&&(F.eg??0)<0;
+    add(good?'p':bad?'m':'n',`直近の四半期は前年同期比で ${t.join('、')}${good?'と、増収増益です。':bad?'と、減収減益です。':'です。'}`);}
+  if(F.dy!=null){
+    if(F.dy>=3.5)add('p',`配当利回りは${F.dy.toFixed(2)}%と高めです。`);
+    else if(F.dy>0)add('n',`配当利回りは${F.dy.toFixed(2)}%です。`);
+    else add('n','現在は無配です。');}
+  if(F.de!=null){
+    if(F.de>=150)add('m',`負債資本倍率が${Math.round(F.de)}%と高く、借入金が多めの財務です（金融・不動産などは業種の特性で高くなりがちです）。`);
+    else if(F.de<=30)add('p',`負債資本倍率は${Math.round(F.de)}%と低く、財務は健全です。`);}
+  const sum=!out.length?null:sc>=2?'ファンダメンタル面は良好（割安さ・収益力にプラス材料が多い）':sc<=-2?'ファンダメンタル面は弱め（マイナス材料が目立つ）':'ファンダメンタル面は中立（プラスとマイナスが混在）';
+  return {items:out,sum};
+}
+
+function renderFund(s){
+  const box=$('dFund'),F=fund(s),S=secStat(s.sector);
+  if(!F.has){box.innerHTML='<h3>ファンダメンタル</h3><p class="fnote">この銘柄の財務データはまだ取得できていません（毎日少しずつ取得しています）。</p>';return;}
+  const row=(name,v,m,fmt,lowGood)=>`<tr><td>${name}</td><td>${fmt(v)}</td><td>${fmt(m)}</td><td>${lowGood===undefined?'':judge(v,m,lowGood)} <span style="color:var(--sub);font-size:11px">${pctDiff(v,m)}</span></td></tr>`;
+  const x1=v=>fmtX(v,1),x2=v=>fmtX(v,2),pc=v=>v==null?'—':v.toFixed(1)+'%',pc2=v=>v==null?'—':v.toFixed(2)+'%';
+  let h=`<h3>PER・PBR（同業種との比較）<small>${esc(s.sector)}・${S.n||0}社の中央値と比較</small></h3>
+  <table class="ftbl"><tr><th>指標</th><th>この銘柄</th><th>業種中央値</th><th>判定</th></tr>
+  ${row('PER（実績）',F.per,S.per,x1,true)}${row('PER（予想）',F.fper,S.fper,x1,true)}${row('PBR',F.pbr,S.pbr,x2,true)}
+  ${row('ROE',F.roe,S.roe,pc)}${row('営業利益率',F.om,S.om,pc)}${row('配当利回り',F.dy,S.dy,pc2)}</table>`;
+  // ライバル：同業種で時価総額が近い会社
+  const peers=DATA.filter(p=>p.sector===s.sector&&p.code!==s.code&&fund(p).mcap).map(p=>({p,F:fund(p)}));
+  if(F.mcap&&peers.length){
+    peers.sort((a,b)=>Math.abs(Math.log(a.F.mcap/F.mcap))-Math.abs(Math.log(b.F.mcap/F.mcap)));
+    const list=[{p:s,F,me:1},...peers.slice(0,5)].sort((a,b)=>b.F.mcap-a.F.mcap);
+    h+=`<h3>ライバル企業との比較<small>同業種で時価総額が近い5社</small></h3>
+    <table class="ftbl"><tr><th>銘柄</th><th>時価総額</th><th>PER</th><th>PBR</th><th>ROE</th></tr>
+    ${list.map(({p,F:G,me})=>`<tr class="${me?'me':'peer'}" data-c="${esc(p.code)}"><td>${esc(p.name)}</td><td>${fmtYen(G.mcap)}</td><td>${G.perNeg?'赤字':x1(G.per)}</td><td>${x2(G.pbr)}</td><td>${pc(G.roe)}</td></tr>`).join('')}</table>`;
+    const rk=(key)=>{const all=[F,...peers.slice(0,5).map(x=>x.F)].map(x=>x[key]).filter(v=>v!=null);const v=F[key];if(v==null||all.length<2)return null;return all.filter(x=>x<v).length+1+'位/'+all.length+'社';};
+    const rp=rk('per'),rb=rk('pbr');
+    if(rp||rb)h+=`<p class="fnote">ライバル${Math.min(5,peers.length)}社と比べた低さの順位：PER ${rp||'—'}、PBR ${rb||'—'}（1位がいちばん割安）</p>`;
+  }
+  const C=fundComment(s);
+  h+=`<h3>ファンダメンタル分析コメント</h3>${C.sum?`<div class="cm-sum">${C.sum}</div>`:''}<ul class="cm">${C.items.map(([t,x])=>`<li class="${t}">${x}</li>`).join('')}</ul>
+  <p class="fnote">財務データ：Yahoo Finance（${esc(F.t||'')}取得）。PER・PBR・配当利回りは${esc(s.bars[s.bars.length-1].d)}の終値で計算。コメントは数値から機械的に作ったもので、売買のおすすめではありません。</p>`;
+  box.innerHTML=h;
+  box.querySelectorAll('tr.peer').forEach(tr=>tr.onclick=()=>select(tr.dataset.c));
 }
 
 /* ---------------- 詳細・チャート ---------------- */
@@ -584,26 +712,28 @@ function select(code){
   const look=Math.min(250,L);const hh=Math.max(...I.h.slice(L-look,L+1)),ll=Math.min(...I.l.slice(L-look,L+1));
   st.push(['52週高値',fmtP(hh)],['52週安値',fmtP(ll)]);
   $('dStats').innerHTML=st.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  renderFund(s);
   drawChart();
   if(window.innerWidth<900)$('detailCard').scrollIntoView({behavior:'smooth'});
 }
 
 const MA_COL={5:'#e08a00',25:'#2a8a4a',75:'#7a4fbf'};
-let hoverIdx=null;
+let hoverIdx=null,chartType='candle';
+try{const t=localStorage.getItem('chartType');if(t==='line'||t==='candle')chartType=t;}catch(e){}
 function drawChart(){
   const s=DATA.find(x=>x.code===selected);if(!s)return;
   const I=ind(s),cv=$('chart'),dpr=window.devicePixelRatio||1;
   const W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const showMA=$('tMA').checked,showBB=$('tBB').checked;
-  $('legend').innerHTML=(showMA?Object.entries(MA_COL).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:#9aa6b2"></i>ボリンジャー(20,±2σ)</span>`:'')+`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`;
+  $('legend').innerHTML=(showMA?Object.entries(MA_COL).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:#9aa6b2"></i>ボリンジャー(20,±2σ)</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
   const n=Math.min(range,I.L+1),st=I.L+1-n;
   const padL=8,padR=62,top=8;
   const pH=H*0.62,vTop=pH+18,vH=H*0.13,rTop=vTop+vH+18,rH=H-rTop-20;
   const cw=(W-padL-padR)/n;
   const X=i=>padL+(i-st+0.5)*cw;
   let mn=Infinity,mx=-Infinity;
-  for(let i=st;i<=I.L;i++){mn=Math.min(mn,I.l[i]);mx=Math.max(mx,I.h[i]);
+  for(let i=st;i<=I.L;i++){const lo=chartType==='line'?I.c[i]:I.l[i],hi=chartType==='line'?I.c[i]:I.h[i];mn=Math.min(mn,lo);mx=Math.max(mx,hi);
     if(showMA)[5,25,75].forEach(p=>{const v=I.getSma(p)[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}});
     if(showBB&&I.bb.u[i]!=null){mn=Math.min(mn,I.bb.d[i]);mx=Math.max(mx,I.bb.u[i]);}}
   const pad=(mx-mn)*0.06;mn-=pad;mx+=pad;
@@ -624,6 +754,11 @@ function drawChart(){
   // candles
   const up=getComputedStyle(document.documentElement).getPropertyValue('--up').trim(),dn=getComputedStyle(document.documentElement).getPropertyValue('--down').trim();
   const bw=Math.max(1,cw*0.65);
+  if(chartType==='line'){
+    const g=ctx.createLinearGradient(0,top,0,pH);g.addColorStop(0,'rgba(31,78,121,.18)');g.addColorStop(1,'rgba(31,78,121,0)');
+    ctx.beginPath();ctx.moveTo(X(st),pH);for(let i=st;i<=I.L;i++)ctx.lineTo(X(i),Y(I.c[i]));ctx.lineTo(X(I.L),pH);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+    line(ctx,I.c,st,I.L,X,Y,'#1d1d1b',[]);
+  }else
   for(let i=st;i<=I.L;i++){const b=s.bars[i],c=b.c>=b.o?up:dn;ctx.strokeStyle=c;ctx.fillStyle=c;
     ctx.beginPath();ctx.moveTo(X(i),Y(b.h));ctx.lineTo(X(i),Y(b.l));ctx.stroke();
     const y1=Y(Math.max(b.o,b.c)),y2=Y(Math.min(b.o,b.c));
@@ -655,6 +790,9 @@ $('chart').addEventListener('mousemove',e=>{const g=e.target._geo;if(!g)return;c
   const i=g.st+Math.floor((e.clientX-r.left-g.padL)/g.cw);const ni=Math.max(g.st,Math.min(g.L,i));if(ni!==hoverIdx){hoverIdx=ni;drawChart();}});
 $('chart').addEventListener('mouseleave',()=>{hoverIdx=null;drawChart();});
 $('rangeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;range=+b.dataset.r;[...$('rangeSeg').children].forEach(x=>x.classList.toggle('on',x===b));drawChart();});
+$('typeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;chartType=b.dataset.t;try{localStorage.setItem('chartType',chartType);}catch(_){}
+  [...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x===b));drawChart();});
+[...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.t===chartType));
 $('tMA').onchange=drawChart;$('tBB').onchange=drawChart;
 window.addEventListener('resize',()=>{if(selected)drawChart();});
 
@@ -685,6 +823,7 @@ function importCSV(text){
   return `${list.length}銘柄・${list.reduce((a,s)=>a+s.bars.length,0).toLocaleString()}行を読み込みました。`+(bad?` ${bad}行は形式が合わず飛ばしました。`:'')+(short?` ${short}銘柄は60日未満のため一部の条件が判定できません。`:'');
 }
 function afterDataChange(){
+  SEC=null;
   const live=DATA===LIVE;
   $('dataBadge').textContent=live?LIVE_LABEL:'読み込んだCSVデータ';
   $('btnReset').style.display=live?'none':'';
@@ -709,14 +848,14 @@ $('btnClear').onclick=()=>{CONDS.forEach(c=>state[c.id].on=false);renderConds();
 
 /* ---------------- 起動 ---------------- */
 renderPresets();renderConds();renderHead();
-$('tbody').innerHTML='<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
+$('tbody').innerHTML='<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(j=>{
   LIVE=j.stocks.map(x=>{const bars=[];let c10=0;for(let i=0;i<x.dc.length;i++){c10+=x.dc[i];bars.push({d:j.dates[x.st+i],o:(c10+x.o[i])/10,h:(c10+x.h[i])/10,l:(c10+x.l[i])/10,c:c10/10,v:x.v[i]*100});}
-    return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars};});
+    return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
   LIVE_LABEL=`東証プライム ${LIVE.length}銘柄・${j.asof} 終値（${j.updated} 更新）`;
   DATA=LIVE;afterDataChange();applyPreset(PRESETS[0]);
 }).catch(e=>{$('dataBadge').textContent='データを読み込めませんでした';
-  $('tbody').innerHTML=`<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
+  $('tbody').innerHTML=`<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
 })();
 </script>
 </body>

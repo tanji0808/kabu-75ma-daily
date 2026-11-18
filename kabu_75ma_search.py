@@ -9,7 +9,7 @@
 
   条件（初期値。下の「設定」で変えられます）
     1. 東証プライム銘柄
-    2. 出来高 30万株以上（直近の営業日）
+    2. 出来高 50万株以上（直近の営業日）
     3. 3ヶ月〜半年 下落が続いている
          - 75日線が約3ヶ月前（60営業日前）より 2% 以上下がっている
          - 直近3ヶ月の 75% 以上の日で、終値が75日線の下にある
@@ -46,7 +46,7 @@ from datetime import datetime
 import pandas as pd
 
 # ============================== 設定 ==============================
-MIN_VOLUME = 300_000          # 出来高の下限（株）
+MIN_VOLUME = 500_000          # 出来高の下限（株）
 VOLUME_MODE = "last"          # "last"=直近の営業日 / "avg5"=直近5日平均 / "avg20"=直近20日平均
 
 MA = 75                       # 基準の移動平均（日）
@@ -272,6 +272,11 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
 def write_data_json(master: pd.DataFrame, prices: dict, path: str, days: int = 260) -> None:
     """全銘柄の日足を、Webのスクリーナーが読める軽いJSONにする。"""
     import json
+    fund = {}
+    fpath = os.environ.get("FUND_PATH", "data/fundamentals.json")
+    if os.path.exists(fpath):
+        with open(fpath, encoding="utf-8") as f:
+            fund = json.load(f)
     dates = sorted(set().union(*[set(df.index) for df in prices.values()]))[-days:]
     idx = pd.DatetimeIndex(dates)
     stocks = []
@@ -293,7 +298,8 @@ def write_data_json(master: pd.DataFrame, prices: dict, path: str, days: int = 2
         stocks.append({"c": m["コード"], "n": m["銘柄名"], "s": m["業種"], "st": len(idx) - len(d),
                        "dc": [int(c10.iloc[0])] + [int(x) for x in c10.diff().iloc[1:]],
                        "o": rel("Open"), "h": rel("High"), "l": rel("Low"),
-                       "v": [int(round(x / 100)) for x in d["Volume"]]})
+                       "v": [int(round(x / 100)) for x in d["Volume"]],
+                       **({"f": fund[m["コード"]]} if m["コード"] in fund else {})})
     data = {"asof": idx[-1].strftime("%Y-%m-%d"), "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "market": "プライム", "fmt": 2, "dates": [x.strftime("%Y-%m-%d") for x in idx], "stocks": stocks}
     with open(path, "w", encoding="utf-8") as f:
