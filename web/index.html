@@ -758,7 +758,6 @@ function drawChart(){
   if(showBB){ctx.fillStyle='rgba(154,166,178,.12)';ctx.beginPath();let f=true;
     for(let i=st;i<=I.L;i++){if(I.bb.u[i]==null)continue;f?ctx.moveTo(X(i),Y(I.bb.u[i])):ctx.lineTo(X(i),Y(I.bb.u[i]));f=false;}
     for(let i=I.L;i>=st;i--){if(I.bb.d[i]==null)continue;ctx.lineTo(X(i),Y(I.bb.d[i]));}ctx.fill();
-    line(ctx,I.bb.m,st,I.L,X,Y,'#9aa6b2',[3,3]);
     [['u',[]],['u1',[4,3]],['d1',[4,3]],['d',[]]].forEach(([k,dash])=>line(ctx,I.bb[k],st,I.L,X,Y,BB_COL[k],dash));}
   // candles
   const up=getComputedStyle(document.documentElement).getPropertyValue('--up').trim(),dn=getComputedStyle(document.documentElement).getPropertyValue('--down').trim();
