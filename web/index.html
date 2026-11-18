@@ -106,6 +106,7 @@ td.name{font-weight:500}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:14px}
 .stat{background:#faf9f6;border:1px solid var(--soft);border-radius:8px;padding:8px 10px}
 .stat .k{font-size:11px;color:var(--sub)}
+.bbdot{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
 .stat .v{font-family:var(--mono);font-size:15px;font-weight:500}
 .chart-tools{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;align-items:center}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
@@ -220,7 +221,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
             <label><input type="checkbox" id="tM5" checked>5日線</label>
             <label><input type="checkbox" id="tM25" checked>25日線</label>
             <label><input type="checkbox" id="tM75" checked>75日線</label>
-            <label><input type="checkbox" id="tBB">ボリンジャー±2σ</label>
+            <label><input type="checkbox" id="tBB">ボリンジャー±1σ・±2σ</label>
           </div>
           <button class="btn" id="btnBook" style="padding:4px 10px;font-size:12px">本の見方にする</button>
         </div>
@@ -353,9 +354,10 @@ function rsi(a,n=14){const o=new Array(a.length).fill(null);if(a.length<=n)retur
   o[n]=l===0?100:100-100/(1+g/l);
   for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;o[i]=l===0?100:100-100/(1+g/l);}
   return o;}
-function boll(a,n=25,k=2){const m=sma(a,n),u=new Array(a.length).fill(null),d=new Array(a.length).fill(null);
-  for(let i=n-1;i<a.length;i++){let s=0;for(let j=i-n+1;j<=i;j++)s+=(a[j]-m[i])**2;const sd=Math.sqrt(s/n);u[i]=m[i]+k*sd;d[i]=m[i]-k*sd;}
-  return {m,u,d};}
+function boll(a,n=25,k=2){const m=sma(a,n),N=()=>new Array(a.length).fill(null),u=N(),d=N(),u1=N(),d1=N();
+  for(let i=n-1;i<a.length;i++){let s=0;for(let j=i-n+1;j<=i;j++)s+=(a[j]-m[i])**2;const sd=Math.sqrt(s/n);u[i]=m[i]+k*sd;d[i]=m[i]-k*sd;u1[i]=m[i]+sd;d1[i]=m[i]-sd;}
+  return {m,u,d,u1,d1};}
+const BB_COL={u:'#d9534f',u1:'#f0a35e',d1:'#5fa8d8',d:'#2f6fc4'};
 
 function ind(s){
   if(s._ind)return s._ind;
@@ -710,6 +712,8 @@ function select(code){
   $('dChg').innerHTML=`<span class="${cls(I.chg)}">${I.chg>0?'+':''}${fmtP(I.chg)}（${fmtPct(I.chgPct)}）</span>`;
   const st=[
     ['5日線',fmtP(I.getSma(5)[L])],['25日線',fmtP(I.getSma(25)[L])],['75日線',fmtP(I.getSma(75)[L])],
+    ['<i class="bbdot" style="background:'+BB_COL.u+'"></i>BB +2σ',fmtP(I.bb.u[L])],['<i class="bbdot" style="background:'+BB_COL.u1+'"></i>BB +1σ',fmtP(I.bb.u1[L])],
+    ['<i class="bbdot" style="background:'+BB_COL.d1+'"></i>BB −1σ',fmtP(I.bb.d1[L])],['<i class="bbdot" style="background:'+BB_COL.d+'"></i>BB −2σ',fmtP(I.bb.d[L])],
     ['RSI(14)',I.rsi[L]==null?'—':I.rsi[L].toFixed(1)],['MACD',I.macd[L]==null?'—':I.macd[L].toFixed(1)],['シグナル',I.sig[L]==null?'—':I.sig[L].toFixed(1)],
     ['25日乖離',fmtPct(dev(s,25),1)],['出来高',I.v[L].toLocaleString('ja-JP')],['出来高倍率',I.volRatio==null?'—':I.volRatio.toFixed(2)+'倍'],
   ];
@@ -730,7 +734,7 @@ function drawChart(){
   const W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
   const MAS=[5,25,75].filter(n=>$('tM'+n).checked),showBB=$('tBB').checked;
-  $('legend').innerHTML=(MAS.length?Object.entries(MA_COL).filter(([n])=>MAS.includes(+n)).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:#9aa6b2"></i>ボリンジャー(25日,±2σ)</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
+  $('legend').innerHTML=(MAS.length?Object.entries(MA_COL).filter(([n])=>MAS.includes(+n)).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:${BB_COL.u}"></i>+2σ</span><span><i style="background:${BB_COL.u1}"></i>+1σ</span><span><i style="background:${BB_COL.d1}"></i>−1σ</span><span><i style="background:${BB_COL.d}"></i>−2σ</span><span style="color:var(--sub)">（ボリンジャー25日）</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
   const n=Math.min(range,I.L+1),st=I.L+1-n;
   const padL=8,padR=62,top=8;
   const pH=H*0.62,vTop=pH+18,vH=H*0.13,rTop=vTop+vH+18,rH=H-rTop-20;
@@ -754,7 +758,8 @@ function drawChart(){
   if(showBB){ctx.fillStyle='rgba(154,166,178,.12)';ctx.beginPath();let f=true;
     for(let i=st;i<=I.L;i++){if(I.bb.u[i]==null)continue;f?ctx.moveTo(X(i),Y(I.bb.u[i])):ctx.lineTo(X(i),Y(I.bb.u[i]));f=false;}
     for(let i=I.L;i>=st;i--){if(I.bb.d[i]==null)continue;ctx.lineTo(X(i),Y(I.bb.d[i]));}ctx.fill();
-    [I.bb.u,I.bb.d,I.bb.m].forEach((arr,j)=>{line(ctx,arr,st,I.L,X,Y,'#9aa6b2',j===2?[3,3]:[]);});}
+    line(ctx,I.bb.m,st,I.L,X,Y,'#9aa6b2',[3,3]);
+    [['u',[]],['u1',[4,3]],['d1',[4,3]],['d',[]]].forEach(([k,dash])=>line(ctx,I.bb[k],st,I.L,X,Y,BB_COL[k],dash));}
   // candles
   const up=getComputedStyle(document.documentElement).getPropertyValue('--up').trim(),dn=getComputedStyle(document.documentElement).getPropertyValue('--down').trim();
   const bw=Math.max(1,cw*0.65);

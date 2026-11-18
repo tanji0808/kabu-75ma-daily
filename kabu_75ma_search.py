@@ -219,8 +219,8 @@ def _svg_chart(df: pd.DataFrame, days: int = 120) -> str:
     c = df["Close"]
     ma25, ma75 = c.rolling(25).mean(), c.rolling(MA).mean()
     sd = c.rolling(25).std(ddof=0)
-    bu, bd = ma25 + 2 * sd, ma25 - 2 * sd
-    cl, m25, m75, u, d = (x.iloc[-days:] for x in (c, ma25, ma75, bu, bd))
+    bu, bd, bu1, bd1 = ma25 + 2 * sd, ma25 - 2 * sd, ma25 + sd, ma25 - sd
+    cl, m25, m75, u, d, u1, d1 = (x.iloc[-days:] for x in (c, ma25, ma75, bu, bd, bu1, bd1))
     vals = [v for ser in (cl, m25, m75, u, d) for v in ser if pd.notna(v)]
     lo, hi = min(vals), max(vals)
     pad = (hi - lo) * 0.05 or 1
@@ -234,8 +234,10 @@ def _svg_chart(df: pd.DataFrame, days: int = 120) -> str:
     band = " ".join(f"{x:.1f},{y:.1f}" for x, y in up_pts + dn_pts[::-1])
     return (f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="ch">'
             f'<polygon points="{band}" fill="rgba(154,166,178,.18)"/>'
-            f'<polyline points="{pts(u)}" fill="none" stroke="#9aa6b2" stroke-width="1"/>'
-            f'<polyline points="{pts(d)}" fill="none" stroke="#9aa6b2" stroke-width="1"/>'
+            f'<polyline points="{pts(u)}" fill="none" stroke="#d9534f" stroke-width="1"/>'
+            f'<polyline points="{pts(u1)}" fill="none" stroke="#f0a35e" stroke-width="1" stroke-dasharray="3 2"/>'
+            f'<polyline points="{pts(d1)}" fill="none" stroke="#5fa8d8" stroke-width="1" stroke-dasharray="3 2"/>'
+            f'<polyline points="{pts(d)}" fill="none" stroke="#2f6fc4" stroke-width="1"/>'
             f'<polyline points="{pts(m25)}" fill="none" stroke="#2a8a4a" stroke-width="1.6"/>'
             f'<polyline points="{pts(m75)}" fill="none" stroke="#7a4fbf" stroke-width="1.8"/>'
             f'<polyline points="{pts(cl)}" fill="none" stroke="#1d1d1b" stroke-width="1.5"/></svg>')
@@ -283,7 +285,7 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
 <header><h1>75日線ブレイク候補　{len(rows)}銘柄</h1>
 <div class="meta">{data_date} 終値時点（{now} 更新）｜東証プライム {checked}銘柄から検索<br>
 条件：3ヶ月以上の下落後、75日線を下から突き抜けそう／抜けた直後・出来高{MIN_VOLUME:,}株以上<br>
-チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#9aa6b2"></span>ボリンジャー±2σ<br>
+チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#d9534f"></span>+2σ<span class="lg2" style="background:#f0a35e"></span>+1σ<span class="lg2" style="background:#5fa8d8"></span>−1σ<span class="lg2" style="background:#2f6fc4"></span>−2σ（ボリンジャー25日）<br>
 カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a></div></header>
 <div class="wrap">{body}</div>
 <footer>機械的に条件で拾った候補で、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。データ：Yahoo Finance（yfinance）／東証上場銘柄一覧</footer>
