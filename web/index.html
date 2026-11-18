@@ -119,7 +119,7 @@ td.name{font-weight:500}
 .legend{display:flex;gap:14px;font-size:11.5px;color:var(--sub);margin:4px 0 6px;flex-wrap:wrap}
 .legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px}
 canvas{width:100%;display:block}
-#chart{height:460px}
+#chart{height:580px}
 
 .modal-bg{position:fixed;inset:0;background:rgba(20,20,18,.35);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal-bg.show{display:flex}
@@ -152,6 +152,22 @@ canvas{width:100%;display:block}
 .cm-sum{font-size:13.5px;font-weight:700;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px}
 .fnote{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6}
 .tblc .jd{margin-left:4px}
+
+.search{padding:10px 12px;position:relative}
+.sbox{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:#fff}
+.sbox:focus-within{border-color:var(--accent)}
+.sicon{font-size:14px;opacity:.6}
+#q{border:0;outline:0;padding:10px 0;width:100%;font-size:16px;background:transparent}
+#sug{display:none;margin-top:6px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#sug.show{display:block}
+#sug button{display:flex;width:100%;gap:10px;align-items:baseline;border:0;border-bottom:1px solid var(--soft);background:#fff;padding:10px 12px;text-align:left;cursor:pointer}
+#sug button:last-child{border-bottom:0}
+#sug button:hover,#sug button.on{background:var(--accent-soft)}
+#sug .c{font-family:var(--mono);color:var(--sub);font-size:12.5px;min-width:38px}
+#sug .n{font-weight:500;flex:1}
+#sug .s{font-size:11.5px;color:var(--sub)}
+#sug .p{font-family:var(--mono);font-size:12.5px}
+#sug .none{padding:12px;color:var(--sub);font-size:13px}
 footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color:var(--sub)}
 </style>
 </head>
@@ -187,6 +203,10 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
   </aside>
 
   <main class="main">
+    <section class="card search">
+      <div class="sbox"><span class="sicon">🔍</span><input id="q" type="search" placeholder="銘柄名・コードで検索（全銘柄から）" autocomplete="off"></div>
+      <div id="sug"></div>
+    </section>
     <section class="card">
       <div class="result-head">
         <div class="count" id="count">0<small>銘柄が該当</small></div>
@@ -737,7 +757,7 @@ function drawChart(){
   $('legend').innerHTML=(MAS.length?Object.entries(MA_COL).filter(([n])=>MAS.includes(+n)).map(([n,c])=>`<span><i style="background:${c}"></i>${n}日線</span>`).join(''):'')+(showBB?`<span><i style="background:${BB_COL.u}"></i>+2σ</span><span><i style="background:${BB_COL.u1}"></i>+1σ</span><span><i style="background:${BB_COL.d1}"></i>−1σ</span><span><i style="background:${BB_COL.d}"></i>−2σ</span><span style="color:var(--sub)">（ボリンジャー25日）</span>`:'')+(chartType==='line'?`<span><i style="background:#1d1d1b"></i>終値</span>`:`<span><i style="background:var(--up)"></i>陽線</span><span><i style="background:var(--down)"></i>陰線</span>`);
   const n=Math.min(range,I.L+1),st=I.L+1-n;
   const padL=8,padR=62,top=8;
-  const pH=H*0.62,vTop=pH+18,vH=H*0.13,rTop=vTop+vH+18,rH=H-rTop-20;
+  const pH=H*0.52,vTop=pH+18,vH=H*0.10,rTop=vTop+vH+18,rH=H*0.12,mTop=rTop+rH+18,mH=H-mTop-20;
   const cw=(W-padL-padR)/n;
   const X=i=>padL+(i-st+0.5)*cw;
   let mn=Infinity,mx=-Infinity;
@@ -783,10 +803,23 @@ function drawChart(){
   ctx.strokeStyle='#eceae4';[30,50,70].forEach(v=>{ctx.beginPath();ctx.moveTo(padL,RY(v));ctx.lineTo(W-padR,RY(v));ctx.stroke();ctx.fillStyle='#8a8983';ctx.fillText(v,W-padR+6,RY(v));});
   ctx.fillStyle='#8a8983';ctx.fillText('RSI(14)',padL,rTop-7);
   line(ctx,I.rsi,st,I.L,X,RY,'#1f4e79',[]);
+  // MACD
+  let mmn=0,mmx=0;for(let i=st;i<=I.L;i++){[I.macd[i],I.sig[i]].forEach(v=>{if(v!=null){mmn=Math.min(mmn,v);mmx=Math.max(mmx,v);}});}
+  if(mmx===mmn)mmx=mmn+1;const mp=(mmx-mmn)*0.08;mmn-=mp;mmx+=mp;
+  const MY=v=>mTop+(mmx-v)/(mmx-mmn)*mH;
+  ctx.strokeStyle='#d6d3cb';ctx.beginPath();ctx.moveTo(padL,MY(0));ctx.lineTo(W-padR,MY(0));ctx.stroke();
+  ctx.fillStyle='#8a8983';ctx.fillText('0',W-padR+6,MY(0));ctx.fillText(fmtP(mmx-mp),W-padR+6,mTop+5);ctx.fillText(fmtP(mmn+mp),W-padR+6,mTop+mH-5);
+  for(let i=st;i<=I.L;i++){if(I.macd[i]==null||I.sig[i]==null)continue;const hv=I.macd[i]-I.sig[i];
+    ctx.fillStyle=hv>=0?'rgba(200,49,43,.4)':'rgba(31,95,191,.4)';const y0=MY(0),y1=MY(hv);ctx.fillRect(X(i)-bw/2,Math.min(y0,y1),bw,Math.max(1,Math.abs(y1-y0)));}
+  line(ctx,I.macd,st,I.L,X,MY,'#1f4e79',[]);line(ctx,I.sig,st,I.L,X,MY,'#e08a00',[]);
+  ctx.fillStyle='#8a8983';ctx.fillText('MACD(12,26,9)',padL,mTop-7);
+  const lx=padL+ctx.measureText('MACD(12,26,9)').width+12;
+  ctx.fillStyle='#1f4e79';ctx.fillRect(lx,mTop-8,12,2);ctx.fillStyle='#8a8983';ctx.fillText('MACD',lx+16,mTop-7);
+  const lx2=lx+16+ctx.measureText('MACD').width+10;ctx.fillStyle='#e08a00';ctx.fillRect(lx2,mTop-8,12,2);ctx.fillStyle='#8a8983';ctx.fillText('シグナル',lx2+16,mTop-7);
   // hover
   if(hoverIdx!=null&&hoverIdx>=st&&hoverIdx<=I.L){
     const i=hoverIdx,b=s.bars[i];ctx.strokeStyle='rgba(0,0,0,.25)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(X(i),top);ctx.lineTo(X(i),H-18);ctx.stroke();ctx.setLineDash([]);
-    const txt=`${b.d}  始 ${fmtP(b.o)}  高 ${fmtP(b.h)}  安 ${fmtP(b.l)}  終 ${fmtP(b.c)}  出来高 ${b.v.toLocaleString('ja-JP')}  RSI ${I.rsi[i]==null?'—':I.rsi[i].toFixed(1)}`;
+    const txt=`${b.d}  始 ${fmtP(b.o)}  高 ${fmtP(b.h)}  安 ${fmtP(b.l)}  終 ${fmtP(b.c)}  出来高 ${b.v.toLocaleString('ja-JP')}  RSI ${I.rsi[i]==null?'—':I.rsi[i].toFixed(1)}  MACD ${I.macd[i]==null?'—':I.macd[i].toFixed(1)}`;
     const tw=ctx.measureText(txt).width+14;ctx.fillStyle='rgba(255,255,255,.94)';ctx.strokeStyle='#e3e1db';ctx.fillRect(padL+2,top+2,tw,20);ctx.strokeRect(padL+2,top+2,tw,20);
     ctx.fillStyle='#1d1d1b';ctx.fillText(txt,padL+9,top+12);}
   cv._geo={st,L:I.L,cw,padL};
@@ -809,6 +842,32 @@ function setChartView(type,mas,bb,rng){
   drawChart();
 }
 // 本の見方：線グラフ・25日線・75日線・ボリンジャー±2σ・6ヶ月
+// ---- 銘柄検索（いまの条件に関係なく全銘柄から） ----
+function nz(t){return (t||'').normalize('NFKC').toLowerCase().replace(/\s/g,'');}
+let sugList=[],sugIdx=0;
+function renderSug(){
+  const q=nz($('q').value),box=$('sug');
+  if(!q){box.classList.remove('show');box.innerHTML='';sugList=[];return;}
+  sugList=DATA.filter(x=>nz(x.code).startsWith(q)||nz(x.name).includes(q))
+    .sort((a,b)=>(nz(b.code).startsWith(q)-nz(a.code).startsWith(q))||(nz(a.name).indexOf(q)-nz(b.name).indexOf(q))||a.code.localeCompare(b.code)).slice(0,8);
+  sugIdx=0;
+  box.innerHTML=sugList.length?sugList.map((x,i)=>{const c=x.bars[x.bars.length-1].c;return `<button data-c="${esc(x.code)}" class="${i===0?'on':''}"><span class="c">${esc(x.code)}</span><span class="n">${esc(x.name)}<br><span class="s">${esc(x.sector||'')}</span></span><span class="p">${fmtP(c)}円</span></button>`;}).join('')
+    :'<div class="none">見つかりませんでした</div>';
+  box.classList.add('show');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>openFromSearch(b.dataset.c));
+}
+function openFromSearch(code){
+  $('q').value='';renderSug();$('q').blur();
+  select(code);setTimeout(()=>$('typeSeg').parentElement.scrollIntoView({behavior:'smooth',block:'start'}),150);
+}
+$('q').addEventListener('input',renderSug);
+$('q').addEventListener('keydown',e=>{
+  if(!sugList.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sugIdx=(sugIdx+(e.key==='ArrowDown'?1:-1)+sugList.length)%sugList.length;
+    [...$('sug').children].forEach((b,i)=>b.classList.toggle('on',i===sugIdx));}
+  else if(e.key==='Enter'){e.preventDefault();openFromSearch(sugList[sugIdx].code);}
+  else if(e.key==='Escape'){$('q').value='';renderSug();}
+});
 $('btnBook').onclick=()=>setChartView('line',[25,75],true,120);
 window.addEventListener('resize',()=>{if(selected)drawChart();});
 
