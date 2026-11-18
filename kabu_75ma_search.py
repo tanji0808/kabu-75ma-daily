@@ -136,6 +136,21 @@ def download_prices(codes: list[str]) -> dict[str, pd.DataFrame]:
             except KeyError:
                 pass
         time.sleep(1)
+    # 取引時間中（15:45より前）に実行したときは、まだ確定していない当日分を使わない
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        if now.hour * 60 + now.minute < 15 * 60 + 45:
+            today = pd.Timestamp(now.date())
+            cut = 0
+            for c, df in list(result.items()):
+                if len(df) and df.index[-1].normalize() == today:
+                    result[c] = df.iloc[:-1]
+                    cut += 1
+            if cut:
+                print(f"  取引時間中のため、当日の途中データを除きました（{cut}銘柄）")
+    except Exception:
+        pass
     print(f"  取得できた銘柄: {len(result)} / {total}")
     return result
 
