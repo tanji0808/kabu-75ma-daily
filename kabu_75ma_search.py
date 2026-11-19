@@ -46,6 +46,7 @@ import time
 import urllib.request
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 
 # ============================== 設定 ==============================
@@ -232,6 +233,88 @@ def screen(df: pd.DataFrame) -> dict | None:
     }
 
 
+FIN_SECTORS = {"銀行業", "保険業", "証券、商品先物取引業", "その他金融業"}
+
+
+def _fund_metrics(f: dict, close: float) -> dict:
+    """スクリーナー画面の fund() と同じ計算（終値は0.1円単位）。"""
+    c = float(np.round(close * 10) / 10)
+    pos = lambda v: v is not None and v > 0
+    eps, feps, bps = f.get("eps"), f.get("feps"), f.get("bps")
+    div = f.get("div") if f.get("div") is not None else f.get("tdiv")
+    pct = lambda key: f[key] * 100 if f.get(key) is not None else None
+    return {"per": c / eps if pos(eps) else None, "perNeg": eps is not None and eps <= 0,
+            "fper": c / feps if pos(feps) else None, "pbr": c / bps if pos(bps) else None,
+            "dy": div / c * 100 if div is not None else None, "roe": pct("roe"), "om": pct("om"),
+            "rg": pct("rg"), "eg": pct("eg"), "de": f.get("de"), "eps": eps, "feps": feps}
+
+
+def fund_ranks(master: pd.DataFrame, prices: dict, fund: dict) -> dict:
+    """ファンダメンタル10段階ランク（スクリーナー画面の fundScore() と同じ採点）。"""
+    import statistics
+    met, sec_of = {}, {}
+    for _, m in master.iterrows():
+        df = prices.get(m["コード"])
+        if df is None or not len(df):
+            continue
+        sec_of[m["コード"]] = m["業種"]
+        met[m["コード"]] = _fund_metrics(fund.get(m["コード"], {}), df["Close"].iloc[-1])
+    stats = {}
+    for sec in set(sec_of.values()):
+        arr = [met[c] for c in met if sec_of[c] == sec]
+        def med(key, lo, hi):
+            v = [x[key] for x in arr if x[key] is not None and lo < x[key] < hi]
+            return statistics.median(v) if v else None
+        stats[sec] = {"per": med("per", 0, 200), "pbr": med("pbr", 0, 30), "om": med("om", -100, 100)}
+    out = {}
+    for code, F in met.items():
+        if code not in fund:
+            out[code] = None
+            continue
+        S, sec = stats[sec_of[code]], sec_of[code]
+        mx = raw = 0.0
+        def add(m, p):
+            nonlocal mx, raw
+            mx += m
+            raw += p
+        if F["perNeg"]:
+            add(2, 0)
+        elif F["per"] is not None and S["per"] is not None:
+            r = F["per"] / S["per"]
+            add(2, 2 if r < 0.7 else 1.5 if r < 0.9 else 1 if r < 1.1 else 0.5 if r < 1.5 else 0)
+        if F["pbr"] is not None and S["pbr"] is not None:
+            add(1, 1 if (F["pbr"] < 1 or F["pbr"] < S["pbr"] * 0.8) else 0.5 if F["pbr"] < S["pbr"] * 1.2 else 0)
+        if F["roe"] is not None:
+            x = F["roe"]
+            add(2, 2 if x >= 15 else 1.5 if x >= 10 else 1 if x >= 8 else 0.5 if x >= 5 else 0)
+        if F["om"] is not None and S["om"] is not None:
+            add(1, 1 if (F["om"] >= S["om"] * 1.5 and F["om"] > 0) else 0.5 if F["om"] >= S["om"] else 0)
+        a, b = F["rg"], F["eg"]
+        if a is not None and b is not None:
+            add(2, 2 if (a >= 10 and b >= 10) else 1.5 if (a >= 5 and b >= 5) else 1 if (a > 0 and b > 0)
+                else 0.5 if (a > 0 or b > 0) else 0)
+        elif a is not None or b is not None:
+            x = a if a is not None else b
+            add(2, 1.5 if x >= 10 else 1 if x >= 5 else 0.5 if x > 0 else 0)
+        if F["eps"] is not None and F["feps"] is not None and F["eps"] > 0:
+            g = F["feps"] / F["eps"] - 1
+            add(1, 0.5 if abs(g) >= 0.4 else 1 if g >= 0.1 else 0.5 if g >= 0 else 0)
+        if F["de"] is not None and sec not in FIN_SECTORS:
+            add(0.5, 0.5 if F["de"] <= 50 else 0.25 if F["de"] <= 100 else 0)
+        if F["dy"] is not None:
+            add(0.5, 0.5 if F["dy"] >= 3 else 0.25 if F["dy"] >= 1.5 else 0)
+        out[code] = int(np.floor(raw / mx * 10 + 0.5 + 1e-9)) if mx >= 6 else None
+    return out
+
+
+def rank_label(sc):
+    return "データ不足" if sc is None else "優良" if sc >= 8 else "良好" if sc >= 6 else "普通" if sc >= 4 else "弱め" if sc >= 2 else "要注意"
+
+
+def rank_color(sc):
+    return "#8a8983" if sc is None else "#1f7a3a" if sc >= 8 else "#3f8f4f" if sc >= 6 else "#8a7a2a" if sc >= 4 else "#b26b00" if sc >= 2 else "#c8312b"
+
+
 def _svg_chart(df: pd.DataFrame, days: int = 120) -> str:
     """約6ヶ月の線グラフに、25日線・75日線・ボリンジャーバンド(25日,±2σ)を重ねた小さなチャート。"""
     c = df["Close"]
@@ -271,7 +354,8 @@ def build_page(rows: list[dict], prices: dict, data_date: str, checked: int, pat
         gap = r["75日線との差(%)"]
         cards.append(f"""<div class="item"><a class="card" href="index.html?c={h.escape(r['コード'])}&amp;v=book">
   <div class="top"><span class="st {tone}">{h.escape(r['状態'])}</span><span class="code">{h.escape(r['コード'])}</span>
-  <span class="nm">{h.escape(r['銘柄名'])}</span></div>
+  <span class="nm">{h.escape(r['銘柄名'])}</span>
+  <span class="fr" style="background:{rank_color(r.get('Fランク'))}">F {r.get('Fランク') if r.get('Fランク') is not None else '—'}<small>/10</small></span></div>
   <div class="sub">{h.escape(str(r['業種']))}</div>
   {_svg_chart(prices[r['コード']])}
   <div class="kv"><div><b>{r['株価']:,.1f}</b><i>株価</i></div><div><b>{gap:+.2f}%</b><i>75日線との差</i></div>
@@ -288,7 +372,8 @@ h1{{font-size:18px;margin:0 0 4px}} .meta{{font-size:12px;color:#6b6a65;line-hei
 .wrap{{max-width:760px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
 .card{{display:block;background:#fff;border:1px solid #e3e1db;border-radius:12px;padding:12px;color:inherit;text-decoration:none}}
 .top{{display:flex;gap:8px;align-items:center}} .code{{font-family:ui-monospace,monospace;color:#6b6a65;font-size:13px}}
-.nm{{font-weight:700;font-size:15px}} .sub{{font-size:12px;color:#6b6a65;margin:2px 0 6px}}
+.nm{{font-weight:700;font-size:15px;flex:1}}
+.fr{{color:#fff;border-radius:6px;padding:2px 7px;font-family:ui-monospace,monospace;font-size:12.5px;font-weight:700;white-space:nowrap}} .fr small{{font-weight:400;opacity:.8;font-size:10px}} .sub{{font-size:12px;color:#6b6a65;margin:2px 0 6px}}
 .st{{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;white-space:nowrap}}
 .st.brk{{background:#fbe9e7;color:#c8312b}} .st.near{{background:#fff4e0;color:#b26b00}}
 .ch{{width:100%;height:130px;display:block;background:#faf9f6;border-radius:6px}}
@@ -305,7 +390,7 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
 条件：3ヶ月以上の下落後、75日線を下から突き抜けそう／抜けた直後・出来高{MIN_VOLUME:,}株以上<br>
 絞り込み：抜けた日（突破目前は当日）に25日線が上向き・出来高が20日平均の{FILTER_VOL_X}倍以上<br>
 チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#d9534f"></span>+2σ<span class="lg2" style="background:#f0a35e"></span>+1σ<span class="lg2" style="background:#5fa8d8"></span>−1σ<span class="lg2" style="background:#2f6fc4"></span>−2σ（ボリンジャー25日）<br>
-カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a></div></header>
+右上の「F」はファンダメンタルランク（10点満点）。カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a></div></header>
 <div class="wrap">{body}</div>
 <footer>機械的に条件で拾った候補で、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。データ：Yahoo Finance（yfinance）／東証上場銘柄一覧</footer>
 </body></html>"""
@@ -381,6 +466,18 @@ def main() -> None:
                               round(b["Open"], 1), round(b["High"], 1), round(b["Low"], 1), round(b["Close"], 1), int(b["Volume"])])
 
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
+    fund = {}
+    fpath = os.environ.get("FUND_PATH", "data/fundamentals.json")
+    if os.path.exists(fpath):
+        import json
+        with open(fpath, encoding="utf-8") as f:
+            fund = json.load(f)
+    ranks = fund_ranks(master, prices, fund)
+    from collections import Counter
+    cnt = Counter(ranks.values())
+    print("ファンダメンタルランクの分布: " + " ".join(f"{k}:{cnt.get(k, 0)}" for k in range(11)) + f" データ不足:{cnt.get(None, 0)}")
+    for r in rows:
+        r["Fランク"] = ranks.get(r["コード"])
     order = {"本日突破": 0, "突破直後": 1, "突破目前": 2}
     rows.sort(key=lambda r: (order[r["状態"]], abs(r["75日線との差(%)"])))
 

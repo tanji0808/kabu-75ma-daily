@@ -150,6 +150,12 @@ canvas{width:100%;display:block}
 .cm li:before{position:absolute;left:10px;top:8px;font-weight:700}
 .cm li.p:before{content:'＋';color:#2a7a3b} .cm li.m:before{content:'－';color:var(--up)} .cm li.n:before{content:'・';color:var(--sub)}
 .cm-sum{font-size:13.5px;font-weight:700;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px}
+.rankbox{display:flex;gap:16px;align-items:center;background:#faf9f6;border:1px solid var(--soft);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.rankbig{font-family:var(--mono);font-size:40px;font-weight:700;line-height:1}.rankbig small{font-size:15px;color:var(--sub);font-weight:400}
+.rankside{flex:1}.ranklab{font-weight:700;font-size:15px}
+.rankbar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin-top:6px}.rankbar i{display:block;height:100%}
+.rk{display:inline-block;min-width:22px;text-align:center;color:#fff;border-radius:5px;padding:1px 6px;font-family:var(--mono);font-size:12px;font-weight:700}
+.rk.na{background:var(--soft);color:var(--sub)}
 .fnote{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6}
 .tblc .jd{margin-left:4px}
 
@@ -438,6 +444,9 @@ const CONDS=[
   {g:'本の手法',id:'vmin',label:'出来高の下限',desc:'直近の営業日の出来高が指定株数以上',
     p:{x:{t:'num',v:500000,post:'株以上',step:10000,min:0}},
     test:(s,p)=>{const I=ind(s);return I.v[I.L]>=p.x;},tag:p=>`出来高 ${Number(p.x).toLocaleString('ja-JP')}株以上`},
+  {g:'ファンダメンタル',id:'frank',label:'ファンダメンタルランク',desc:'PER・PBR・ROE・成長などを10点満点で採点したランク',
+    p:{mn:{t:'num',v:6,post:'以上',min:0,max:10}},
+    test:(s,p)=>{const r=fundScore(s).score;return r!=null&&r>=p.mn;},tag:p=>`Fランク ${p.mn}以上`},
   {g:'移動平均',id:'gc',label:'ゴールデンクロス',desc:'短期線が長期線を下から上に抜けた',
     p:{s:{t:'sel',o:MA_OPTS,v:5,pre:'短期'},l:{t:'sel',o:MA_OPTS,v:25,pre:'× 長期'},w:{t:'num',v:5,pre:'直近',post:'日以内',min:1,max:60}},
     test:(s,p)=>{const I=ind(s);return crossUp(I.getSma(p.s),I.getSma(p.l),p.w,I.L);},
@@ -584,6 +593,7 @@ const COLS=[
   {k:'chg',l:'前日比',num:1,v:s=>ind(s).chgPct},
   {k:'per',l:'PER',num:1,v:s=>fund(s).per},
   {k:'pbr',l:'PBR',num:1,v:s=>fund(s).pbr},
+  {k:'frank',l:'Fランク',num:1,v:s=>fundScore(s).score},
   {k:'rsi',l:'RSI',num:1,v:s=>ind(s).rsi[ind(s).L]},
   {k:'dev',l:'25日乖離',num:1,v:s=>dev(s,25)},
   {k:'volr',l:'出来高倍率',num:1,v:s=>ind(s).volRatio},
@@ -625,6 +635,7 @@ function update(){
       <td class="num">${fmtP(I.c[L])}</td><td class="num ${cls(I.chgPct)}">${fmtPct(I.chgPct)}</td>
       <td class="num tblc">${fmtX(fund(s).per)}${judge(fund(s).per,secStat(s.sector).per,true)}</td>
       <td class="num tblc">${fmtX(fund(s).pbr,2)}${judge(fund(s).pbr,secStat(s.sector).pbr,true)}</td>
+      <td class="num">${rankBadge(fundScore(s).score)}</td>
       <td class="num ${r>=70?'down':r<=30?'up':''}">${r==null?'—':r.toFixed(1)}</td>
       <td class="num ${cls(d)}">${fmtPct(d,1)}</td>
       <td class="num">${I.volRatio==null?'—':I.volRatio.toFixed(2)+'倍'}</td>
@@ -706,12 +717,45 @@ function fundComment(s){
   return {items:out,sum};
 }
 
+
+/* ---------------- ファンダメンタル 10段階ランク ---------------- */
+const FIN_SECTORS=new Set(['銀行業','保険業','証券、商品先物取引業','その他金融業']);
+const RANK_LABEL=sc=>sc==null?'データ不足':sc>=8?'優良':sc>=6?'良好':sc>=4?'普通':sc>=2?'弱め':'要注意';
+const RANK_COL=sc=>sc==null?'#8a8983':sc>=8?'#1f7a3a':sc>=6?'#3f8f4f':sc>=4?'#8a7a2a':sc>=2?'#b26b00':'#c8312b';
+function fundScore(s){
+  if(s._fs)return s._fs;
+  const F=fund(s),S=secStat(s.sector),it=[];
+  const add=(name,max,pts,txt)=>it.push({name,max,pts,txt});
+  const f1=v=>v.toFixed(1);
+  if(F.perNeg)add('割安さ（PER）',2,0,'直近12ヶ月が赤字のため0点');
+  else if(F.per!=null&&S.per!=null){const r=F.per/S.per;add('割安さ（PER）',2,r<0.7?2:r<0.9?1.5:r<1.1?1:r<1.5?0.5:0,`PER ${f1(F.per)}倍（業種中央値 ${f1(S.per)}倍）`);}
+  if(F.pbr!=null&&S.pbr!=null)add('割安さ（PBR）',1,(F.pbr<1||F.pbr<S.pbr*0.8)?1:F.pbr<S.pbr*1.2?0.5:0,`PBR ${F.pbr.toFixed(2)}倍（業種中央値 ${S.pbr.toFixed(2)}倍）`);
+  if(F.roe!=null)add('収益力（ROE）',2,F.roe>=15?2:F.roe>=10?1.5:F.roe>=8?1:F.roe>=5?0.5:0,`ROE ${f1(F.roe)}%（目安8%）`);
+  if(F.om!=null&&S.om!=null)add('稼ぐ力（営業利益率）',1,(F.om>=S.om*1.5&&F.om>0)?1:F.om>=S.om?0.5:0,`営業利益率 ${f1(F.om)}%（業種中央値 ${f1(S.om)}%）`);
+  if(F.rg!=null&&F.eg!=null){const a=F.rg,b=F.eg;add('成長（売上・利益）',2,(a>=10&&b>=10)?2:(a>=5&&b>=5)?1.5:(a>0&&b>0)?1:(a>0||b>0)?0.5:0,`前年同期比 売上${a>0?'+':''}${f1(a)}%・利益${b>0?'+':''}${f1(b)}%`);}
+  else if(F.rg!=null||F.eg!=null){const x=F.rg??F.eg;add('成長（売上・利益）',2,x>=10?1.5:x>=5?1:x>0?0.5:0,`前年同期比 ${F.rg!=null?'売上':'利益'}${x>0?'+':''}${f1(x)}%（片方のみ）`);}
+  if(F.eps!=null&&F.feps!=null&&F.eps>0){const g=F.feps/F.eps-1;add('業績の見通し',1,Math.abs(g)>=0.4?0.5:g>=0.1?1:g>=0?0.5:0,Math.abs(g)>=0.4?`予想と実績の差が大きいため中立（${g>0?'+':''}${Math.round(g*100)}%）`:`予想EPSは実績の${g>=0?'+':''}${Math.round(g*100)}%`);}
+  if(F.de!=null&&!FIN_SECTORS.has(s.sector))add('財務の健全さ',0.5,F.de<=50?0.5:F.de<=100?0.25:0,`負債資本倍率 ${Math.round(F.de)}%`);
+  if(F.dy!=null)add('配当',0.5,F.dy>=3?0.5:F.dy>=1.5?0.25:0,`配当利回り ${F.dy.toFixed(2)}%`);
+  const max=it.reduce((a,x)=>a+x.max,0),raw=it.reduce((a,x)=>a+x.pts,0);
+  const score=(F.has&&max>=6)?Math.floor(raw/max*10+0.5+1e-9):null;
+  return s._fs={score,raw,max,items:it,label:RANK_LABEL(score)};
+}
+function rankBadge(sc){return sc==null?'<span class="rk na">—</span>':`<span class="rk" style="background:${RANK_COL(sc)}">${sc}</span>`;}
+
 function renderFund(s){
   const box=$('dFund'),F=fund(s),S=secStat(s.sector);
   if(!F.has){box.innerHTML='<h3>ファンダメンタル</h3><p class="fnote">この銘柄の財務データはまだ取得できていません（毎日少しずつ取得しています）。</p>';return;}
+  const FS=fundScore(s);
   const row=(name,v,m,fmt,lowGood)=>`<tr><td>${name}</td><td>${fmt(v)}</td><td>${fmt(m)}</td><td>${lowGood===undefined?'':judge(v,m,lowGood)} <span style="color:var(--sub);font-size:11px">${pctDiff(v,m)}</span></td></tr>`;
   const x1=v=>fmtX(v,1),x2=v=>fmtX(v,2),pc=v=>v==null?'—':v.toFixed(1)+'%',pc2=v=>v==null?'—':v.toFixed(2)+'%';
-  let h=`<h3>PER・PBR（同業種との比較）<small>${esc(s.sector)}・${S.n||0}社の中央値と比較</small></h3>
+  let h=`<h3>ファンダメンタルランク</h3>
+  <div class="rankbox"><div class="rankbig" style="color:${RANK_COL(FS.score)}">${FS.score??'—'}<small>/10</small></div>
+  <div class="rankside"><div class="ranklab" style="color:${RANK_COL(FS.score)}">${FS.label}</div>
+  <div class="rankbar"><i style="width:${(FS.score??0)*10}%;background:${RANK_COL(FS.score)}"></i></div>
+  <div class="fnote" style="margin:4px 0 0">8項目の合計 ${FS.raw}点／${FS.max}点満点${FS.max<10?'（データのある項目だけで換算）':''}</div></div></div>
+  <table class="ftbl"><tr><th>項目</th><th>点数</th><th>根拠</th></tr>${FS.items.map(x=>`<tr><td>${x.name}</td><td>${x.pts}／${x.max}</td><td style="text-align:left;font-family:inherit;white-space:normal">${x.txt}</td></tr>`).join('')}</table>
+  <h3>PER・PBR（同業種との比較）<small>${esc(s.sector)}・${S.n||0}社の中央値と比較</small></h3>
   <table class="ftbl"><tr><th>指標</th><th>この銘柄</th><th>業種中央値</th><th>判定</th></tr>
   ${row('PER（実績）',F.per,S.per,x1,true)}${row('PER（予想）※',F.fper,S.fper,x1,true)}${row('PBR',F.pbr,S.pbr,x2,true)}
   ${row('ROE',F.roe,S.roe,pc)}${row('営業利益率',F.om,S.om,pc)}${row('配当利回り',F.dy,S.dy,pc2)}</table>`;
@@ -728,7 +772,7 @@ function renderFund(s){
     if(rp||rb)h+=`<p class="fnote">ライバル${Math.min(5,peers.length)}社と比べた低さの順位：PER ${rp||'—'}、PBR ${rb||'—'}（1位がいちばん割安）</p>`;
   }
   const C=fundComment(s);
-  h+=`<h3>ファンダメンタル分析コメント</h3>${C.sum?`<div class="cm-sum">${C.sum}</div>`:''}<ul class="cm">${C.items.map(([t,x])=>`<li class="${t}">${x}</li>`).join('')}</ul>
+  h+=`<h3>ファンダメンタル分析コメント</h3><div class="cm-sum">ファンダメンタルランク ${FS.score??'—'}／10（${FS.label}）</div><ul class="cm">${C.items.map(([t,x])=>`<li class="${t}">${x}</li>`).join('')}</ul>
   <p class="fnote">財務データ：Yahoo Finance（${esc(F.t||'')}取得）。※予想PERはYahooのアナリスト予想EPSで計算しており、会社予想とは異なることがあります。PER・PBR・配当利回りは${esc(s.bars[s.bars.length-1].d)}の終値で計算。コメントは数値から機械的に作ったもので、売買のおすすめではありません。</p>`;
   box.innerHTML=h;
   box.querySelectorAll('tr.peer').forEach(tr=>tr.onclick=()=>select(tr.dataset.c));
@@ -913,7 +957,7 @@ function importCSV(text){
   return `${list.length}銘柄・${list.reduce((a,s)=>a+s.bars.length,0).toLocaleString()}行を読み込みました。`+(bad?` ${bad}行は形式が合わず飛ばしました。`:'')+(short?` ${short}銘柄は60日未満のため一部の条件が判定できません。`:'');
 }
 function afterDataChange(){
-  SEC=null;
+  SEC=null;DATA.forEach(x=>{delete x._fs;});
   const live=DATA===LIVE;
   $('dataBadge').textContent=live?LIVE_LABEL:'読み込んだCSVデータ';
   $('btnReset').style.display=live?'none':'';
@@ -938,7 +982,7 @@ $('btnClear').onclick=()=>{CONDS.forEach(c=>state[c.id].on=false);renderConds();
 
 /* ---------------- 起動 ---------------- */
 renderPresets();renderConds();renderHead();
-$('tbody').innerHTML='<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
+$('tbody').innerHTML='<tr><td colspan="12" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(j=>{
   LIVE=j.stocks.map(x=>{const bars=[];let c10=0;for(let i=0;i<x.dc.length;i++){c10+=x.dc[i];bars.push({d:j.dates[x.st+i],o:(c10+x.o[i])/10,h:(c10+x.h[i])/10,l:(c10+x.l[i])/10,c:c10/10,v:x.v[i]*100});}
     return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
@@ -952,7 +996,7 @@ fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status
     select(qc);setTimeout(()=>$('typeSeg').parentElement.scrollIntoView({behavior:'auto',block:'start'}),400);
   }
 }).catch(e=>{$('dataBadge').textContent='データを読み込めませんでした';
-  $('tbody').innerHTML=`<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
+  $('tbody').innerHTML=`<tr><td colspan="12" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
 })();
 </script>
 </body>
