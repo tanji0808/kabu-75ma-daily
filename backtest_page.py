@@ -41,9 +41,11 @@ a{color:var(--accent)}
 <div class="wrap">
 <div class="card"><h2>試したルール</h2><ul class="rules">
 <li><b>買い</b>：3ヶ月以上の下落のあと、終値が75日線を下から上に抜けた日（スクリーナーの「本日突破」と同じ条件・出来高50万株以上）の<b>翌日の始値</b></li>
-<li><b>利確</b>：終値がボリンジャーバンド(25日)の<b>+1σより上に乗ったあと、+1σを下回ったら</b>翌日の始値で売る</li>
-<li><b>損切り</b>：下の3通りを比較。どれも最長<span id="mh"></span>営業日（約半年）で売る</li>
+<li><b>売り方</b>（4通り）：<br>①今のルール：+1σより上に乗ったあと+1σ割れで利確／75日線割れで損切り<br>②終値が25日線を割ったら売る<br>③終値が−1σを割ったら売る<br>④+2σに届いたあと+1σ割れで利確／それまでは75日線割れで損切り</li>
+<li><b>買いの絞り込み</b>（あり／なし）：合図の日に25日線が上向き（5日前より上）かつ出来高が過去20日平均の1.5倍以上</li>
+<li>売りの合図が出たら翌日の始値で売る。どれも最長<span id="mh"></span>営業日（約半年）で売る</li>
 <li>手数料・税金は含めていません。同じ銘柄を持っている間の新しい合図は無視しています。</li></ul></div>
+<div class="card"><h2>全パターンの比較<span class="meta">（行をタップすると詳しく見られます）</span></h2><div class="scroll"><table id="cmp"></table></div></div>
 <div class="tabs" id="tabs"></div>
 <div class="verdict" id="verdict"></div>
 <div class="card"><h2>成績</h2><div class="kpis" id="kpis"></div></div>
@@ -67,8 +69,15 @@ const yen=v=>(v>0?'+':'')+Math.round(v).toLocaleString('ja-JP')+'円';
 $('meta').textContent=`検証期間のデータ：${R.data_from}〜${R.data_to}（東証プライム ${R.stocks}銘柄）｜作成：${R.generated}`;
 $('mh').textContent=R.max_hold;
 const keys=Object.keys(R.variants);let cur=keys[0];
-function tabs(){$('tabs').innerHTML=keys.map(k=>{const s=R.variants[k];return `<button data-k="${k}" class="${k===cur?'on':''}"><b>${k}：${s.name}</b><span>${s.n?`勝率 ${s.win}%・平均 ${pct(s.avg)}`:'取引なし'}</span></button>`;}).join('');
-  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;tabs();render();});}
+const lab=s=>s.short?`${s.short}${s.filter?'＋絞り込み':''}`:s.name;
+function cmp(){
+  const best=Math.max(...keys.map(k=>R.variants[k].avg??-99));
+  $('cmp').innerHTML='<tr><th>パターン</th><th>回数</th><th>勝率</th><th>平均損益</th><th>平均利益</th><th>平均損失</th><th>PF</th><th>保有</th><th>TOPIXとの差</th></tr>'+
+  keys.map(k=>{const s=R.variants[k];return `<tr data-k="${k}" style="cursor:pointer;${k===cur?'background:var(--accent-soft)':''}"><td class="t">${s.avg===best?'★ ':''}${lab(s)}</td><td>${s.n??0}</td><td>${s.win??'—'}%</td><td class="${cls(s.avg)}">${pct(s.avg)}</td><td class="up">${pct(s.avg_win)}</td><td class="down">${pct(s.avg_loss)}</td><td>${s.pf??'—'}</td><td>${s.days??'—'}日</td><td class="${cls(s.excess_avg)}">${pct(s.excess_avg)}</td></tr>`;}).join('');
+  $('cmp').querySelectorAll('tr[data-k]').forEach(tr=>tr.onclick=()=>{cur=tr.dataset.k;tabs();render();$('verdict').scrollIntoView({behavior:'smooth',block:'start'});});
+}
+function tabs(){$('tabs').innerHTML=keys.map(k=>{const s=R.variants[k];return `<button data-k="${k}" class="${k===cur?'on':''}"><b>${lab(s)}</b><span>${s.n?`勝率 ${s.win}%・平均 ${pct(s.avg)}`:'取引なし'}</span></button>`;}).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;tabs();render();});cmp();}
 function verdict(s){
   if(!s.n)return 'この条件では取引がありませんでした。';
   const parts=[];
@@ -111,7 +120,7 @@ function render(){
   $('hist').innerHTML=histChart(s.hist,s.bins);
   $('reason').innerHTML='<tr><th>売った理由</th><th>回数</th><th>勝率</th><th>平均損益</th><th>平均保有</th></tr>'+s.by_reason.map(r=>`<tr><td class="t">${r.reason}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td>${r.days}日</td></tr>`).join('');
   $('year').innerHTML='<tr><th>年</th><th>回数</th><th>勝率</th><th>平均損益</th><th>TOPIX</th><th>損益合計</th></tr>'+s.by_year.map(r=>`<tr><td>${r.year}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td class="${cls(r.bench)}">${pct(r.bench)}</td><td class="${cls(r.sum)}">${yen(r.sum*1000)}</td></tr>`).join('');
-  const RS={take:'利確',stop:'損切り',time:'期間満了'};
+  const RS={take:'利確',stop:'損切り',time:'期間満了',ma25:'25日線割れ',m1s:'−1σ割れ'};
   $('trades').innerHTML='<tr><th>買った日</th><th>銘柄</th><th>買値</th><th>売った日</th><th>売値</th><th>損益</th><th>理由</th></tr>'+(s.recent||[]).map(t=>`<tr><td>${t.entry}</td><td class="t">${t.code} ${t.name}</td><td>${t.buy.toLocaleString()}</td><td>${t.exit}</td><td>${t.sell.toLocaleString()}</td><td class="${cls(t.ret)}">${pct(t.ret,1)}</td><td class="t">${RS[t.reason]}</td></tr>`).join('');
 }
 tabs();render();
