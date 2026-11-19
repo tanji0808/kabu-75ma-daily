@@ -53,7 +53,15 @@ jobs:
           KABU_OUTDIR: _site
           KABU_PAGE_NAME: cards.html
           KABU_DATA_JSON: data.json
+          KABU_FORWARD: "1"
         run: python kabu_75ma_search.py
+      - name: フォワードテストの記録を保存
+        run: |
+          git add data/forward.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "フォワードテストの記録を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+            git pull --rebase -q origin main && git push -q
+          fi
       - name: 画面を用意
         run: |
           cp web/index.html web/manifest.json web/*.png _site/
