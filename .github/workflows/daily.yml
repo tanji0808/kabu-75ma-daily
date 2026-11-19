@@ -57,6 +57,7 @@ jobs:
       - name: 画面を用意
         run: |
           cp web/index.html web/manifest.json web/*.png _site/
+          [ -f web/backtest.html ] && cp web/backtest.html _site/ || true
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

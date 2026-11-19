@@ -107,7 +107,7 @@ def load_prime_list() -> pd.DataFrame:
     return out
 
 
-def download_prices(codes: list[str]) -> dict[str, pd.DataFrame]:
+def download_prices(codes: list[str], period: str = "1y") -> dict[str, pd.DataFrame]:
     """yfinanceで約1年分の日足を取得する。"""
     import yfinance as yf
 
@@ -119,7 +119,7 @@ def download_prices(codes: list[str]) -> dict[str, pd.DataFrame]:
         print(f"  株価を取得中 {i + 1}〜{min(i + CHUNK, total)} / {total}")
         for attempt in range(3):
             try:
-                data = yf.download(tickers, period="1y", interval="1d", group_by="ticker",
+                data = yf.download(tickers, period=period, interval="1d", group_by="ticker",
                                    auto_adjust=False, threads=True, progress=False)
                 break
             except Exception as e:  # 一時的な失敗は少し待って再試行
