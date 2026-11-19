@@ -56,6 +56,12 @@ for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, name=cfg["name"] + f"＋{int(TP * 100)}%で利確", short=cfg["short"] + f"＋{int(TP * 100)}%利確")
     VARIANTS[base + "_tp"] = cfg
+# +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
+for base in ("ma25", "ma25_f", "m1s"):
+    cfg = dict(VARIANTS[base])
+    cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
+               short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
+    VARIANTS[base + "_half"] = cfg
 REASON = {"tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
@@ -83,7 +89,8 @@ def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
 
 
 # ------------------------------------------------------------------ 売買
-def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None) -> list[dict]:
+def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None,
+             half: bool = False) -> list[dict]:
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     hi = df["High"].to_numpy(float)
     ma75 = df["Close"].rolling(k.MA).mean().to_numpy()
@@ -102,10 +109,17 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | Non
         entry = o[e]
         touched1 = touched2 = False
         exit_sig, reason, tp_px = None, None, None
+        half_px = None                                  # 半分利確したときの値段
         target = entry * (1 + tp) if tp else None
         for j in range(e, min(n, e + MAX_HOLD)):
+            # 半分利確：指値に届いたら半分だけ売り、残りはそのまま持ち続ける
+            if half and target is not None and half_px is None:
+                if j > e and o[j] >= target:
+                    half_px = o[j]
+                elif hi[j] >= target:
+                    half_px = target
             # 利確の指値（場中）：終値で判断する売りより先に約定する
-            if target is not None:
+            if target is not None and not half:
                 if j > e and o[j] >= target:            # 朝から目標以上で始まった → 始値で売れる
                     exit_sig, reason, tp_px = j, "tp", o[j]; break
                 if hi[j] >= target:                      # 場中に目標に届いた → 目標の値段で売れる
@@ -141,9 +155,12 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | Non
         else:
             x = exit_sig + 1
             px = o[x]
+        if half_px is not None:          # 半分は利確した値段、残り半分は最後に売った値段（平均の売値）
+            px = (half_px + px) / 2
         trades.append({
             "signal": dates[t].strftime("%Y-%m-%d"), "entry": dates[e].strftime("%Y-%m-%d"),
             "exit": dates[x].strftime("%Y-%m-%d"), "buy": round(float(entry), 1), "sell": round(float(px), 1),
+            "half": half_px is not None,
             "ret": round((px / entry - 1) * 100, 2), "days": int(x - e), "reason": reason,
             "touched": bool(touched2 if exit_rule == "s2" else touched1),
         })
@@ -180,8 +197,11 @@ def summarize(tr: pd.DataFrame) -> dict:
                         "avg": round(g["ret"].mean(), 2), "sum": round(g["ret"].sum(), 1),
                         "bench": round(g["bench"].mean(), 2) if g["bench"].notna().any() else None})
     by_reason = []
-    for rs, g in tr.groupby("reason"):
-        by_reason.append({"reason": REASON[rs], "n": len(g), "win": round((g["ret"] > 0).mean() * 100, 1),
+    key = tr["reason"].map(REASON)
+    if "half" in tr and tr["half"].any():
+        key = np.where(tr["half"], "半分+10%利確 → " + key, key)
+    for rs, g in tr.groupby(key):
+        by_reason.append({"reason": rs, "n": len(g), "win": round((g["ret"] > 0).mean() * 100, 1),
                           "avg": round(g["ret"].mean(), 2), "days": round(g["days"].mean(), 1)})
     bins = list(np.arange(-30, 32.5, 2.5))
     clipped = r.clip(-30, 29.99)
@@ -263,7 +283,7 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
         last = df.index[-1] if last is None else max(last, df.index[-1])
         sig_by_filter = {fk: signal_days(df, fk) for fk in FILTERS}
         for v, cfg in VARIANTS.items():
-            for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"], cfg.get("tp")):
+            for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"], cfg.get("tp"), cfg.get("half", False)):
                 t.update({"code": m["コード"], "name": m["銘柄名"], "sector": m["業種"]})
                 t["bench"] = bench_return(bench, t["entry"], t["exit"])
                 t["excess"] = None if t["bench"] is None else round(t["ret"] - t["bench"], 2)
