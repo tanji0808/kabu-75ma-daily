@@ -65,13 +65,17 @@ for fk, fname in FILTERS.items():
     VARIANTS["bw25" + (("_" + fk) if fk else "")] = {
         "exit": "bw25", "filter": fk, "fname": fname, "tp": None,
         "name": "+1σより上で買い、25日線割れで売る（75日線割れまで買い直し）", "short": "+1σで買い・25日線で売る（買い直し）"}
+VARIANTS["s1m25"] = {"exit": "s1m25", "filter": "", "fname": FILTERS[""], "tp": None,
+                     "name": "+1σに乗った後+1σ割れで利確／25日線割れで損切り", "short": "A:+1σ割れ利確・25日線損切り"}
+VARIANTS["u1hit"] = {"exit": "u1hit", "filter": "", "fname": FILTERS[""], "tp": None,
+                     "name": "終値が+1σに届いたら利確／25日線割れで損切り", "short": "B:+1σ到達で利確・25日線損切り"}
 # +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
 for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
                short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
     VARIANTS[base + "_half"] = cfg
-REASON = {"bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
+REASON = {"stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
           "bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
@@ -202,6 +206,16 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | Non
                     exit_sig, reason = j, "take"; break
                 if c[j] < ma75[j]:
                     exit_sig, reason = j, "stop"; break
+            elif exit_rule == "s1m25":
+                if touched1 and c[j] < u1[j]:
+                    exit_sig, reason = j, "take"; break
+                if c[j] < ma25[j]:
+                    exit_sig, reason = j, "stop25"; break
+            elif exit_rule == "u1hit":
+                if c[j] >= u1[j]:
+                    exit_sig, reason = j, "hit"; break
+                if c[j] < ma25[j]:
+                    exit_sig, reason = j, "stop25"; break
             elif exit_rule == "ma25":
                 if c[j] < ma25[j]:
                     exit_sig, reason = j, "ma25"; break
