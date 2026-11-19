@@ -17,6 +17,9 @@
     4. 75日線を下から突き抜けそう／突き抜けた直後
          - 突破目前：終値が75日線の 5% 下〜75日線の間 で、直近5日で上昇中
          - 突破直後：直近5営業日以内に終値が75日線を下から上に抜け、上抜け幅 3% 以内
+    5. 買いの絞り込み（上抜けた日、突破目前は当日に判定）
+         - 25日線が5日前より上（上向き）
+         - 出来高が過去20日平均の1.5倍以上
 
 使い方（Windows / Mac）
     1) Python 3.9 以上をインストール
@@ -60,6 +63,12 @@ APPROACH_GAP = 0.05           # 「突破目前」：75日線の何％下まで�
 CROSS_WITHIN = 5              # 「突破直後」：何営業日以内の上抜けを対象にするか
 CROSS_GAP_MAX = 0.03          # 「突破直後」：75日線からの上抜け幅の上限
 RISING_DAYS = 5               # 「突破目前」：何日前より終値が上がっていること
+
+# 買いの絞り込み（バックテストで成績が良くなった条件）。上抜けた日（突破目前は当日）に判定する
+USE_FILTER = True
+FILTER_MA = 25                # この移動平均が FILTER_RISE_DAYS 日前より上（上向き）
+FILTER_RISE_DAYS = 5
+FILTER_VOL_X = 1.5            # 出来高が過去20日平均の何倍以上か
 
 JPX_LIST_PAGE = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
 JPX_LIST_URL = ("https://www.jpx.co.jp/markets/statistics-equities/misc/"
@@ -199,6 +208,14 @@ def screen(df: pd.DataFrame) -> dict | None:
     else:
         return None
 
+    # 買いの絞り込み：25日線が上向き かつ 出来高が過去20日平均の1.5倍以上
+    ref = L - crossed_days_ago if crossed_days_ago is not None and status != "突破目前" else L
+    ma_f = c.rolling(FILTER_MA).mean()
+    vol_x = v.iloc[ref] / v.iloc[ref - 20:ref].mean() if v.iloc[ref - 20:ref].mean() > 0 else 0
+    ma_up = ma_f.iloc[ref] > ma_f.iloc[ref - FILTER_RISE_DAYS]
+    if USE_FILTER and not (ma_up and vol_x >= FILTER_VOL_X):
+        return None
+
     return {
         "状態": status,
         "株価": round(float(c.iloc[L]), 1),
@@ -210,6 +227,7 @@ def screen(df: pd.DataFrame) -> dict | None:
         "75日線より下の日の割合(%)": round(below_ratio * 100, 1),
         "半年高値からの下落(%)": round(-drop * 100, 1),
         "出来高": int(vol),
+        "判定日の出来高倍率": round(float(vol_x), 2),
         "日付": df.index[L].strftime("%Y-%m-%d"),
     }
 
@@ -285,6 +303,7 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
 <header><h1>75日線ブレイク候補　{len(rows)}銘柄</h1>
 <div class="meta">{data_date} 終値時点（{now} 更新）｜東証プライム {checked}銘柄から検索<br>
 条件：3ヶ月以上の下落後、75日線を下から突き抜けそう／抜けた直後・出来高{MIN_VOLUME:,}株以上<br>
+絞り込み：抜けた日（突破目前は当日）に25日線が上向き・出来高が20日平均の{FILTER_VOL_X}倍以上<br>
 チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#d9534f"></span>+2σ<span class="lg2" style="background:#f0a35e"></span>+1σ<span class="lg2" style="background:#5fa8d8"></span>−1σ<span class="lg2" style="background:#2f6fc4"></span>−2σ（ボリンジャー25日）<br>
 カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a></div></header>
 <div class="wrap">{body}</div>

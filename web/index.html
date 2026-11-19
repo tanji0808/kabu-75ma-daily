@@ -413,6 +413,15 @@ function ma75Break(s,p){
   if(gap<=0&&gap>=-p.ap/100&&c[L]>c[L-5])return '突破目前';
   return null;
 }
+// 買いの絞り込み：75日線を上抜けた日（まだ下にいる銘柄は当日）に、25日線が上向き かつ 出来高が20日平均の◯倍以上
+function buyFilter(s,p){
+  const I=ind(s),L=I.L,c=I.c,ma=I.getSma(75),m25=I.getSma(25),v=I.v;
+  let ref=L;
+  if(ma[L]!=null&&c[L]>ma[L])for(let i=L;i>L-p.cw&&i>0;i--){if(ma[i-1]!=null&&c[i-1]<=ma[i-1]&&c[i]>ma[i]){ref=i;break;}}
+  if(ref<25||m25[ref]==null||m25[ref-p.rd]==null)return null;
+  let sum=0;for(let i=ref-20;i<ref;i++)sum+=v[i];const avg=sum/20,x=avg>0?v[ref]/avg:0;
+  return {ok:m25[ref]>m25[ref-p.rd]&&x>=p.x,x,ref};
+}
 function dev(s,n){const I=ind(s),m=I.getSma(n)[I.L];return m?(I.c[I.L]/m-1)*100:null;}
 
 /* ---------------- 条件定義 ---------------- */
@@ -422,6 +431,10 @@ const CONDS=[
     p:{dd:{t:'sel',o:[60,90,120],v:60,pre:'下落期間',post:'営業日'},ap:{t:'num',v:5,pre:'75日線の',post:'％下から',step:0.5,min:0},cw:{t:'num',v:5,pre:'上抜け',post:'日以内',min:1,max:20},dr:{t:'num',v:15,pre:'半年高値から',post:'％以上下落',step:1,min:0}},
     test:(s,p)=>ma75Break(s,p)!=null,
     tag:p=>`下落${p.dd}日→75日線ブレイク（-${p.ap}%〜上抜け${p.cw}日以内）`},
+  {g:'本の手法',id:'bfilt',label:'買いの絞り込み（25日線上向き＋出来高増）',desc:'75日線を上抜けた日（まだ下なら当日）に、25日線が上向きで出来高が増えている。バックテストで成績が良くなった条件',
+    p:{rd:{t:'num',v:5,pre:'25日線が',post:'日前より上',min:1,max:20},x:{t:'num',v:1.5,pre:'出来高が20日平均の',post:'倍以上',step:0.1,min:0},cw:{t:'num',v:5,pre:'上抜け',post:'日以内',min:1,max:20}},
+    test:(s,p)=>{const r=buyFilter(s,p);return !!(r&&r.ok);},
+    tag:p=>`絞り込み：25日線上向き＋出来高${p.x}倍以上`},
   {g:'本の手法',id:'vmin',label:'出来高の下限',desc:'直近の営業日の出来高が指定株数以上',
     p:{x:{t:'num',v:500000,post:'株以上',step:10000,min:0}},
     test:(s,p)=>{const I=ind(s);return I.v[I.L]>=p.x;},tag:p=>`出来高 ${Number(p.x).toLocaleString('ja-JP')}株以上`},
@@ -475,7 +488,8 @@ const CONDS=[
 ];
 
 const PRESETS=[
-  {name:'★ 75日線ブレイク（本の手法）',market:'プライム',on:{ma75:{dd:60,ap:5,cw:5,dr:15},vmin:{x:500000}}},
+  {name:'★ 75日線ブレイク（本の手法＋絞り込み）',market:'プライム',on:{ma75:{dd:60,ap:5,cw:5,dr:15},bfilt:{rd:5,x:1.5,cw:5},vmin:{x:500000}}},
+  {name:'75日線ブレイク（絞り込みなし）',market:'プライム',on:{ma75:{dd:60,ap:5,cw:5,dr:15},vmin:{x:500000}}},
   {name:'トレンド転換の初動',on:{gc:{s:5,l:25,w:10},macd:{w:10,zero:'問わない'}}},
   {name:'押し目買い候補',on:{above:{n:75,dir:'上'},rsi:{mn:0,mx:45},dev:{n:25,mn:-12,mx:0}}},
   {name:'高値ブレイク',on:{hi:{w:10},above:{n:25,dir:'上'}}},
