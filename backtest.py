@@ -56,13 +56,18 @@ for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, name=cfg["name"] + f"＋{int(TP * 100)}%で利確", short=cfg["short"] + f"＋{int(TP * 100)}%利確")
     VARIANTS[base + "_tp"] = cfg
+# バンドウォーク：+1σの上で買い、+1σを割ったら売る。75日線を割るまで何度でも買い直す
+for fk, fname in FILTERS.items():
+    VARIANTS["bw" + (("_" + fk) if fk else "")] = {
+        "exit": "bw", "filter": fk, "fname": fname, "tp": None,
+        "name": "+1σより上で買い、+1σ割れで売る（75日線割れまで買い直し）", "short": "+1σバンドウォーク"}
 # +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
 for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
                short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
     VARIANTS[base + "_half"] = cfg
-REASON = {"tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
+REASON = {"bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
 
@@ -89,8 +94,62 @@ def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
 
 
 # ------------------------------------------------------------------ 売買
+MAX_TRACK = 120   # バンドウォーク：合図から何営業日まで買い直すか
+
+
+def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
+    """合図のあと、終値が+1σより上なら翌日始値で買い、+1σを割ったら翌日始値で売る。
+    75日線を割るか、合図から MAX_TRACK 営業日たつまで、何度でも買い直す。"""
+    o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
+    ma75 = df["Close"].rolling(k.MA).mean().to_numpy()
+    m25 = df["Close"].rolling(25).mean()
+    u1 = (m25 + df["Close"].rolling(25).std(ddof=0)).to_numpy()
+    u2 = (m25 + 2 * df["Close"].rolling(25).std(ddof=0)).to_numpy()
+    dates, n = df.index, len(df)
+    trades, free_from = [], 0
+    for t in sigs:
+        if t < free_from:
+            continue
+        end_track = min(n - 1, t + MAX_TRACK)
+        long, ei, cycle, d = False, None, 0, t
+        touched2 = False
+        last_exit = t
+        while d < n:
+            if not long:
+                if d > end_track or c[d] < ma75[d]:
+                    break                                   # 見張り終了（期限切れ／75日線割れ）
+                if c[d] > u1[d]:
+                    if d + 1 >= n:
+                        break
+                    long, ei, touched2 = True, d + 1, False   # 翌日の始値で買う
+                    d += 1
+                    continue
+            else:
+                touched2 = touched2 or c[d] > u2[d]
+                if c[d] < u1[d] or d - ei >= MAX_HOLD - 1:
+                    x, px = (d + 1, o[d + 1]) if d + 1 < n else (d, c[d])
+                    cycle += 1
+                    ret = (px / o[ei] - 1) * 100
+                    trades.append({
+                        "signal": dates[t].strftime("%Y-%m-%d"), "entry": dates[ei].strftime("%Y-%m-%d"),
+                        "exit": dates[x].strftime("%Y-%m-%d"), "buy": round(float(o[ei]), 1), "sell": round(float(px), 1),
+                        "ret": round(ret, 2), "days": int(x - ei), "reason": "bw_win" if ret > 0 else "bw_loss",
+                        "touched": bool(touched2), "cycle": cycle})
+                    long, last_exit = False, x
+                    d = x                                    # 売った日の終値からまた判断する
+                    continue
+            d += 1
+        if long:                                             # 検証期間の終わりでまだ持っている
+            free_from = n
+            continue
+        free_from = max(last_exit, d) + 1
+    return trades
+
+
 def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None,
              half: bool = False) -> list[dict]:
+    if exit_rule == "bw":
+        return simulate_bandwalk(df, sigs)
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     hi = df["High"].to_numpy(float)
     ma75 = df["Close"].rolling(k.MA).mean().to_numpy()
@@ -211,7 +270,14 @@ def summarize(tr: pd.DataFrame) -> dict:
     if len(cum_pts) > 400:
         idx = np.linspace(0, len(cum_pts) - 1, 400).astype(int)
         cum_pts = [cum_pts[i] for i in idx]
+    per_signal = None
+    if "cycle" in tr and tr["cycle"].notna().any():
+        g = tr.groupby(["code", "signal"])["ret"]
+        ps = g.sum()
+        per_signal = {"n": int(len(ps)), "cycles": round(float(g.size().mean()), 2),
+                      "win": round(float((ps > 0).mean() * 100), 1), "avg": round(float(ps.mean()), 2)}
     return {
+        "per_signal": per_signal,
         "n": int(len(tr)), "win": round((r > 0).mean() * 100, 1), "avg": round(r.mean(), 2),
         "median": round(r.median(), 2), "avg_win": round(wins.mean(), 2) if len(wins) else None,
         "avg_loss": round(losses.mean(), 2) if len(losses) else None,

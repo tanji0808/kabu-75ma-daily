@@ -44,6 +44,7 @@ a{color:var(--accent)}
 <li><b>売り方</b>（4通り）：<br>①今のルール：+1σより上に乗ったあと+1σ割れで利確／75日線割れで損切り<br>②終値が25日線を割ったら売る<br>③終値が−1σを割ったら売る<br>④+2σに届いたあと+1σ割れで利確／それまでは75日線割れで損切り</li>
 <li><b>買いの絞り込み</b>（あり／なし）：合図の日に25日線が上向き（5日前より上）かつ出来高が過去20日平均の1.5倍以上</li>
 <li><b>+10%利確</b>（3パターンに追加）：買値の+10%に指値を置いた扱い。場中に高値が届けばその値段、朝から上で始まれば始値で売る</li>
+<li><b>+1σバンドウォーク</b>：合図のあと終値が+1σより上なら翌日始値で買い、+1σを割ったら翌日始値で売る。75日線を割るか合図から120営業日たつまで、+1σを超えるたびに買い直す</li>
 <li><b>+10%で半分利確</b>（3パターンに追加）：+10%の指値で半分だけ売り、残り半分はもとの売り方まで持つ。損益は2つの平均</li>
 <li>売りの合図が出たら翌日の始値で売る。どれも最長<span id="mh"></span>営業日（約半年）で売る</li>
 <li>手数料・税金は含めていません。同じ銘柄を持っている間の新しい合図は無視しています。</li></ul></div>
@@ -119,7 +120,8 @@ function render(){
     +kpi('損益比',s.payoff??'—','平均利益÷平均損失')+kpi('プロフィットファクター',s.pf??'—','利益合計÷損失合計（1超で黒字）')
     +kpi('平均保有',s.days+'日','営業日')+kpi('TOPIXとの差',pct(s.excess_avg),`TOPIXに勝った割合 ${s.beat??'—'}%`,cls(s.excess_avg))
     +kpi('最大連敗',s.max_streak+'回','')+kpi('+1σに乗った割合',s.touched+'%','利確の条件を満たせた取引')
-    +kpi('最大の勝ち／負け',pct(s.best,1),pct(s.worst,1));
+    +kpi('最大の勝ち／負け',pct(s.best,1),pct(s.worst,1))
+    +(s.per_signal?kpi('1つの合図あたりの合計',pct(s.per_signal.avg),`買い直し込みで平均${s.per_signal.cycles}回売買・プラスで終わった割合 ${s.per_signal.win}%`,cls(s.per_signal.avg)):'');
   $('cum').innerHTML=lineChart(s.cum);
   $('hist').innerHTML=histChart(s.hist,s.bins);
   $('reason').innerHTML='<tr><th>売った理由</th><th>回数</th><th>勝率</th><th>平均損益</th><th>平均保有</th></tr>'+s.by_reason.map(r=>`<tr><td class="t">${r.reason}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td>${r.days}日</td></tr>`).join('');
