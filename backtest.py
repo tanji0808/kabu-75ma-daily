@@ -61,13 +61,18 @@ for fk, fname in FILTERS.items():
     VARIANTS["bw" + (("_" + fk) if fk else "")] = {
         "exit": "bw", "filter": fk, "fname": fname, "tp": None,
         "name": "+1σより上で買い、+1σ割れで売る（75日線割れまで買い直し）", "short": "+1σバンドウォーク"}
+for fk, fname in FILTERS.items():
+    VARIANTS["bw25" + (("_" + fk) if fk else "")] = {
+        "exit": "bw25", "filter": fk, "fname": fname, "tp": None,
+        "name": "+1σより上で買い、25日線割れで売る（75日線割れまで買い直し）", "short": "+1σで買い・25日線で売る（買い直し）"}
 # +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
 for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
                short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
     VARIANTS[base + "_half"] = cfg
-REASON = {"bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
+REASON = {"bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
+          "bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
 
@@ -97,7 +102,7 @@ def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
 MAX_TRACK = 120   # バンドウォーク：合図から何営業日まで買い直すか
 
 
-def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
+def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray, sell_line: str = "u1") -> list[dict]:
     """合図のあと、終値が+1σより上なら翌日始値で買い、+1σを割ったら翌日始値で売る。
     75日線を割るか、合図から MAX_TRACK 営業日たつまで、何度でも買い直す。"""
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
@@ -105,6 +110,8 @@ def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
     m25 = df["Close"].rolling(25).mean()
     u1 = (m25 + df["Close"].rolling(25).std(ddof=0)).to_numpy()
     u2 = (m25 + 2 * df["Close"].rolling(25).std(ddof=0)).to_numpy()
+    exit_line = u1 if sell_line == "u1" else m25.to_numpy()
+    tag = "bw" if sell_line == "u1" else "bw25"
     dates, n = df.index, len(df)
     trades, free_from = [], 0
     for t in sigs:
@@ -126,14 +133,14 @@ def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
                     continue
             else:
                 touched2 = touched2 or c[d] > u2[d]
-                if c[d] < u1[d] or d - ei >= MAX_HOLD - 1:
+                if c[d] < exit_line[d] or d - ei >= MAX_HOLD - 1:
                     x, px = (d + 1, o[d + 1]) if d + 1 < n else (d, c[d])
                     cycle += 1
                     ret = (px / o[ei] - 1) * 100
                     trades.append({
                         "signal": dates[t].strftime("%Y-%m-%d"), "entry": dates[ei].strftime("%Y-%m-%d"),
                         "exit": dates[x].strftime("%Y-%m-%d"), "buy": round(float(o[ei]), 1), "sell": round(float(px), 1),
-                        "ret": round(ret, 2), "days": int(x - ei), "reason": "bw_win" if ret > 0 else "bw_loss",
+                        "ret": round(ret, 2), "days": int(x - ei), "reason": f"{tag}_win" if ret > 0 else f"{tag}_loss",
                         "touched": bool(touched2), "cycle": cycle})
                     long, last_exit = False, x
                     d = x                                    # 売った日の終値からまた判断する
@@ -149,7 +156,9 @@ def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
 def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None,
              half: bool = False) -> list[dict]:
     if exit_rule == "bw":
-        return simulate_bandwalk(df, sigs)
+        return simulate_bandwalk(df, sigs, "u1")
+    if exit_rule == "bw25":
+        return simulate_bandwalk(df, sigs, "m25")
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     hi = df["High"].to_numpy(float)
     ma75 = df["Close"].rolling(k.MA).mean().to_numpy()
