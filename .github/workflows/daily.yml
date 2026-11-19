@@ -53,11 +53,17 @@ jobs:
           KABU_OUTDIR: _site
           KABU_PAGE_NAME: cards.html
           KABU_DATA_JSON: data.json
+          KABU_QUIET: "1"            # 公開される実行記録に候補の銘柄名を出さない
         run: python kabu_75ma_search.py
+      - name: データをパスワードで暗号化（平文は公開しない）
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: python encrypt_site.py _site
       - name: 画面を用意
         run: |
-          cp web/index.html web/manifest.json web/*.png _site/
+          cp web/index.html web/cards.html web/manifest.json web/*.png _site/
           touch _site/.nojekyll
+          echo "公開するファイル:" && ls _site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

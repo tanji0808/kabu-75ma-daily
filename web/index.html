@@ -168,15 +168,38 @@ canvas{width:100%;display:block}
 #sug .s{font-size:11.5px;color:var(--sub)}
 #sug .p{font-family:var(--mono);font-size:12.5px}
 #sug .none{padding:12px;color:var(--sub);font-size:13px}
+
+#lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#lock.hide{display:none}
+.lockbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 22px;width:100%;max-width:340px;text-align:center}
+.lockicon{font-size:30px} .lockbox h2{font-size:16px;margin:8px 0 4px} .lockbox p{font-size:13px;color:var(--sub);margin:0 0 14px}
+.lockbox input[type=password]{width:100%;border:1px solid var(--line);border-radius:8px;padding:11px 12px;font-size:16px}
+.lockbox input[type=password]:focus{outline:0;border-color:var(--accent)}
+.rem{display:flex;gap:6px;align-items:center;justify-content:center;font-size:12.5px;color:var(--sub);margin:12px 0}
+.rem input{accent-color:var(--accent)}
+.lockbox .btn{width:100%;padding:10px;font-size:15px}
+.lockmsg{font-size:12.5px;margin-top:10px;min-height:1.2em;color:var(--up)}
 footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color:var(--sub)}
 </style>
 </head>
 <body>
+<div id="lock">
+  <form id="lockForm" class="lockbox" autocomplete="on">
+    <div class="lockicon">🔒</div>
+    <h2>75日線ブレイク・スクリーナー</h2>
+    <p>パスワードを入力してください</p>
+    <input type="text" name="username" value="75日線スクリーナー" autocomplete="username" style="display:none">
+    <input id="pw" type="password" autocomplete="current-password" placeholder="パスワード" required>
+    <label class="rem"><input type="checkbox" id="remember" checked> この端末で記憶する</label>
+    <button class="btn primary" id="unlockBtn" type="submit">開く</button>
+    <div class="lockmsg" id="lockMsg"></div>
+  </form>
+</div>
 <header>
   <h1>日本株テクニカル・スクリーナー<small>移動平均・RSI・MACD・出来高などの条件で銘柄を探す</small></h1>
   <div class="hdr-actions">
     <span id="dataBadge" class="data-badge real">データ読み込み中…</span>
-    <a class="btn" href="cards.html" style="text-decoration:none">候補をカードで見る</a>
+    <a class="btn" href="index.html?view=cards" style="text-decoration:none">候補をカードで見る</a>
     <button class="btn" id="btnImport" style="display:none">CSVを読み込む</button>
     <button class="btn ghost" id="btnReset" style="display:none">最新データに戻す</button>
   </div>
@@ -254,8 +277,9 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
 </div>
 
 <footer>
-  東証プライム全銘柄の日足（Yahoo Finance／yfinance）を、平日16:40ごろに自動で更新しています。
+  東証プライム全銘柄の日足（Yahoo Finance／yfinance）を、平日の夕方に自動で更新しています。データはパスワードで暗号化して公開しています。
   条件に機械的に当てはまる銘柄を表示するもので、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。
+  <br><a href="#" id="logout" style="color:var(--sub)">この端末からパスワードを消す（ロックする）</a>
 </footer>
 
 <div class="modal-bg" id="modal">
@@ -924,7 +948,7 @@ $('btnClear').onclick=()=>{CONDS.forEach(c=>state[c.id].on=false);renderConds();
 /* ---------------- 起動 ---------------- */
 renderPresets();renderConds();renderHead();
 $('tbody').innerHTML='<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
-fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(j=>{
+function onData(j){
   LIVE=j.stocks.map(x=>{const bars=[];let c10=0;for(let i=0;i<x.dc.length;i++){c10+=x.dc[i];bars.push({d:j.dates[x.st+i],o:(c10+x.o[i])/10,h:(c10+x.h[i])/10,l:(c10+x.l[i])/10,c:c10/10,v:x.v[i]*100});}
     return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
   LIVE_LABEL=`東証プライム ${LIVE.length}銘柄・${j.asof} 終値（${j.updated} 更新）`;
@@ -936,8 +960,47 @@ fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status
       [...$('typeSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.t==='line'));[...$('rangeSeg').children].forEach(x=>x.classList.toggle('on',+x.dataset.r===120));}
     select(qc);setTimeout(()=>$('typeSeg').parentElement.scrollIntoView({behavior:'auto',block:'start'}),400);
   }
-}).catch(e=>{$('dataBadge').textContent='データを読み込めませんでした';
-  $('tbody').innerHTML=`<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--up)">株価データ（data.json）を読み込めませんでした（${esc(e.message)}）。時間をおいて開き直してください。</td></tr>`;});
+}
+
+/* ---------------- パスワードで暗号化されたデータを開く ---------------- */
+const PW_KEY='kabu75pw';
+function getSaved(){try{return localStorage.getItem(PW_KEY)||sessionStorage.getItem(PW_KEY);}catch(e){return null;}}
+function savePw(pw,remember){try{sessionStorage.setItem(PW_KEY,pw);if(remember)localStorage.setItem(PW_KEY,pw);else localStorage.removeItem(PW_KEY);}catch(e){}}
+function clearPw(){try{localStorage.removeItem(PW_KEY);sessionStorage.removeItem(PW_KEY);}catch(e){}}
+let binPromise=null;
+function loadBin(){return binPromise||(binPromise=fetch('data.bin',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('data.bin '+r.status);return r.arrayBuffer();}));}
+async function decryptBundle(buf,pw){
+  const u=new Uint8Array(buf);
+  if(String.fromCharCode(u[0],u[1],u[2])!=='KB1')throw new Error('形式が違います');
+  const iter=new DataView(buf).getUint32(3),salt=u.slice(7,23),iv=u.slice(23,35),ct=u.slice(35);
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  let plain;
+  try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);}catch(e){const er=new Error('パスワードが違います');er.wrong=true;throw er;}
+  const txt=await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  return JSON.parse(txt);
+}
+function showCards(html){document.open();document.write(html);document.close();}
+async function unlock(pw,remember,silent){
+  $('lockMsg').style.color='var(--sub)';$('lockMsg').textContent='開いています…';$('unlockBtn').disabled=true;
+  try{
+    const b=await decryptBundle(await loadBin(),pw);
+    savePw(pw,remember);
+    if(new URLSearchParams(location.search).get('view')==='cards'&&b.cards){showCards(b.cards);return;}
+    $('lock').classList.add('hide');onData(b.data);
+  }catch(e){
+    if(e.wrong)clearPw();
+    $('lock').classList.remove('hide');$('unlockBtn').disabled=false;
+    $('lockMsg').style.color='var(--up)';
+    $('lockMsg').textContent=e.wrong?(silent?'パスワードが変わったようです。もう一度入力してください。':'パスワードが違います'):`データを読み込めませんでした（${e.message}）。時間をおいて開き直してください。`;
+    if(!silent||e.wrong)$('pw').focus();
+  }
+}
+$('lockForm').addEventListener('submit',e=>{e.preventDefault();const pw=$('pw').value;if(pw)unlock(pw,$('remember').checked,false);});
+$('logout').onclick=e=>{e.preventDefault();clearPw();location.href='index.html';};
+$('dataBadge').textContent='ロック中';
+loadBin().catch(()=>{});
+{const saved=getSaved();if(saved)unlock(saved,(()=>{try{return !!localStorage.getItem(PW_KEY);}catch(e){return false;}})(),true);else $('lockMsg').textContent='';}
 })();
 </script>
 </body>

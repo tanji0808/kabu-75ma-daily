@@ -382,8 +382,9 @@ def main() -> None:
         pd.set_option("display.unicode.east_asian_width", True)
         pd.set_option("display.width", 200)
         print(f"\n=== 75日線ブレイク候補: {len(res)} 銘柄（{data_date} 終値時点） ===")
-        print(res[["状態", "コード", "銘柄名", "株価", "75日線", "75日線との差(%)",
-                   "半年高値からの下落(%)", "出来高"]].to_string(index=False))
+        if os.environ.get("KABU_QUIET") != "1":   # 公開される実行記録には銘柄名を出さない
+            print(res[["状態", "コード", "銘柄名", "株価", "75日線", "75日線との差(%)",
+                       "半年高値からの下落(%)", "出来高"]].to_string(index=False))
         print(f"\n保存しました: {out1} / {out2}")
     print(f"結果ページ: {page}")
     if os.environ.get("KABU_OPEN") == "1":   # ダブルクリック起動のときは結果ページを開く
