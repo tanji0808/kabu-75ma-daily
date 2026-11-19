@@ -43,6 +43,7 @@ a{color:var(--accent)}
 <li><b>買い</b>：3ヶ月以上の下落のあと、終値が75日線を下から上に抜けた日（スクリーナーの「本日突破」と同じ条件・出来高50万株以上）の<b>翌日の始値</b></li>
 <li><b>売り方</b>（4通り）：<br>①今のルール：+1σより上に乗ったあと+1σ割れで利確／75日線割れで損切り<br>②終値が25日線を割ったら売る<br>③終値が−1σを割ったら売る<br>④+2σに届いたあと+1σ割れで利確／それまでは75日線割れで損切り</li>
 <li><b>買いの絞り込み</b>（あり／なし）：合図の日に25日線が上向き（5日前より上）かつ出来高が過去20日平均の1.5倍以上</li>
+<li><b>+10%利確</b>（3パターンに追加）：買値の+10%に指値を置いた扱い。場中に高値が届けばその値段、朝から上で始まれば始値で売る</li>
 <li>売りの合図が出たら翌日の始値で売る。どれも最長<span id="mh"></span>営業日（約半年）で売る</li>
 <li>手数料・税金は含めていません。同じ銘柄を持っている間の新しい合図は無視しています。</li></ul></div>
 <div class="card"><h2>全パターンの比較<span class="meta">（行をタップすると詳しく見られます）</span></h2><div class="scroll"><table id="cmp"></table></div></div>
@@ -123,7 +124,7 @@ function render(){
   $('reason').innerHTML='<tr><th>売った理由</th><th>回数</th><th>勝率</th><th>平均損益</th><th>平均保有</th></tr>'+s.by_reason.map(r=>`<tr><td class="t">${r.reason}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td>${r.days}日</td></tr>`).join('');
   $('year').innerHTML='<tr><th>年</th><th>回数</th><th>勝率</th><th>平均損益</th><th>TOPIX</th><th>損益合計</th></tr>'+s.by_year.map(r=>`<tr><td>${r.year}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td class="${cls(r.bench)}">${pct(r.bench)}</td><td class="${cls(r.sum)}">${yen(r.sum*1000)}</td></tr>`).join('');
   $('rank').innerHTML=(s.by_rank&&s.by_rank.length)?'<tr><th>期間</th><th>ランク</th><th>回数</th><th>勝率</th><th>平均損益</th><th>PF</th><th>TOPIXとの差</th></tr>'+s.by_rank.map(r=>r.n?`<tr><td class="t">${r.period}</td><td class="t">${r.group}</td><td>${r.n}</td><td>${r.win}%</td><td class="${cls(r.avg)}">${pct(r.avg)}</td><td>${r.pf??'—'}</td><td class="${cls(r.excess)}">${pct(r.excess)}</td></tr>`:`<tr><td class="t">${r.period}</td><td class="t">${r.group}</td><td>0</td><td colspan="4">—</td></tr>`).join(''):'<tr><td>財務データがないため計算していません</td></tr>';
-  const RS={take:'利確',stop:'損切り',time:'期間満了',ma25:'25日線割れ',m1s:'−1σ割れ'};
+  const RS={tp:'+10%利確',take:'利確',stop:'損切り',time:'期間満了',ma25:'25日線割れ',m1s:'−1σ割れ'};
   $('trades').innerHTML='<tr><th>買った日</th><th>銘柄</th><th>買値</th><th>売った日</th><th>売値</th><th>損益</th><th>理由</th></tr>'+(s.recent||[]).map(t=>`<tr><td>${t.entry}</td><td class="t">${t.code} ${t.name}</td><td>${t.buy.toLocaleString()}</td><td>${t.exit}</td><td>${t.sell.toLocaleString()}</td><td class="${cls(t.ret)}">${pct(t.ret,1)}</td><td class="t">${RS[t.reason]}</td></tr>`).join('');
 }
 tabs();render();

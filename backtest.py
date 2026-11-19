@@ -49,8 +49,14 @@ VARIANTS = {}
 for fk, fname in FILTERS.items():
     for ek, ename in EXITS.items():
         VARIANTS[f"{ek}{('_' + fk) if fk else ''}"] = {"exit": ek, "filter": fk, "name": ename, "fname": fname,
-                                                       "short": SHORT[ek]}
-REASON = {"take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
+                                                       "short": SHORT[ek], "tp": None}
+# +10%で利益確定（指値）を足したパターン
+TP = 0.10
+for base in ("ma25", "ma25_f", "m1s"):
+    cfg = dict(VARIANTS[base])
+    cfg.update(tp=TP, name=cfg["name"] + f"＋{int(TP * 100)}%で利確", short=cfg["short"] + f"＋{int(TP * 100)}%利確")
+    VARIANTS[base + "_tp"] = cfg
+REASON = {"tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
 
@@ -77,8 +83,9 @@ def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
 
 
 # ------------------------------------------------------------------ 売買
-def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str) -> list[dict]:
+def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None) -> list[dict]:
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
+    hi = df["High"].to_numpy(float)
     ma75 = df["Close"].rolling(k.MA).mean().to_numpy()
     m25s = df["Close"].rolling(25).mean()
     sd = df["Close"].rolling(25).std(ddof=0)
@@ -94,8 +101,15 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str) -> list[dict]:
             continue
         entry = o[e]
         touched1 = touched2 = False
-        exit_sig, reason = None, None
+        exit_sig, reason, tp_px = None, None, None
+        target = entry * (1 + tp) if tp else None
         for j in range(e, min(n, e + MAX_HOLD)):
+            # 利確の指値（場中）：終値で判断する売りより先に約定する
+            if target is not None:
+                if j > e and o[j] >= target:            # 朝から目標以上で始まった → 始値で売れる
+                    exit_sig, reason, tp_px = j, "tp", o[j]; break
+                if hi[j] >= target:                      # 場中に目標に届いた → 目標の値段で売れる
+                    exit_sig, reason, tp_px = j, "tp", target; break
             if exit_rule == "s1":
                 if touched1 and c[j] < u1[j]:
                     exit_sig, reason = j, "take"; break
@@ -120,10 +134,12 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str) -> list[dict]:
             else:
                 free_from = n          # まだ持っている途中（検証期間の終わり）なので集計しない
                 continue
-        x = exit_sig + 1
-        if x >= n:                      # 売りの合図が最終日に出た：その日の終値で売ったことにする
+        if tp_px is not None:           # 利確の指値はその日のうちに売れている
+            x, px = exit_sig, tp_px
+        elif exit_sig + 1 >= n:         # 売りの合図が最終日に出た：その日の終値で売ったことにする
             x, px = exit_sig, c[exit_sig]
         else:
+            x = exit_sig + 1
             px = o[x]
         trades.append({
             "signal": dates[t].strftime("%Y-%m-%d"), "entry": dates[e].strftime("%Y-%m-%d"),
@@ -247,7 +263,7 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
         last = df.index[-1] if last is None else max(last, df.index[-1])
         sig_by_filter = {fk: signal_days(df, fk) for fk in FILTERS}
         for v, cfg in VARIANTS.items():
-            for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"]):
+            for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"], cfg.get("tp")):
                 t.update({"code": m["コード"], "name": m["銘柄名"], "sector": m["業種"]})
                 t["bench"] = bench_return(bench, t["entry"], t["exit"])
                 t["excess"] = None if t["bench"] is None else round(t["ret"] - t["bench"], 2)
