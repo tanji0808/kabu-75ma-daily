@@ -249,16 +249,23 @@ def _fund_metrics(f: dict, close: float) -> dict:
             "rg": pct("rg"), "eg": pct("eg"), "de": f.get("de"), "eps": eps, "feps": feps}
 
 
-def fund_ranks(master: pd.DataFrame, prices: dict, fund: dict) -> dict:
-    """ファンダメンタル10段階ランク（スクリーナー画面の fundScore() と同じ採点）。"""
+def fund_ranks(master: pd.DataFrame, prices: dict, fund: dict, close_map: dict | None = None) -> dict:
+    """ファンダメンタル10段階ランク（スクリーナー画面の fundScore() と同じ採点）。
+    close_map を渡すと、その終値（例：過去のある日の終値）で PER・PBR などを計算する。"""
     import statistics
     met, sec_of = {}, {}
     for _, m in master.iterrows():
-        df = prices.get(m["コード"])
-        if df is None or not len(df):
-            continue
+        if close_map is not None:
+            px = close_map.get(m["コード"])
+            if px is None or px != px or px <= 0:
+                continue
+        else:
+            df = prices.get(m["コード"])
+            if df is None or not len(df):
+                continue
+            px = df["Close"].iloc[-1]
         sec_of[m["コード"]] = m["業種"]
-        met[m["コード"]] = _fund_metrics(fund.get(m["コード"], {}), df["Close"].iloc[-1])
+        met[m["コード"]] = _fund_metrics(fund.get(m["コード"], {}), px)
     stats = {}
     for sec in set(sec_of.values()):
         arr = [met[c] for c in met if sec_of[c] == sec]
