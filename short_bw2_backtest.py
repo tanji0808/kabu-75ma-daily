@@ -103,13 +103,14 @@ def simulate(code: str, df: pd.DataFrame, i: int, exit_rule: str, cache: dict) -
     for j in range(e, min(n - 1, e + bw.MAX_HOLD)):
         if armed:
             s1 = m25[j - 1] if exit_rule.startswith("lk25") else d1[j - 1]
+            line = "25日線" if exit_rule.startswith("lk25") else "−1σ"
             s2 = -np.inf if exit_rule == "lk25c" else d2[j - 1]
             if o[j] <= s2:
                 px, why = o[j], "利確（−2σ・寄りで約定）"
             elif o[j] >= s1:
-                px, why = o[j], "利益確保（−1σ戻り・寄りで約定）"
+                px, why = o[j], f"利益確保（{line}戻り・寄りで約定）"
             elif h[j] >= s1:
-                px, why = s1, "利益確保（−1σ戻り）"
+                px, why = s1, f"利益確保（{line}戻り）"
             elif l[j] <= s2:
                 px, why = s2, "利確（−2σ）"
             if px is not None:
