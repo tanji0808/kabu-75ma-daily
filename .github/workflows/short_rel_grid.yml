@@ -2,6 +2,10 @@ name: 空売り（TOPIXより弱い銘柄・条件を変えた検証）
 
 on:
   workflow_dispatch:          # 手動で実行（Actions → このワークフロー → Run workflow）
+    inputs:
+      period:
+        description: "検証する期間（6y=約5年、11y=約10年。最初の数か月は指標の準備に使う）"
+        default: "6y"
 
 permissions:
   contents: write
@@ -20,11 +24,12 @@ jobs:
       - name: 空売りのバックテストを実行（過去約5年・東証プライム）
         env:
           TZ: Asia/Tokyo
+          BT_PERIOD: ${{ inputs.period || '6y' }}
         run: python short_rel_grid.py
       - name: 結果を保存
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backtest/short_rel_grid.json backtest/short_rel_trades_*
+          git add backtest/short_rel_grid*.json backtest/short_rel_trades_*
           git commit -m "空売りバックテスト結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q
