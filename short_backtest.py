@@ -65,6 +65,23 @@ MARKET = {
 PATTERNS = {b + (("_" + m) if m else ""): f"{bn}（{mn}）" for m, mn in MARKET.items() for b, bn in BASE.items()}
 
 
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    """壊れた株価データを除く。"""
+    df = df[(df["Open"] > 0) & (df["Low"] > 0)]
+    # 明らかに壊れた値（前日終値の1.6倍超・0.4倍未満の始値・高値・安値）がある日を除く
+    pc = df["Close"].shift(1)
+    bad = (df[["Open", "High", "Close"]].max(axis=1) > pc * 1.6) | (df[["Open", "Low", "Close"]].min(axis=1) < pc * 0.4)
+    df = df[~bad]
+    # 上場廃止・再上場などで30日以上データが途切れている銘柄は、途切れた後だけを使う
+    gaps = np.where(np.diff(df.index.values).astype("timedelta64[D]").astype(int) > 30)[0]
+    if len(gaps):
+        df = df.iloc[gaps[-1] + 1:]
+    # 20日の中央値から3倍以上・3分の1以下に離れた値がある日も除く
+    med = df["Close"].rolling(20, min_periods=5, center=True).median()
+    df = df[(df[["Open", "High", "Close"]].max(axis=1) < med * 3) & (df[["Open", "Low", "Close"]].min(axis=1) > med / 3)]
+    return df
+
+
 def signals(df: pd.DataFrame) -> list[dict]:
     o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
     n = len(c)
@@ -188,18 +205,7 @@ def main() -> None:
     raw = {p: [] for p in PATTERNS}
     nsig = 0
     for code, df in prices.items():
-        df = df[(df["Open"] > 0) & (df["Low"] > 0)]
-        # 明らかに壊れた値（前日終値の1.6倍超・0.4倍未満の始値・高値・安値）がある日を除く
-        pc = df["Close"].shift(1)
-        bad = (df[["Open", "High", "Close"]].max(axis=1) > pc * 1.6) | (df[["Open", "Low", "Close"]].min(axis=1) < pc * 0.4)
-        df = df[~bad]
-        # 上場廃止・再上場などで30日以上データが途切れている銘柄は、途切れた後だけを使う
-        gaps = np.where(np.diff(df.index.values).astype("timedelta64[D]").astype(int) > 30)[0]
-        if len(gaps):
-            df = df.iloc[gaps[-1] + 1:]
-        # 20日の中央値から3倍以上・3分の1以下に離れた値がある日も除く
-        med = df["Close"].rolling(20, min_periods=5, center=True).median()
-        df = df[(df[["Open", "High", "Close"]].max(axis=1) < med * 3) & (df[["Open", "Low", "Close"]].min(axis=1) > med / 3)]
+        df = clean(df)
         if len(df) < WARMUP + 20:
             continue
         sigs = signals(df)
