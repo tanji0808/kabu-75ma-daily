@@ -1,0 +1,37 @@
+{
+ "variant": "m1s",
+ "size": 1000000.0,
+ "cap": 20,
+ "equity": 10000000.0,
+ "rate": 0.03,
+ "trades": 733,
+ "signals": 1432,
+ "years": 5.41,
+ "final_pnl": 12043049,
+ "annual_pnl": 2227202,
+ "max_dd": 3081157,
+ "max_dd_date": "2022-06-14",
+ "max_dd_pct": 30.8,
+ "min_ratio": 35.3,
+ "min_ratio_date": "2022-05-31",
+ "days_ratio_below": {
+  "20": 0,
+  "25": 0,
+  "30": 0
+ },
+ "max_expo": 20000000,
+ "avg_expo": 15424609,
+ "max_positions": 20,
+ "avg_positions": 15.4,
+ "interest_total": 2655551,
+ "by_year": {
+  "2021": -1474173,
+  "2022": 91331,
+  "2023": 4414933,
+  "2024": 4235886,
+  "2025": 3576047,
+  "2026": 1199027
+ },
+ "worst_unreal": 0,
+ "worst_unreal_date": "2021-06-23"
+}
