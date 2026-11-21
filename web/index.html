@@ -175,11 +175,24 @@ canvas{width:100%;display:block}
 #sug .p{font-family:var(--mono);font-size:12.5px}
 #sug .none{padding:12px;color:var(--sub);font-size:13px}
 footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color:var(--sub)}
+.mode{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.mode button{border:0;background:#fff;padding:9px 0;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--sub)}
+.mode button+button{border-left:1px solid var(--line)}
+.mode button.on.buy{background:var(--up);color:#fff}
+.mode button.on.short{background:var(--down);color:#fff}
+.mode-note{font-size:11.5px;color:var(--sub);margin:0 0 10px;line-height:1.6}
+.plan{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+.plan h4{margin:0 0 2px;font-size:14px}
+.plan .pin{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--sub);margin:10px 0 12px;align-items:center}
+.plan .pin input,.plan .pin select{border:1px solid var(--line);border-radius:5px;padding:3px 6px;width:86px;font-family:var(--mono);font-size:12px;background:#fff}
+.plan .pin select{width:auto;font-family:inherit}
+.plan .warn{font-size:11.5px;color:var(--warn);background:#fff8ec;border:1px solid #f0d9b0;border-radius:6px;padding:8px 10px;line-height:1.7}
+.stat.stop .v{color:var(--up)} .stat.tgt .v{color:#2a7a3b}
 </style>
 </head>
 <body>
 <header>
-  <h1>日本株テクニカル・スクリーナー<small>移動平均・RSI・MACD・出来高などの条件で銘柄を探す</small></h1>
+  <h1>日本株テクニカル・スクリーナー<small>買い候補・空売り候補を移動平均・RSI・MACD・出来高などの条件で探す</small></h1>
   <div class="hdr-actions">
     <span id="dataBadge" class="data-badge real">データ読み込み中…</span>
     <a class="btn" href="cards.html" style="text-decoration:none">候補をカードで見る</a>
@@ -212,6 +225,8 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
 
   <main class="main">
     <section class="card search">
+      <div class="mode" id="modeSeg"><button data-m="buy" class="buy on">買い候補</button><button data-m="short" class="short">空売り候補</button></div>
+      <div class="mode-note" id="modeNote"></div>
       <div class="sbox"><span class="sicon">🔍</span><input id="q" type="search" placeholder="銘柄名・コードで検索（全銘柄から）" autocomplete="off"></div>
       <div id="sug"></div>
     </section>
@@ -255,6 +270,20 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
         </div>
         <div class="legend" id="legend"></div>
         <canvas id="chart"></canvas>
+        <div class="plan" id="plan" style="display:none">
+          <h4>空売りプラン</h4>
+          <div style="font-size:12px;color:var(--sub)">直近の終値で売り建てた場合の損切り・利確・株数の目安です（チャートに点線で表示）。</div>
+          <div class="pin">
+            <label>損切り <select id="pStopType"><option value="ma75">75日線の上</option><option value="hi20">直近20日高値の上</option></select></label>
+            <label>＋<input id="pBuf" type="number" step="0.5" min="0" value="1">％</label>
+            <label>許容損失 <input id="pRisk" type="number" step="1000" min="0" value="30000">円</label>
+            <label>利確目標 <input id="pR" type="number" step="0.5" min="0.5" value="2">倍（損切り幅の）</label>
+            <label>保有見込み <input id="pDays" type="number" min="1" value="20">日</label>
+            <label>貸株料 <input id="pFee" type="number" step="0.05" min="0" value="1.1">％/年</label>
+          </div>
+          <div class="stats" id="planStats"></div>
+          <div class="warn" id="planWarn"></div>
+        </div>
         <div class="fund" id="dFund"></div>
       </div>
     </section>
@@ -264,6 +293,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
 <footer>
   東証プライム全銘柄の日足（Yahoo Finance／yfinance）を、平日16:40ごろに自動で更新しています。
   条件に機械的に当てはまる銘柄を表示するもので、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。
+  空売りは損失に上限がなく、逆日歩や貸株料がかかることがあります。空売りできる銘柄（貸借銘柄など）は証券会社で確認してください。
 </footer>
 
 <div class="modal-bg" id="modal">
@@ -429,6 +459,20 @@ function buyFilter(s,p){
   let sum=0;for(let i=ref-20;i<ref;i++)sum+=v[i];const avg=sum/20,x=avg>0?v[ref]/avg:0;
   return {ok:m25[ref]>m25[ref-p.rd]&&x>=p.x,x,ref};
 }
+// 空売り（本の手法の逆）：上昇が続いたあと、75日線を上から割り込みそう／割った直後
+function ma75Down(s,p){
+  const I=ind(s),L=I.L,c=I.c,ma=I.getSma(75),du=p.du,cw=p.cw;
+  if(L<Math.max(75+du,120)+5)return null;
+  const now=ma[L],then=ma[L-du];if(now==null||then==null||now/then-1<0.02)return null;
+  let above=0,cnt=0;for(let i=L-du;i<L-cw;i++){cnt++;if(c[i]>ma[i])above++;}
+  if(above/cnt<0.75)return null;
+  let hi=-Infinity,lo=Infinity;for(let i=L-120;i<=L;i++){hi=Math.max(hi,I.h[i]);lo=Math.min(lo,I.l[i]);}
+  if(hi/lo-1<p.ur/100)return null;
+  const gap=c[L]/now-1;
+  if(gap<0&&gap>=-0.03&&crossDown(c,ma,cw,L))return '割れ直後';
+  if(gap>=0&&gap<=p.ap/100&&c[L]<c[L-5])return '割れ目前';
+  return null;
+}
 function dev(s,n){const I=ind(s),m=I.getSma(n)[I.L];return m?(I.c[I.L]/m-1)*100:null;}
 
 /* ---------------- 条件定義 ---------------- */
@@ -445,6 +489,17 @@ const CONDS=[
   {g:'本の手法',id:'vmin',label:'出来高の下限',desc:'直近の営業日の出来高が指定株数以上',
     p:{x:{t:'num',v:500000,post:'株以上',step:10000,min:0}},
     test:(s,p)=>{const I=ind(s);return I.v[I.L]>=p.x;},tag:p=>`出来高 ${Number(p.x).toLocaleString('ja-JP')}株以上`},
+  {g:'空売り（本の手法の逆）',id:'ma75d',label:'上昇後に75日線を上から割り込みそう',desc:'3ヶ月〜半年上昇が続いたあと、75日線の直上まで下げた／下抜けた直後',
+    p:{du:{t:'sel',o:[60,90,120],v:60,pre:'上昇期間',post:'営業日'},ap:{t:'num',v:5,pre:'75日線の',post:'％上から',step:0.5,min:0},cw:{t:'num',v:5,pre:'下抜け',post:'日以内',min:1,max:20},ur:{t:'num',v:15,pre:'半年安値から',post:'％以上上昇',step:1,min:0}},
+    test:(s,p)=>ma75Down(s,p)!=null,
+    tag:p=>`上昇${p.du}日→75日線割れ（+${p.ap}%〜下抜け${p.cw}日以内）`},
+  {g:'空売り（本の手法の逆）',id:'pod',label:'パーフェクトオーダー（下降）',desc:'5日線 < 25日線 < 75日線 の順に並んでいる',p:{},
+    test:s=>{const I=ind(s),L=I.L,a=I.getSma(5)[L],b=I.getSma(25)[L],c=I.getSma(75)[L];return a!=null&&c!=null&&a<b&&b<c;},
+    tag:()=>'下降パーフェクトオーダー'},
+  {g:'空売り（本の手法の逆）',id:'bear',label:'出来高を伴う大陰線',desc:'当日が陰線で、下落率と出来高倍率が指定以上',
+    p:{dn:{t:'num',v:3,pre:'前日比',post:'％以上下落',step:0.5,min:0},x:{t:'num',v:1.5,pre:'出来高',post:'倍以上',step:0.1,min:0}},
+    test:(s,p)=>{const I=ind(s),b=s.bars[I.L];return b.c<b.o&&I.chgPct<=-p.dn&&I.volRatio!=null&&I.volRatio>=p.x;},
+    tag:p=>`大陰線 -${p.dn}%以上・出来高${p.x}倍以上`},
   {g:'ファンダメンタル',id:'frank',label:'ファンダメンタルランク',desc:'PER・PBR・ROE・成長などを10点満点で採点したランク',
     p:{mn:{t:'num',v:6,post:'以上',min:0,max:10}},
     test:(s,p)=>{const r=fundScore(s).score;return r!=null&&r>=p.mn;},tag:p=>`Fランク ${p.mn}以上`},
@@ -507,12 +562,20 @@ const PRESETS=[
   {name:'上昇トレンド継続',on:{po:{},above:{n:200,dir:'上'}}},
   {name:'過熱感あり',on:{rsi:{mn:70,mx:100},dev:{n:25,mn:8,mx:100}}},
 ];
+const SHORT_PRESETS=[
+  {name:'★ 75日線割れ（本の手法の逆）',market:'プライム',on:{ma75d:{du:60,ap:5,cw:5,ur:15},vmin:{x:500000}}},
+  {name:'下降トレンド継続',on:{pod:{},above:{n:200,dir:'下'},vmin:{x:500000}}},
+  {name:'戻り売り候補',on:{above:{n:75,dir:'下'},rsi:{mn:50,mx:70},dev:{n:25,mn:0,mx:8},vmin:{x:500000}}},
+  {name:'天井圏の失速',on:{macdd:{w:5},rsi:{mn:55,mx:100},dev:{n:25,mn:3,mx:100}}},
+  {name:'安値ブレイク',on:{lo:{w:10},above:{n:25,dir:'下'}}},
+  {name:'出来高を伴う急落',on:{bear:{dn:3,x:1.5},above:{n:25,dir:'下'}}},
+];
 
 /* ---------------- 状態 ---------------- */
 let DATA=[], isSample=false, LIVE=[], LIVE_LABEL='';
 const state={};
 CONDS.forEach(c=>{state[c.id]={on:false,p:Object.fromEntries(Object.entries(c.p).map(([k,d])=>[k,d.v]))};});
-let sortKey='code', sortDir=1, selected=null, range=120;
+let sortKey='code', sortDir=1, selected=null, range=120, mode='buy';
 const $=id=>document.getElementById(id);
 
 /* ---------------- サイドバー描画 ---------------- */
@@ -550,7 +613,7 @@ function renderConds(){
 }
 function renderPresets(){
   const box=$('presets');box.innerHTML='';
-  PRESETS.forEach(pr=>{const b=document.createElement('button');b.className='chip';b.textContent=pr.name;
+  curPresets().forEach(pr=>{const b=document.createElement('button');b.className='chip';b.textContent=pr.name;
     b.onclick=()=>applyPreset(pr);
     box.appendChild(b);});
 }
@@ -559,6 +622,11 @@ function applyPreset(pr){{CONDS.forEach(c=>{state[c.id].on=false;});
       {const sel=$('fMarket'),m=pr.market||'';sel.value=[...sel.options].some(o=>o.value===m)?m:'';}
       renderConds();update();}
 }
+function curPresets(){return mode==='short'?SHORT_PRESETS:PRESETS;}
+const MODE_NOTE={buy:'上昇が期待できる銘柄を探すモードです。',short:'下落が期待できる銘柄を探すモードです。銘柄を選ぶと、チャートの下に空売りプラン（損切り・株数の目安）が出ます。空売りできるかどうか（貸借銘柄か）は証券会社で確認してください。'};
+function setMode(m){mode=m;[...$('modeSeg').children].forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('modeNote').textContent=MODE_NOTE[m];
+  try{localStorage.setItem('mode',m);}catch(e){}
+  renderPresets();applyPreset(curPresets()[0]);if(selected){renderPlan();drawChart();}}
 function fillSelects(){
   const mk=[...new Set(DATA.map(s=>s.market).filter(Boolean))];
   const sc=[...new Set(DATA.map(s=>s.sector).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
@@ -580,6 +648,7 @@ function signals(s){
   if(crossDown(I.macd,I.sig,3,L))out.push(['MACD↓','s']);
   const r=I.rsi[L];if(r!=null&&r<=30)out.push(['売られすぎ','b']);if(r!=null&&r>=70)out.push(['買われすぎ','s']);
   const mb=ma75Break(s,{dd:60,ap:5,cw:5,dr:15});if(mb)out.push(['75日線'+(mb==='突破直後'?'突破':'接近'),'b']);
+  const md=ma75Down(s,{du:60,ap:5,cw:5,ur:15});if(md)out.push(['75日線'+(md==='割れ直後'?'割れ':'割れ接近'),'s']);
   if(I.volRatio>=2)out.push(['出来高↑','n']);
   if(newHigh(I.h,1,L))out.push(['高値更新','b']);
   if(newHigh(I.l,1,L,250,true))out.push(['安値更新','s']);
@@ -801,10 +870,44 @@ function select(code){
   st.push(['52週高値',fmtP(hh)],['52週安値',fmtP(ll)]);
   $('dStats').innerHTML=st.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
   renderFund(s);
-  drawChart();
+  renderPlan();drawChart();
   if(window.innerWidth<900&&!new URLSearchParams(location.search).get('c'))$('detailCard').scrollIntoView({behavior:'smooth'});
 }
 
+let PLAN=null;
+function planCalc(s){
+  const I=ind(s),L=I.L,entry=I.c[L];
+  const buf=(parseFloat($('pBuf').value)||0)/100,risk=parseFloat($('pRisk').value)||0,R=parseFloat($('pR').value)||0,
+    days=parseFloat($('pDays').value)||0,fee=(parseFloat($('pFee').value)||0)/100;
+  let base;
+  if($('pStopType').value==='ma75')base=I.getSma(75)[L];
+  else{base=-Infinity;for(let i=Math.max(0,L-19);i<=L;i++)base=Math.max(base,I.h[i]);}
+  if(base==null||!isFinite(base))return {err:'損切りの基準を計算するにはデータが足りません。'};
+  if(base<entry)return {err:'終値が損切りの基準（'+fmtP(base)+'円）より上にあるため、この基準では損切り位置を決められません。「直近20日高値の上」を選ぶか、75日線を割った銘柄で使ってください。'};
+  const stop=base*(1+buf),per=stop-entry;
+  if(per<=0)return {err:'損切り幅が0になります。上乗せ％を増やしてください。'};
+  const target=Math.max(entry-per*R,0);
+  const shares=Math.floor(risk/per/100)*100;
+  const notional=shares*entry;
+  return {entry,stop,target,per,shares,notional,margin:notional*0.3,lend:notional*fee*days/365,lossAtStop:shares*per,gainAtTgt:shares*(entry-target)};
+}
+function renderPlan(){
+  const show=mode==='short'&&selected;$('plan').style.display=show?'block':'none';PLAN=null;if(!show)return;
+  const s=DATA.find(x=>x.code===selected);if(!s)return;
+  const p=planCalc(s),warns=[];
+  if(p.err){$('planStats').innerHTML='';warns.push(p.err);}
+  else{PLAN=p;
+    const yen=v=>Math.round(v).toLocaleString('ja-JP')+'円';
+    const items=[['売り建て値（直近終値）',fmtP(p.entry)+'円',''],['損切り（買い戻し）',fmtP(p.stop)+'円','stop'],['利確目標',fmtP(p.target)+'円','tgt'],
+      ['1株あたりリスク',fmtP(p.per)+'円（'+(p.per/p.entry*100).toFixed(1)+'%）',''],['株数の目安',p.shares?p.shares.toLocaleString('ja-JP')+'株':'100株未満',''],
+      ['建玉金額',yen(p.notional),''],['保証金の目安（30%）',yen(p.margin),''],['損切り時の損失',yen(p.lossAtStop),'stop'],['利確時の利益',yen(p.gainAtTgt),'tgt'],['貸株料の目安',yen(p.lend),'']];
+    $('planStats').innerHTML=items.map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+    if(!p.shares)warns.push('損切り幅が大きく、100株でも許容損失を超えます。');
+  }
+  warns.push('空売りできるのは原則、貸借銘柄（一般信用の売りを扱う証券会社もあります）。注文の前に証券会社で確認してください。');
+  warns.push('空売りは株価が上がるほど損失が膨らみ、上限がありません。制度信用では逆日歩がかかることがあり、権利確定日をまたぐと配当相当額を支払います。貸株料・手数料・保証金率は証券会社によって異なります。');
+  $('planWarn').innerHTML=warns.map(esc).join('<br>');
+}
 const MA_COL={5:'#e08a00',25:'#2a8a4a',75:'#7a4fbf'};
 let hoverIdx=null,chartType='candle';
 try{const t=localStorage.getItem('chartType');if(t==='line'||t==='candle')chartType=t;}catch(e){}
@@ -824,6 +927,7 @@ function drawChart(){
   for(let i=st;i<=I.L;i++){const lo=chartType==='line'?I.c[i]:I.l[i],hi=chartType==='line'?I.c[i]:I.h[i];mn=Math.min(mn,lo);mx=Math.max(mx,hi);
     MAS.forEach(p=>{const v=I.getSma(p)[i];if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}});
     if(showBB&&I.bb.u[i]!=null){mn=Math.min(mn,I.bb.d[i]);mx=Math.max(mx,I.bb.u[i]);}}
+  if(mode==='short'&&PLAN){mn=Math.min(mn,PLAN.target);mx=Math.max(mx,PLAN.stop);}
   const pad=(mx-mn)*0.06;mn-=pad;mx+=pad;
   const Y=v=>top+(mx-v)/(mx-mn)*(pH-top);
   ctx.font='11px "IBM Plex Mono",monospace';ctx.textBaseline='middle';
@@ -853,6 +957,7 @@ function drawChart(){
     if(b.c>=b.o){ctx.fillStyle='#fff';ctx.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));ctx.strokeRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));}
     else ctx.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1));}
   Object.entries(MA_COL).filter(([p])=>MAS.includes(+p)).forEach(([p,c])=>line(ctx,I.getSma(+p),st,I.L,X,Y,c,[]));
+  if(mode==='short'&&PLAN){[[PLAN.entry,'#1d1d1b','売り'],[PLAN.stop,'#c8312b','損切り'],[PLAN.target,'#2a7a3b','利確']].forEach(([v,c,t])=>{const y=Y(v);ctx.strokeStyle=c;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=c;ctx.fillText(t+' '+fmtP(v),padL+4,y-8);});}
   // volume
   let vmx=0;for(let i=st;i<=I.L;i++)vmx=Math.max(vmx,I.v[i]);
   ctx.fillStyle='#8a8983';ctx.fillText('出来高',padL,vTop-7);
@@ -976,19 +1081,24 @@ $('file').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0]);e.targ
 ['dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.remove('over');}));
 $('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f);});
 $('btnCopySample').onclick=async e=>{try{await navigator.clipboard.writeText($('csvSample').textContent);e.target.textContent='コピーしました';}catch{e.target.textContent='コピーできませんでした';}setTimeout(()=>e.target.textContent='サンプル形式をコピー',1500);};
-$('btnReset').onclick=()=>{DATA=LIVE;selected=null;afterDataChange();applyPreset(PRESETS[0]);};
+$('btnReset').onclick=()=>{DATA=LIVE;selected=null;afterDataChange();applyPreset(curPresets()[0]);};
 $('btnToCond').onclick=()=>$('side').scrollIntoView({behavior:'smooth'});
 $('btnClear').onclick=()=>{CONDS.forEach(c=>state[c.id].on=false);renderConds();update();};
 ['fKw','fPmin','fPmax'].forEach(id=>$(id).oninput=update);['fMarket','fSector'].forEach(id=>$(id).onchange=update);
+$('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.m!==mode)setMode(b.dataset.m);});
+['pBuf','pRisk','pR','pDays','pFee'].forEach(id=>$(id).addEventListener('input',()=>{renderPlan();drawChart();}));
+$('pStopType').addEventListener('change',()=>{renderPlan();drawChart();});
 
 /* ---------------- 起動 ---------------- */
+try{if(localStorage.getItem('mode')==='short'||location.hash==='#short')mode='short';}catch(e){}
+[...$('modeSeg').children].forEach(b=>b.classList.toggle('on',b.dataset.m===mode));$('modeNote').textContent=MODE_NOTE[mode];
 renderPresets();renderConds();renderHead();
 $('tbody').innerHTML='<tr><td colspan="12" style="padding:30px;text-align:center;color:var(--sub)">株価データを読み込んでいます…</td></tr>';
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(j=>{
   LIVE=j.stocks.map(x=>{const bars=[];let c10=0;for(let i=0;i<x.dc.length;i++){c10+=x.dc[i];bars.push({d:j.dates[x.st+i],o:(c10+x.o[i])/10,h:(c10+x.h[i])/10,l:(c10+x.l[i])/10,c:c10/10,v:x.v[i]*100});}
     return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
   LIVE_LABEL=`東証プライム ${LIVE.length}銘柄・${j.asof} 終値（${j.updated} 更新）`;
-  DATA=LIVE;afterDataChange();applyPreset(PRESETS[0]);
+  DATA=LIVE;afterDataChange();applyPreset(curPresets()[0]);
   // カード表示などから ?c=コード&v=book で開かれたとき
   const q=new URLSearchParams(location.search),qc=q.get('c');
   if(qc&&DATA.some(x=>x.code===qc)){
