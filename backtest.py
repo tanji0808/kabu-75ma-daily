@@ -75,6 +75,13 @@ VARIANTS["trail"] = {"exit": "trail", "filter": "", "fname": FILTERS[""], "tp": 
 VARIANTS["trail_lock"] = {"exit": "trail_lock", "filter": "", "fname": FILTERS[""], "tp": None,
                           "name": "−1σで損切り。損切り幅ぶん上がったら利益確保ラインへ（+1σでは引き上げない）",
                           "short": "引き上げ式ロスカット（確保ラインのみ）"}
+# 急騰除外の条件を足したパターン
+CALM = {"calm5": "5日の上昇+3%以下", "rsi60": "RSI60以下", "calm5+rsi60": "5日+3%以下＆RSI60以下"}
+for base in ("trail", "m1s"):
+    for fk, fname in CALM.items():
+        cfg = dict(VARIANTS[base])
+        cfg.update(filter=fk, fname=fname, short=cfg["short"] + "＋" + fname)
+        VARIANTS[f"{base}_{fk.replace('+', '_')}"] = cfg
 # +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
 for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
@@ -100,9 +107,17 @@ def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
     cross = (c.shift(1) <= ma.shift(1)) & (c > ma) & (gap > 0) & (gap <= k.CROSS_GAP_MAX)
     vol = v >= MIN_VOLUME
     sig = decline & below_ratio & drop & cross & vol
-    if filt == "f":   # 案3：25日線が上向き（5日前より上）かつ 出来高が過去20日平均の1.5倍以上
+    parts = set(filt.split("+")) if filt else set()
+    if "f" in parts:   # 案3：25日線が上向き（5日前より上）かつ 出来高が過去20日平均の1.5倍以上
         ma25 = c.rolling(25).mean()
         sig = sig & (ma25 > ma25.shift(5)) & (v >= 1.5 * v.shift(1).rolling(20).mean())
+    if "calm5" in parts:   # 急騰除外：合図までの5日間の上昇が+3%以下
+        sig = sig & ((c / c.shift(5) - 1) <= 0.03)
+    if "rsi60" in parts:   # 急騰除外：RSI(14) が60以下
+        d_ = c.diff()
+        up = d_.clip(lower=0).ewm(alpha=1 / 14, adjust=False).mean()
+        dn = (-d_.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
+        sig = sig & ((100 - 100 / (1 + up / dn)) <= 60)
     need = max(k.MA + dd, k.DROP_LOOKBACK) + 5          # スクリーナーと同じく、十分なデータがある日だけ
     idx = np.flatnonzero(sig.fillna(False).to_numpy())
     return idx[idx >= need - 1]
@@ -390,7 +405,7 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
         df = df.dropna(subset=["Open", "Close"])
         first = df.index[0] if first is None else min(first, df.index[0])
         last = df.index[-1] if last is None else max(last, df.index[-1])
-        sig_by_filter = {fk: signal_days(df, fk) for fk in FILTERS}
+        sig_by_filter = {fk: signal_days(df, fk) for fk in {c_["filter"] for c_ in VARIANTS.values()}}
         for v, cfg in VARIANTS.items():
             for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"], cfg.get("tp"), cfg.get("half", False)):
                 t.update({"code": m["コード"], "name": m["銘柄名"], "sector": m["業種"]})

@@ -47,6 +47,7 @@ a{color:var(--accent)}
 <li><b>+1σバンドウォーク</b>：合図のあと終値が+1σより上なら翌日始値で買い、+1σを割ったら翌日始値で売る。75日線を割るか合図から120営業日たつまで、+1σを超えるたびに買い直す</li>
 <li><b>+1σで買い・25日線で売る（買い直し）</b>：バンドウォークの売りを25日線割れに下げたもの</li>
 <li><b>引き上げ式ロスカット</b>：最初は−1σで損切り。買値から「買値−(−1σ)」の幅だけ上がったら、その値段にロスカットを上げて利益を確保。その後、終値が+1σより上に出たら+1σまでロスカットを引き上げる（下げない）</li>
+<li><b>急騰除外</b>（引き上げ式ロスカットと−1σ割れに追加）：合図までの5日間の上昇が+3%以下／RSIが60以下／その両方、の合図だけ買う</li>
 <li><b>+10%で半分利確</b>（3パターンに追加）：+10%の指値で半分だけ売り、残り半分はもとの売り方まで持つ。損益は2つの平均</li>
 <li>売りの合図が出たら翌日の始値で売る。どれも最長<span id="mh"></span>営業日（約半年）で売る</li>
 <li>手数料・税金は含めていません。同じ銘柄を持っている間の新しい合図は無視しています。</li></ul></div>
@@ -76,7 +77,7 @@ const yen=v=>(v>0?'+':'')+Math.round(v).toLocaleString('ja-JP')+'円';
 $('meta').textContent=`検証期間のデータ：${R.data_from}〜${R.data_to}（東証プライム ${R.stocks}銘柄）｜作成：${R.generated}`;
 $('mh').textContent=R.max_hold;
 const keys=Object.keys(R.variants);let cur=keys[0];
-const lab=s=>s.short?`${s.short}${s.filter?'＋絞り込み':''}`:s.name;
+const lab=s=>s.short?`${s.short}${s.filter==='f'?'＋絞り込み':''}`:s.name;
 function cmp(){
   const best=Math.max(...keys.map(k=>R.variants[k].avg??-99));
   $('cmp').innerHTML='<tr><th>パターン</th><th>回数</th><th>勝率</th><th>平均損益</th><th>平均利益</th><th>平均損失</th><th>PF</th><th>保有</th><th>TOPIXとの差</th></tr>'+
