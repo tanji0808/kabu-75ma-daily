@@ -13,7 +13,7 @@
        - 直近60営業日に、高さの差が3%以内の山が2つ（10営業日以上離れ、2つ目は直近20営業日以内）、
          山と山の間の谷が低い方の山より3%以上下（ダブルトップ）
        - 前日の終値は +1σ より上で、その日の終値が +1σ を下回った
-  _f4 : さらに、合図の日のファンダメンタルランク（スクリーナーと同じ10点満点）が4以下
+  _f4 / _f2 : さらに、合図の日のファンダメンタルランク（スクリーナーと同じ10点満点）が4以下／2以下
         ※ 財務データは今の値しかないため、PER・PBRなどは合図の日の株価で計算し、利益・ROEなどは今の値を使う
   出来高50万株以上。合図の翌営業日の始値で空売りする。
 
@@ -54,8 +54,10 @@ OUT = "backtest"
 PATTERNS = {
     "BW": "バンドウォーク崩れ（+1σ割れで売り）",
     "BW_f4": "バンドウォーク崩れ＋ファンダメンタル4以下",
+    "BW_f2": "バンドウォーク崩れ＋ファンダメンタル2以下",
     "DT": "ダブルトップ後の+1σ割れ",
     "DT_f4": "ダブルトップ後の+1σ割れ＋ファンダメンタル4以下",
+    "DT_f2": "ダブルトップ後の+1σ割れ＋ファンダメンタル2以下",
 }
 
 
@@ -166,15 +168,15 @@ def main() -> None:
         for base in ("BW", "DT"):
             idx = sigs_all[code][base]
             nsig[base] += len(idx)
-            for p in (base, base + "_f4"):
+            for p in (base, base + "_f4", base + "_f2"):
                 busy = ""
                 for i in idx:
                     sd = df.index[i].strftime("%Y-%m-%d")
                     if sd <= busy:
                         continue
-                    if p.endswith("_f4"):
+                    if "_f" in p:
                         r = rank_on.get(df.index[i], {}).get(code)
-                        if r is None or r > FRANK_MAX:
+                        if r is None or r > int(p.split("_f")[1]):
                             continue
                     t = simulate(code, df, i)
                     if t:
