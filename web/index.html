@@ -274,10 +274,10 @@ footer{max-width:1500px;margin:0 auto;padding:0 22px 24px;font-size:11.5px;color
           <h4>空売りプラン</h4>
           <div style="font-size:12px;color:var(--sub)">直近の終値で売り建てた場合の損切り・利確・株数の目安です（チャートに点線で表示）。</div>
           <div class="pin">
-            <label>損切り <select id="pStopType"><option value="ma75">75日線の上</option><option value="hi20">直近20日高値の上</option></select></label>
+            <label>損切り <select id="pStopType"><option value="u1">+1σの上</option><option value="ma75">75日線の上</option><option value="hi20">直近20日高値の上</option></select></label>
             <label>＋<input id="pBuf" type="number" step="0.5" min="0" value="1">％</label>
             <label>許容損失 <input id="pRisk" type="number" step="1000" min="0" value="30000">円</label>
-            <label>利確目標 <input id="pR" type="number" step="0.5" min="0.5" value="2">倍（損切り幅の）</label>
+            <label>利確目標 <select id="pTgt"><option value="d2">−2σ</option><option value="R">損切り幅の倍数</option></select> <input id="pR" type="number" step="0.5" min="0.5" value="2">倍</label>
             <label>保有見込み <input id="pDays" type="number" min="1" value="20">日</label>
             <label>貸株料 <input id="pFee" type="number" step="0.05" min="0" value="1.1">％/年</label>
           </div>
@@ -474,6 +474,25 @@ function ma75Down(s,p){
   return null;
 }
 function dev(s,n){const I=ind(s),m=I.getSma(n)[I.L];return m?(I.c[I.L]/m-1)*100:null;}
+// バンドウォーク崩れ：10日のうち7日以上 終値が+1σより上 → 終値で+1σを割った（直近w日以内）
+function bwBreak(s,w){
+  const I=ind(s),c=I.c,u=I.bb.u1,L=I.L;
+  for(let i=L;i>L-w&&i>=11;i--){
+    if(u[i]==null||u[i-1]==null||!(c[i-1]>u[i-1]&&c[i]<u[i]))continue;
+    let k=0;for(let j=i-10;j<i;j++)if(u[j]!=null&&c[j]>u[j])k++;
+    if(k>=7)return true;}
+  return false;}
+// TOPIX（1306の終値。なければ全銘柄の平均）と比べた、直近n営業日の騰落率の差
+let TPX=null,MKT=null;
+function mktIndex(){
+  if(MKT)return MKT;const sum={},cnt={};
+  DATA.forEach(s=>{for(let i=1;i<s.bars.length;i++){const d=s.bars[i].d,r=s.bars[i].c/s.bars[i-1].c-1;if(!isFinite(r)||Math.abs(r)>0.5)continue;sum[d]=(sum[d]||0)+r;cnt[d]=(cnt[d]||0)+1;}});
+  let v=1;MKT={};Object.keys(sum).sort().forEach(d=>{v*=1+sum[d]/cnt[d];MKT[d]=v;});return MKT;}
+function relWeak(s,n){
+  const L=s.bars.length-1;if(L<n)return null;
+  const d0=s.bars[L-n].d,d1=s.bars[L].d,M=TPX||mktIndex();
+  if(M[d0]==null||M[d1]==null)return null;
+  const mr=M[d1]/M[d0]-1,sr=s.bars[L].c/s.bars[L-n].c-1;return {rel:sr-mr,mr};}
 
 /* ---------------- 条件定義 ---------------- */
 const MA_OPTS=[5,10,25,50,75,200];
@@ -500,6 +519,16 @@ const CONDS=[
     p:{dn:{t:'num',v:3,pre:'前日比',post:'％以上下落',step:0.5,min:0},x:{t:'num',v:1.5,pre:'出来高',post:'倍以上',step:0.1,min:0}},
     test:(s,p)=>{const I=ind(s),b=s.bars[I.L];return b.c<b.o&&I.chgPct<=-p.dn&&I.volRatio!=null&&I.volRatio>=p.x;},
     tag:p=>`大陰線 -${p.dn}%以上・出来高${p.x}倍以上`},
+  {g:'空売り（検証で良かった条件）',id:'bwb',label:'バンドウォーク崩れ',desc:'10日のうち7日以上ボリンジャー+1σの上を歩いて上昇したあと、終値で+1σを割った',
+    p:{w:{t:'num',v:1,pre:'直近',post:'日以内',min:1,max:10}},
+    test:(s,p)=>bwBreak(s,p.w),tag:p=>`バンドウォーク崩れ（${p.w}日以内）`},
+  {g:'空売り（検証で良かった条件）',id:'relw',label:'TOPIXより弱い',desc:'その期間の騰落率がTOPIXより指定％以上低い（相場は強いのに、その銘柄だけ売られている）',
+    p:{n:{t:'sel',o:[5,10,20],v:10,pre:'直近',post:'営業日で'},g:{t:'num',v:5,pre:'TOPIXより',post:'％以上弱い',step:0.5,min:0},mk:{t:'sel',o:['問わない','TOPIXが下げていない'],v:'問わない'}},
+    test:(s,p)=>{const r=relWeak(s,p.n);return !!r&&r.rel<=-p.g/100&&(p.mk==='問わない'||r.mr>=0);},
+    tag:p=>`TOPIXより${p.g}%以上弱い（${p.n}日${p.mk==='問わない'?'':'・TOPIXが下げていない'}）`},
+  {g:'空売り（検証で良かった条件）',id:'frankmx',label:'ファンダメンタルランク（上限）',desc:'ランクが指定以下（ファンダメンタルが弱い銘柄）。データがない銘柄は除く',
+    p:{mx:{t:'num',v:4,post:'以下',min:0,max:10}},
+    test:(s,p)=>{const r=fundScore(s).score;return r!=null&&r<=p.mx;},tag:p=>`Fランク ${p.mx}以下`},
   {g:'ファンダメンタル',id:'frank',label:'ファンダメンタルランク',desc:'PER・PBR・ROE・成長などを10点満点で採点したランク',
     p:{mn:{t:'num',v:6,post:'以上',min:0,max:10}},
     test:(s,p)=>{const r=fundScore(s).score;return r!=null&&r>=p.mn;},tag:p=>`Fランク ${p.mn}以上`},
@@ -563,7 +592,8 @@ const PRESETS=[
   {name:'過熱感あり',on:{rsi:{mn:70,mx:100},dev:{n:25,mn:8,mx:100}}},
 ];
 const SHORT_PRESETS=[
-  {name:'★ 75日線割れ（本の手法の逆）',market:'プライム',on:{ma75d:{du:60,ap:5,cw:5,ur:15},vmin:{x:500000}}},
+  {name:'★ バンドウォーク崩れ×TOPIXより弱い（検証で最良）',market:'プライム',on:{bwb:{w:1},relw:{n:10,g:5,mk:'問わない'},frankmx:{mx:4},vmin:{x:500000}}},
+  {name:'75日線割れ（本の手法の逆・検証では赤字）',market:'プライム',on:{ma75d:{du:60,ap:5,cw:5,ur:15},vmin:{x:500000}}},
   {name:'下降トレンド継続',on:{pod:{},above:{n:200,dir:'下'},vmin:{x:500000}}},
   {name:'戻り売り候補',on:{above:{n:75,dir:'下'},rsi:{mn:50,mx:70},dev:{n:25,mn:0,mx:8},vmin:{x:500000}}},
   {name:'天井圏の失速',on:{macdd:{w:5},rsi:{mn:55,mx:100},dev:{n:25,mn:3,mx:100}}},
@@ -880,13 +910,15 @@ function planCalc(s){
   const buf=(parseFloat($('pBuf').value)||0)/100,risk=parseFloat($('pRisk').value)||0,R=parseFloat($('pR').value)||0,
     days=parseFloat($('pDays').value)||0,fee=(parseFloat($('pFee').value)||0)/100;
   let base;
-  if($('pStopType').value==='ma75')base=I.getSma(75)[L];
+  if($('pStopType').value==='u1')base=I.bb.u1[L];
+  else if($('pStopType').value==='ma75')base=I.getSma(75)[L];
   else{base=-Infinity;for(let i=Math.max(0,L-19);i<=L;i++)base=Math.max(base,I.h[i]);}
   if(base==null||!isFinite(base))return {err:'損切りの基準を計算するにはデータが足りません。'};
   if(base<entry)return {err:'終値が損切りの基準（'+fmtP(base)+'円）より上にあるため、この基準では損切り位置を決められません。「直近20日高値の上」を選ぶか、75日線を割った銘柄で使ってください。'};
   const stop=base*(1+buf),per=stop-entry;
   if(per<=0)return {err:'損切り幅が0になります。上乗せ％を増やしてください。'};
-  const target=Math.max(entry-per*R,0);
+  let target=Math.max(entry-per*R,0);
+  if($('pTgt').value==='d2'){if(I.bb.d[L]==null||I.bb.d[L]>=entry)return {err:'−2σが終値より上にあるため、利確目標にできません。「損切り幅の倍数」を選んでください。'};target=I.bb.d[L];}
   const shares=Math.floor(risk/per/100)*100;
   const notional=shares*entry;
   return {entry,stop,target,per,shares,notional,margin:notional*0.3,lend:notional*fee*days/365,lossAtStop:shares*per,gainAtTgt:shares*(entry-target)};
@@ -1063,7 +1095,7 @@ function importCSV(text){
   return `${list.length}銘柄・${list.reduce((a,s)=>a+s.bars.length,0).toLocaleString()}行を読み込みました。`+(bad?` ${bad}行は形式が合わず飛ばしました。`:'')+(short?` ${short}銘柄は60日未満のため一部の条件が判定できません。`:'');
 }
 function afterDataChange(){
-  SEC=null;DATA.forEach(x=>{delete x._fs;});
+  SEC=null;MKT=null;DATA.forEach(x=>{delete x._fs;});
   const live=DATA===LIVE;
   $('dataBadge').textContent=live?LIVE_LABEL:'読み込んだCSVデータ';
   $('btnReset').style.display=live?'none':'';
@@ -1087,7 +1119,7 @@ $('btnClear').onclick=()=>{CONDS.forEach(c=>state[c.id].on=false);renderConds();
 ['fKw','fPmin','fPmax'].forEach(id=>$(id).oninput=update);['fMarket','fSector'].forEach(id=>$(id).onchange=update);
 $('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.m!==mode)setMode(b.dataset.m);});
 ['pBuf','pRisk','pR','pDays','pFee'].forEach(id=>$(id).addEventListener('input',()=>{renderPlan();drawChart();}));
-$('pStopType').addEventListener('change',()=>{renderPlan();drawChart();});
+['pStopType','pTgt'].forEach(id=>$(id).addEventListener('change',()=>{renderPlan();drawChart();}));
 
 /* ---------------- 起動 ---------------- */
 try{if(localStorage.getItem('mode')==='short'||location.hash==='#short')mode='short';}catch(e){}
@@ -1097,6 +1129,7 @@ $('tbody').innerHTML='<tr><td colspan="12" style="padding:30px;text-align:center
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).then(j=>{
   LIVE=j.stocks.map(x=>{const bars=[];let c10=0;for(let i=0;i<x.dc.length;i++){c10+=x.dc[i];bars.push({d:j.dates[x.st+i],o:(c10+x.o[i])/10,h:(c10+x.h[i])/10,l:(c10+x.l[i])/10,c:c10/10,v:x.v[i]*100});}
     return {code:x.c,name:x.n,market:j.market||'プライム',sector:x.s,bars,f:x.f||null};});
+  TPX=j.tpx?Object.fromEntries(j.dates.map((d,i)=>[d,j.tpx[i]]).filter(x=>x[1]!=null)):null;
   LIVE_LABEL=`東証プライム ${LIVE.length}銘柄・${j.asof} 終値（${j.updated} 更新）`;
   DATA=LIVE;afterDataChange();applyPreset(curPresets()[0]);
   // カード表示などから ?c=コード&v=book で開かれたとき

@@ -438,6 +438,14 @@ def write_data_json(master: pd.DataFrame, prices: dict, path: str, days: int = 2
                        **({"f": fund[m["コード"]]} if m["コード"] in fund else {})})
     data = {"asof": idx[-1].strftime("%Y-%m-%d"), "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "market": "プライム", "fmt": 2, "dates": [x.strftime("%Y-%m-%d") for x in idx], "stocks": stocks}
+    try:   # 画面の「TOPIXより弱い」条件用に、TOPIX連動ETF（1306）の終値を日付をそろえて入れる
+        import yfinance as yf
+        t = yf.download("1306.T", period="2y", interval="1d", auto_adjust=False, progress=False)["Close"].squeeze()
+        t.index = pd.DatetimeIndex(t.index).tz_localize(None).normalize()
+        t = t[~t.index.duplicated()].reindex(idx).ffill()
+        data["tpx"] = [None if x != x else round(float(x), 1) for x in t]
+    except Exception as e:
+        print(f"  TOPIX（1306）を取得できませんでした（{e}）。画面では全銘柄の平均で代わりに計算します")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
     print(f"スクリーナー用データ: {path}（{len(stocks)}銘柄）")
