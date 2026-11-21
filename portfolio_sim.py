@@ -38,7 +38,10 @@ print(f"合図 {len(t)}件のうち、買えたのは {len(tt)}件（上限 {CAP
 
 prices = k.download_prices(sorted(tt["code"].unique()), period="6y")
 days = pd.bdate_range(tt["entry"].min(), tt["exit"].max())
-close = pd.DataFrame({c: df["Close"] for c, df in prices.items()}).reindex(days).ffill()
+raw = pd.DataFrame({c: df["Close"] for c, df in prices.items()})
+raw.index = pd.to_datetime(raw.index).tz_localize(None).normalize()
+close = raw.reindex(days).ffill()
+print(f"株価を取得できた銘柄 {raw.shape[1]} / {tt['code'].nunique()}、株価の日付 {raw.index.min().date()}〜{raw.index.max().date()}")
 
 realized = pd.Series(0.0, index=days)
 unreal = pd.Series(0.0, index=days)
@@ -52,6 +55,8 @@ for _, r in tt.iterrows():
     expo[hold] += SIZE
     interest[hold] += SIZE * RATE / 245
     realized[days >= r["exit"]] += SIZE * r["ret"] / 100
+print(f"含み損益が計算できなかった日: {int(unreal.isna().sum())}日 / {len(days)}日")
+unreal = unreal.fillna(0)
 pnl = realized + unreal - interest.cumsum()
 equity = EQUITY + pnl
 dd = (equity.cummax() - equity)
