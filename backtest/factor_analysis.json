@@ -1,0 +1,1922 @@
+{
+ "n": 3251,
+ "base_stop_rate": 57.7,
+ "univariate": [
+  {
+   "feature": "最初のロスカット幅(%)",
+   "spread": 21.1,
+   "consistency": 0.9,
+   "bins": [
+    {
+     "range": "-5.53〜3.57",
+     "n": 651,
+     "stop": 47.2,
+     "ret": 0.61,
+     "stop_early": 47.6,
+     "stop_late": 46.1,
+     "n_late": 191
+    },
+    {
+     "range": "3.57〜5.28",
+     "n": 650,
+     "stop": 51.2,
+     "ret": 0.31,
+     "stop_early": 52.9,
+     "stop_late": 46.9,
+     "n_late": 179
+    },
+    {
+     "range": "5.28〜6.89",
+     "n": 650,
+     "stop": 55.8,
+     "ret": 0.59,
+     "stop_early": 57.6,
+     "stop_late": 52.5,
+     "n_late": 221
+    },
+    {
+     "range": "6.89〜9.47",
+     "n": 650,
+     "stop": 65.8,
+     "ret": -0.27,
+     "stop_early": 66.7,
+     "stop_late": 64.1,
+     "n_late": 209
+    },
+    {
+     "range": "9.47〜33.86",
+     "n": 650,
+     "stop": 68.3,
+     "ret": 0.25,
+     "stop_early": 72.3,
+     "stop_late": 61.3,
+     "n_late": 238
+    }
+   ]
+  },
+  {
+   "feature": "RSI",
+   "spread": 19.7,
+   "consistency": 0.67,
+   "bins": [
+    {
+     "range": "29.12〜55.36",
+     "n": 651,
+     "stop": 48.8,
+     "ret": 0.59,
+     "stop_early": 48.9,
+     "stop_late": 48.8,
+     "n_late": 205
+    },
+    {
+     "range": "55.36〜58.18",
+     "n": 650,
+     "stop": 54.8,
+     "ret": 0.23,
+     "stop_early": 54.3,
+     "stop_late": 55.8,
+     "n_late": 199
+    },
+    {
+     "range": "58.18〜60.74",
+     "n": 650,
+     "stop": 58.0,
+     "ret": 0.33,
+     "stop_early": 59.6,
+     "stop_late": 54.4,
+     "n_late": 195
+    },
+    {
+     "range": "60.74〜63.62",
+     "n": 650,
+     "stop": 58.3,
+     "ret": 0.34,
+     "stop_early": 60.4,
+     "stop_late": 54.4,
+     "n_late": 226
+    },
+    {
+     "range": "63.62〜75.83",
+     "n": 650,
+     "stop": 68.5,
+     "ret": -0.0,
+     "stop_early": 72.5,
+     "stop_late": 60.1,
+     "n_late": 213
+    }
+   ]
+  },
+  {
+   "feature": "+1σとの位置(%)",
+   "spread": 19.3,
+   "consistency": 0.9,
+   "bins": [
+    {
+     "range": "-15.50〜-0.49",
+     "n": 651,
+     "stop": 49.6,
+     "ret": 0.49,
+     "stop_early": 49.7,
+     "stop_late": 49.5,
+     "n_late": 196
+    },
+    {
+     "range": "-0.49〜0.87",
+     "n": 650,
+     "stop": 53.7,
+     "ret": 0.58,
+     "stop_early": 54.8,
+     "stop_late": 51.4,
+     "n_late": 210
+    },
+    {
+     "range": "0.87〜1.98",
+     "n": 650,
+     "stop": 56.3,
+     "ret": 0.19,
+     "stop_early": 58.8,
+     "stop_late": 50.3,
+     "n_late": 189
+    },
+    {
+     "range": "1.98〜3.31",
+     "n": 650,
+     "stop": 59.8,
+     "ret": 0.75,
+     "stop_early": 60.1,
+     "stop_late": 59.3,
+     "n_late": 221
+    },
+    {
+     "range": "3.31〜14.97",
+     "n": 650,
+     "stop": 68.9,
+     "ret": -0.52,
+     "stop_early": 72.7,
+     "stop_late": 61.7,
+     "n_late": 222
+    }
+   ]
+  },
+  {
+   "feature": "直前20日の上昇(%)",
+   "spread": 18.7,
+   "consistency": 0.97,
+   "bins": [
+    {
+     "range": "-13.40〜0.76",
+     "n": 651,
+     "stop": 53.8,
+     "ret": 0.21,
+     "stop_early": 54.8,
+     "stop_late": 51.3,
+     "n_late": 189
+    },
+    {
+     "range": "0.76〜2.97",
+     "n": 650,
+     "stop": 50.5,
+     "ret": 0.57,
+     "stop_early": 52.6,
+     "stop_late": 45.3,
+     "n_late": 192
+    },
+    {
+     "range": "2.97〜4.96",
+     "n": 650,
+     "stop": 54.8,
+     "ret": 0.37,
+     "stop_early": 54.8,
+     "stop_late": 54.8,
+     "n_late": 208
+    },
+    {
+     "range": "4.96〜8.04",
+     "n": 650,
+     "stop": 60.2,
+     "ret": 0.37,
+     "stop_early": 61.3,
+     "stop_late": 57.6,
+     "n_late": 205
+    },
+    {
+     "range": "8.04〜55.16",
+     "n": 650,
+     "stop": 69.2,
+     "ret": -0.03,
+     "stop_early": 73.4,
+     "stop_late": 62.3,
+     "n_late": 244
+    }
+   ]
+  },
+  {
+   "feature": "バンド幅(±2σ÷25日線,%)",
+   "spread": 18.5,
+   "consistency": 0.7,
+   "bins": [
+    {
+     "range": "1.62〜6.73",
+     "n": 651,
+     "stop": 47.2,
+     "ret": 1.02,
+     "stop_early": 48.7,
+     "stop_late": 43.9,
+     "n_late": 214
+    },
+    {
+     "range": "6.73〜8.81",
+     "n": 650,
+     "stop": 58.0,
+     "ret": 0.24,
+     "stop_early": 58.5,
+     "stop_late": 56.7,
+     "n_late": 180
+    },
+    {
+     "range": "8.81〜11.21",
+     "n": 650,
+     "stop": 58.0,
+     "ret": -0.01,
+     "stop_early": 60.8,
+     "stop_late": 51.9,
+     "n_late": 206
+    },
+    {
+     "range": "11.21〜15.29",
+     "n": 650,
+     "stop": 59.5,
+     "ret": 0.07,
+     "stop_early": 59.8,
+     "stop_late": 58.9,
+     "n_late": 185
+    },
+    {
+     "range": "15.29〜74.34",
+     "n": 650,
+     "stop": 65.7,
+     "ret": 0.16,
+     "stop_early": 68.3,
+     "stop_late": 61.7,
+     "n_late": 253
+    }
+   ]
+  },
+  {
+   "feature": "直前5日の上昇(%)",
+   "spread": 17.0,
+   "consistency": 1.0,
+   "bins": [
+    {
+     "range": "-14.11〜1.61",
+     "n": 651,
+     "stop": 48.5,
+     "ret": 1.62,
+     "stop_early": 50.7,
+     "stop_late": 44.1,
+     "n_late": 211
+    },
+    {
+     "range": "1.61〜3.19",
+     "n": 650,
+     "stop": 54.0,
+     "ret": 0.57,
+     "stop_early": 56.9,
+     "stop_late": 47.5,
+     "n_late": 198
+    },
+    {
+     "range": "3.19〜4.78",
+     "n": 650,
+     "stop": 57.2,
+     "ret": 0.01,
+     "stop_early": 57.3,
+     "stop_late": 57.1,
+     "n_late": 205
+    },
+    {
+     "range": "4.78〜7.10",
+     "n": 650,
+     "stop": 63.1,
+     "ret": -0.33,
+     "stop_early": 64.6,
+     "stop_late": 59.8,
+     "n_late": 209
+    },
+    {
+     "range": "7.10〜38.15",
+     "n": 650,
+     "stop": 65.5,
+     "ret": -0.39,
+     "stop_early": 66.0,
+     "stop_late": 64.7,
+     "n_late": 215
+    }
+   ]
+  },
+  {
+   "feature": "75日線の傾き(20日,%)",
+   "spread": 14.4,
+   "consistency": 0.4,
+   "bins": [
+    {
+     "range": "-100.00〜-5.11",
+     "n": 651,
+     "stop": 65.9,
+     "ret": 0.01,
+     "stop_early": 67.2,
+     "stop_late": 63.9,
+     "n_late": 252
+    },
+    {
+     "range": "-5.11〜-3.64",
+     "n": 650,
+     "stop": 60.2,
+     "ret": 0.07,
+     "stop_early": 65.7,
+     "stop_late": 49.6,
+     "n_late": 224
+    },
+    {
+     "range": "-3.64〜-2.75",
+     "n": 650,
+     "stop": 56.8,
+     "ret": 0.29,
+     "stop_early": 57.3,
+     "stop_late": 55.6,
+     "n_late": 189
+    },
+    {
+     "range": "-2.75〜-1.93",
+     "n": 650,
+     "stop": 54.0,
+     "ret": 0.74,
+     "stop_early": 55.2,
+     "stop_late": 51.3,
+     "n_late": 197
+    },
+    {
+     "range": "-1.93〜1.33",
+     "n": 650,
+     "stop": 51.5,
+     "ret": 0.38,
+     "stop_early": 51.7,
+     "stop_late": 51.1,
+     "n_late": 176
+    }
+   ]
+  },
+  {
+   "feature": "PBR",
+   "spread": 12.1,
+   "consistency": 0.7,
+   "bins": [
+    {
+     "range": "-0.00〜0.56",
+     "n": 651,
+     "stop": 50.8,
+     "ret": 1.35,
+     "stop_early": 51.7,
+     "stop_late": 46.3,
+     "n_late": 108
+    },
+    {
+     "range": "0.56〜0.84",
+     "n": 650,
+     "stop": 58.2,
+     "ret": 0.28,
+     "stop_early": 61.2,
+     "stop_late": 49.4,
+     "n_late": 168
+    },
+    {
+     "range": "0.84〜1.36",
+     "n": 650,
+     "stop": 58.5,
+     "ret": 0.08,
+     "stop_early": 60.3,
+     "stop_late": 55.7,
+     "n_late": 262
+    },
+    {
+     "range": "1.36〜2.38",
+     "n": 650,
+     "stop": 58.0,
+     "ret": 0.22,
+     "stop_early": 60.0,
+     "stop_late": 54.5,
+     "n_late": 242
+    },
+    {
+     "range": "2.38〜69.86",
+     "n": 650,
+     "stop": 62.9,
+     "ret": -0.45,
+     "stop_early": 64.3,
+     "stop_late": 60.9,
+     "n_late": 258
+    }
+   ]
+  },
+  {
+   "feature": "時価総額(億円)",
+   "spread": 10.3,
+   "consistency": 0.7,
+   "bins": [
+    {
+     "range": "76.24〜1277.31",
+     "n": 649,
+     "stop": 57.5,
+     "ret": 0.49,
+     "stop_early": 57.7,
+     "stop_late": 56.8,
+     "n_late": 183
+    },
+    {
+     "range": "1277.31〜2908.22",
+     "n": 649,
+     "stop": 57.9,
+     "ret": 0.39,
+     "stop_early": 60.7,
+     "stop_late": 51.1,
+     "n_late": 188
+    },
+    {
+     "range": "2908.22〜6007.08",
+     "n": 649,
+     "stop": 53.3,
+     "ret": 1.09,
+     "stop_early": 55.8,
+     "stop_late": 48.4,
+     "n_late": 217
+    },
+    {
+     "range": "6007.08〜13880.96",
+     "n": 649,
+     "stop": 63.6,
+     "ret": -0.77,
+     "stop_early": 63.9,
+     "stop_late": 63.0,
+     "n_late": 208
+    },
+    {
+     "range": "13880.96〜350145.00",
+     "n": 649,
+     "stop": 56.4,
+     "ret": 0.19,
+     "stop_early": 57.2,
+     "stop_late": 55.0,
+     "n_late": 238
+    }
+   ]
+  },
+  {
+   "feature": "配当利回り",
+   "spread": 10.1,
+   "consistency": 0.5,
+   "bins": [
+    {
+     "range": "-0.00〜1.72",
+     "n": 651,
+     "stop": 62.4,
+     "ret": -0.78,
+     "stop_early": 60.8,
+     "stop_late": 64.7,
+     "n_late": 266
+    },
+    {
+     "range": "1.72〜2.90",
+     "n": 650,
+     "stop": 58.5,
+     "ret": 0.18,
+     "stop_early": 61.3,
+     "stop_late": 54.5,
+     "n_late": 268
+    },
+    {
+     "range": "2.90〜3.99",
+     "n": 650,
+     "stop": 59.5,
+     "ret": 0.14,
+     "stop_early": 63.5,
+     "stop_late": 52.7,
+     "n_late": 239
+    },
+    {
+     "range": "3.99〜5.72",
+     "n": 650,
+     "stop": 55.7,
+     "ret": 0.59,
+     "stop_early": 59.6,
+     "stop_late": 46.7,
+     "n_late": 197
+    },
+    {
+     "range": "5.72〜60.64",
+     "n": 650,
+     "stop": 52.3,
+     "ret": 1.37,
+     "stop_early": 52.9,
+     "stop_late": 47.1,
+     "n_late": 68
+    }
+   ]
+  },
+  {
+   "feature": "TOPIXの直前5日(%)",
+   "spread": 10.1,
+   "consistency": -0.3,
+   "bins": [
+    {
+     "range": "-90.08〜-0.77",
+     "n": 651,
+     "stop": 53.1,
+     "ret": 1.32,
+     "stop_early": 58.7,
+     "stop_late": 43.4,
+     "n_late": 235
+    },
+    {
+     "range": "-0.77〜0.55",
+     "n": 656,
+     "stop": 56.1,
+     "ret": 0.49,
+     "stop_early": 59.3,
+     "stop_late": 50.0,
+     "n_late": 226
+    },
+    {
+     "range": "0.55〜1.61",
+     "n": 644,
+     "stop": 57.1,
+     "ret": 0.44,
+     "stop_early": 57.1,
+     "stop_late": 57.1,
+     "n_late": 168
+    },
+    {
+     "range": "1.61〜2.87",
+     "n": 669,
+     "stop": 58.9,
+     "ret": -0.12,
+     "stop_early": 56.7,
+     "stop_late": 64.4,
+     "n_late": 191
+    },
+    {
+     "range": "2.87〜944.16",
+     "n": 631,
+     "stop": 63.2,
+     "ret": -0.66,
+     "stop_early": 64.2,
+     "stop_late": 61.5,
+     "n_late": 218
+    }
+   ]
+  },
+  {
+   "feature": "[事後]5日以内にダウ500ドル超の下落",
+   "spread": 10.1,
+   "consistency": null,
+   "bins": [
+    {
+     "range": "[事後]5日以内にダウ500ドル超の下落=0.0",
+     "n": 2105,
+     "stop": 54.1,
+     "ret": 1.0,
+     "stop_early": 54.7,
+     "stop_late": 52.2,
+     "n_late": 534
+    },
+    {
+     "range": "[事後]5日以内にダウ500ドル超の下落=1.0",
+     "n": 1146,
+     "stop": 64.2,
+     "ret": -0.99,
+     "stop_early": 69.6,
+     "stop_late": 57.3,
+     "n_late": 504
+    }
+   ]
+  },
+  {
+   "feature": "ドル円の前夜変化(%)",
+   "spread": 9.0,
+   "consistency": 0.8,
+   "bins": [
+    {
+     "range": "-3.06〜-0.31",
+     "n": 649,
+     "stop": 61.5,
+     "ret": 0.18,
+     "stop_early": 63.7,
+     "stop_late": 56.1,
+     "n_late": 189
+    },
+    {
+     "range": "-0.31〜-0.03",
+     "n": 658,
+     "stop": 56.1,
+     "ret": 0.21,
+     "stop_early": 56.8,
+     "stop_late": 55.0,
+     "n_late": 251
+    },
+    {
+     "range": "-0.03〜0.17",
+     "n": 638,
+     "stop": 52.5,
+     "ret": 0.66,
+     "stop_early": 53.0,
+     "stop_late": 51.7,
+     "n_late": 232
+    },
+    {
+     "range": "0.17〜0.49",
+     "n": 650,
+     "stop": 57.4,
+     "ret": 0.3,
+     "stop_early": 58.9,
+     "stop_late": 53.4,
+     "n_late": 176
+    },
+    {
+     "range": "0.49〜2.53",
+     "n": 646,
+     "stop": 60.8,
+     "ret": 0.16,
+     "stop_early": 62.0,
+     "stop_late": 57.8,
+     "n_late": 180
+    }
+   ]
+  },
+  {
+   "feature": "25日線の傾き(5日,%)",
+   "spread": 8.8,
+   "consistency": -0.3,
+   "bins": [
+    {
+     "range": "-4.46〜-0.45",
+     "n": 651,
+     "stop": 59.1,
+     "ret": 0.1,
+     "stop_early": 57.8,
+     "stop_late": 62.0,
+     "n_late": 205
+    },
+    {
+     "range": "-0.45〜-0.02",
+     "n": 650,
+     "stop": 53.4,
+     "ret": 0.62,
+     "stop_early": 54.1,
+     "stop_late": 51.8,
+     "n_late": 199
+    },
+    {
+     "range": "-0.02〜0.37",
+     "n": 650,
+     "stop": 56.3,
+     "ret": 0.1,
+     "stop_early": 56.6,
+     "stop_late": 55.6,
+     "n_late": 189
+    },
+    {
+     "range": "0.37〜0.87",
+     "n": 650,
+     "stop": 57.4,
+     "ret": 0.13,
+     "stop_early": 59.2,
+     "stop_late": 53.8,
+     "n_late": 221
+    },
+    {
+     "range": "0.87〜10.21",
+     "n": 650,
+     "stop": 62.2,
+     "ret": 0.53,
+     "stop_early": 68.1,
+     "stop_late": 50.9,
+     "n_late": 224
+    }
+   ]
+  },
+  {
+   "feature": "VIX",
+   "spread": 8.1,
+   "consistency": -0.6,
+   "bins": [
+    {
+     "range": "11.86〜15.19",
+     "n": 652,
+     "stop": 56.4,
+     "ret": 0.19,
+     "stop_early": 54.5,
+     "stop_late": 66.4,
+     "n_late": 107
+    },
+    {
+     "range": "15.19〜16.76",
+     "n": 652,
+     "stop": 56.3,
+     "ret": 0.67,
+     "stop_early": 65.6,
+     "stop_late": 47.3,
+     "n_late": 332
+    },
+    {
+     "range": "16.76〜19.12",
+     "n": 657,
+     "stop": 55.1,
+     "ret": 1.13,
+     "stop_early": 55.7,
+     "stop_late": 54.5,
+     "n_late": 321
+    },
+    {
+     "range": "19.12〜23.22",
+     "n": 649,
+     "stop": 63.2,
+     "ret": -0.89,
+     "stop_early": 63.5,
+     "stop_late": 62.2,
+     "n_late": 164
+    },
+    {
+     "range": "23.22〜52.33",
+     "n": 641,
+     "stop": 57.4,
+     "ret": 0.37,
+     "stop_early": 57.9,
+     "stop_late": 55.3,
+     "n_late": 114
+    }
+   ]
+  },
+  {
+   "feature": "75日線からの上離れ(%)",
+   "spread": 7.6,
+   "consistency": 0.36,
+   "bins": [
+    {
+     "range": "0.00〜0.29",
+     "n": 651,
+     "stop": 53.0,
+     "ret": 0.85,
+     "stop_early": 54.6,
+     "stop_late": 48.9,
+     "n_late": 188
+    },
+    {
+     "range": "0.29〜0.65",
+     "n": 650,
+     "stop": 58.0,
+     "ret": 0.26,
+     "stop_early": 58.5,
+     "stop_late": 56.9,
+     "n_late": 195
+    },
+    {
+     "range": "0.65〜1.08",
+     "n": 650,
+     "stop": 58.9,
+     "ret": -0.09,
+     "stop_early": 59.4,
+     "stop_late": 57.9,
+     "n_late": 216
+    },
+    {
+     "range": "1.08〜1.73",
+     "n": 650,
+     "stop": 57.8,
+     "ret": 0.41,
+     "stop_early": 60.7,
+     "stop_late": 52.5,
+     "n_late": 223
+    },
+    {
+     "range": "1.73〜3.00",
+     "n": 650,
+     "stop": 60.6,
+     "ret": 0.06,
+     "stop_early": 62.4,
+     "stop_late": 56.9,
+     "n_late": 216
+    }
+   ]
+  },
+  {
+   "feature": "負債資本倍率",
+   "spread": 7.4,
+   "consistency": 0.67,
+   "bins": [
+    {
+     "range": "0.02〜14.32",
+     "n": 583,
+     "stop": 57.8,
+     "ret": 0.81,
+     "stop_early": 59.7,
+     "stop_late": 53.7,
+     "n_late": 188
+    },
+    {
+     "range": "14.32〜29.27",
+     "n": 583,
+     "stop": 55.9,
+     "ret": 0.69,
+     "stop_early": 56.4,
+     "stop_late": 55.0,
+     "n_late": 191
+    },
+    {
+     "range": "29.27〜55.27",
+     "n": 580,
+     "stop": 63.3,
+     "ret": -0.74,
+     "stop_early": 64.9,
+     "stop_late": 59.9,
+     "n_late": 187
+    },
+    {
+     "range": "55.27〜105.77",
+     "n": 582,
+     "stop": 56.5,
+     "ret": 0.44,
+     "stop_early": 59.7,
+     "stop_late": 50.5,
+     "n_late": 200
+    },
+    {
+     "range": "105.77〜1169.57",
+     "n": 573,
+     "stop": 59.2,
+     "ret": -0.26,
+     "stop_early": 61.0,
+     "stop_late": 55.2,
+     "n_late": 183
+    }
+   ]
+  },
+  {
+   "feature": "半年高値からの下落(%)",
+   "spread": 7.2,
+   "consistency": 0.5,
+   "bins": [
+    {
+     "range": "-100.00〜-24.06",
+     "n": 651,
+     "stop": 61.4,
+     "ret": 0.28,
+     "stop_early": 65.0,
+     "stop_late": 56.0,
+     "n_late": 257
+    },
+    {
+     "range": "-24.06〜-18.89",
+     "n": 650,
+     "stop": 59.2,
+     "ret": 0.22,
+     "stop_early": 59.3,
+     "stop_late": 59.1,
+     "n_late": 203
+    },
+    {
+     "range": "-18.89〜-15.17",
+     "n": 650,
+     "stop": 57.4,
+     "ret": 0.11,
+     "stop_early": 59.7,
+     "stop_late": 52.2,
+     "n_late": 203
+    },
+    {
+     "range": "-15.17〜-12.17",
+     "n": 650,
+     "stop": 54.2,
+     "ret": 0.57,
+     "stop_early": 55.4,
+     "stop_late": 51.1,
+     "n_late": 186
+    },
+    {
+     "range": "-12.17〜-5.75",
+     "n": 650,
+     "stop": 56.2,
+     "ret": 0.31,
+     "stop_early": 56.8,
+     "stop_late": 54.5,
+     "n_late": 189
+    }
+   ]
+  },
+  {
+   "feature": "株価",
+   "spread": 6.9,
+   "consistency": -0.4,
+   "bins": [
+    {
+     "range": "17.00〜703.00",
+     "n": 651,
+     "stop": 56.4,
+     "ret": 0.72,
+     "stop_early": 57.3,
+     "stop_late": 53.2,
+     "n_late": 154
+    },
+    {
+     "range": "703.00〜1228.00",
+     "n": 650,
+     "stop": 58.8,
+     "ret": 0.11,
+     "stop_early": 62.2,
+     "stop_late": 49.4,
+     "n_late": 176
+    },
+    {
+     "range": "1228.00〜1893.00",
+     "n": 650,
+     "stop": 55.1,
+     "ret": 0.51,
+     "stop_early": 55.8,
+     "stop_late": 53.8,
+     "n_late": 234
+    },
+    {
+     "range": "1893.00〜2881.00",
+     "n": 650,
+     "stop": 56.2,
+     "ret": 0.52,
+     "stop_early": 58.6,
+     "stop_late": 51.0,
+     "n_late": 206
+    },
+    {
+     "range": "2881.00〜75360.00",
+     "n": 650,
+     "stop": 62.0,
+     "ret": -0.38,
+     "stop_early": 61.5,
+     "stop_late": 62.7,
+     "n_late": 268
+    }
+   ]
+  },
+  {
+   "feature": "TOPIXの75日線からの位置(%)",
+   "spread": 6.5,
+   "consistency": -0.6,
+   "bins": [
+    {
+     "range": "-89.95〜-0.36",
+     "n": 651,
+     "stop": 54.4,
+     "ret": 0.56,
+     "stop_early": 54.5,
+     "stop_late": 53.5,
+     "n_late": 99
+    },
+    {
+     "range": "-0.36〜1.47",
+     "n": 654,
+     "stop": 57.0,
+     "ret": 0.24,
+     "stop_early": 55.8,
+     "stop_late": 61.7,
+     "n_late": 141
+    },
+    {
+     "range": "1.47〜2.83",
+     "n": 647,
+     "stop": 58.7,
+     "ret": 0.23,
+     "stop_early": 61.6,
+     "stop_late": 51.6,
+     "n_late": 184
+    },
+    {
+     "range": "2.83〜5.30",
+     "n": 652,
+     "stop": 60.9,
+     "ret": 0.24,
+     "stop_early": 65.9,
+     "stop_late": 52.1,
+     "n_late": 236
+    },
+    {
+     "range": "5.30〜12.84",
+     "n": 647,
+     "stop": 57.3,
+     "ret": 0.22,
+     "stop_early": 59.9,
+     "stop_late": 55.6,
+     "n_late": 378
+    }
+   ]
+  },
+  {
+   "feature": "PER",
+   "spread": 6.4,
+   "consistency": -0.3,
+   "bins": [
+    {
+     "range": "0.65〜6.26",
+     "n": 607,
+     "stop": 53.9,
+     "ret": 1.28,
+     "stop_early": 53.6,
+     "stop_late": 55.4,
+     "n_late": 83
+    },
+    {
+     "range": "6.26〜9.99",
+     "n": 607,
+     "stop": 57.7,
+     "ret": 0.73,
+     "stop_early": 61.6,
+     "stop_late": 46.9,
+     "n_late": 162
+    },
+    {
+     "range": "9.99〜14.24",
+     "n": 606,
+     "stop": 54.6,
+     "ret": 0.4,
+     "stop_early": 56.2,
+     "stop_late": 51.6,
+     "n_late": 213
+    },
+    {
+     "range": "14.24〜21.11",
+     "n": 607,
+     "stop": 60.3,
+     "ret": -0.21,
+     "stop_early": 65.3,
+     "stop_late": 53.9,
+     "n_late": 267
+    },
+    {
+     "range": "21.11〜3457.14",
+     "n": 607,
+     "stop": 59.6,
+     "ret": -0.05,
+     "stop_early": 60.2,
+     "stop_late": 58.8,
+     "n_late": 233
+    }
+   ]
+  },
+  {
+   "feature": "売上成長率",
+   "spread": 5.4,
+   "consistency": 0.7,
+   "bins": [
+    {
+     "range": "-82.70〜3.40",
+     "n": 651,
+     "stop": 55.6,
+     "ret": 0.78,
+     "stop_early": 57.5,
+     "stop_late": 51.7,
+     "n_late": 211
+    },
+    {
+     "range": "3.40〜7.70",
+     "n": 626,
+     "stop": 61.0,
+     "ret": -0.29,
+     "stop_early": 61.7,
+     "stop_late": 59.8,
+     "n_late": 219
+    },
+    {
+     "range": "7.70〜12.50",
+     "n": 629,
+     "stop": 56.3,
+     "ret": -0.11,
+     "stop_early": 59.2,
+     "stop_late": 50.0,
+     "n_late": 198
+    },
+    {
+     "range": "12.50〜21.00",
+     "n": 634,
+     "stop": 57.3,
+     "ret": 0.9,
+     "stop_early": 58.8,
+     "stop_late": 53.4,
+     "n_late": 178
+    },
+    {
+     "range": "21.00〜167.80",
+     "n": 632,
+     "stop": 58.5,
+     "ret": 0.24,
+     "stop_early": 59.4,
+     "stop_late": 56.7,
+     "n_late": 201
+    }
+   ]
+  },
+  {
+   "feature": "前夜のナスダック(%)",
+   "spread": 5.4,
+   "consistency": -0.1,
+   "bins": [
+    {
+     "range": "-5.82〜-0.94",
+     "n": 623,
+     "stop": 55.5,
+     "ret": -0.17,
+     "stop_early": 59.9,
+     "stop_late": 45.5,
+     "n_late": 187
+    },
+    {
+     "range": "-0.94〜-0.10",
+     "n": 624,
+     "stop": 56.6,
+     "ret": 0.32,
+     "stop_early": 58.9,
+     "stop_late": 52.7,
+     "n_late": 237
+    },
+    {
+     "range": "-0.10〜0.39",
+     "n": 624,
+     "stop": 58.3,
+     "ret": 0.82,
+     "stop_early": 59.1,
+     "stop_late": 56.6,
+     "n_late": 189
+    },
+    {
+     "range": "0.39〜1.29",
+     "n": 618,
+     "stop": 57.1,
+     "ret": 0.6,
+     "stop_early": 57.9,
+     "stop_late": 55.8,
+     "n_late": 231
+    },
+    {
+     "range": "1.29〜7.35",
+     "n": 622,
+     "stop": 60.9,
+     "ret": -0.04,
+     "stop_early": 59.8,
+     "stop_late": 64.6,
+     "n_late": 147
+    }
+   ]
+  },
+  {
+   "feature": "出来高倍率(20日平均比)",
+   "spread": 5.1,
+   "consistency": -0.3,
+   "bins": [
+    {
+     "range": "0.23〜0.87",
+     "n": 651,
+     "stop": 55.1,
+     "ret": 0.61,
+     "stop_early": 57.3,
+     "stop_late": 51.1,
+     "n_late": 227
+    },
+    {
+     "range": "0.87〜1.10",
+     "n": 650,
+     "stop": 58.0,
+     "ret": -0.11,
+     "stop_early": 59.2,
+     "stop_late": 55.6,
+     "n_late": 216
+    },
+    {
+     "range": "1.10〜1.37",
+     "n": 650,
+     "stop": 56.6,
+     "ret": 0.5,
+     "stop_early": 60.4,
+     "stop_late": 48.8,
+     "n_late": 213
+    },
+    {
+     "range": "1.37〜1.94",
+     "n": 650,
+     "stop": 60.2,
+     "ret": 0.32,
+     "stop_early": 61.2,
+     "stop_late": 57.7,
+     "n_late": 189
+    },
+    {
+     "range": "1.94〜19.11",
+     "n": 650,
+     "stop": 58.5,
+     "ret": 0.16,
+     "stop_early": 57.1,
+     "stop_late": 61.7,
+     "n_late": 193
+    }
+   ]
+  },
+  {
+   "feature": "前夜のS&P500(%)",
+   "spread": 5.1,
+   "consistency": -0.4,
+   "bins": [
+    {
+     "range": "-5.98〜-0.60",
+     "n": 624,
+     "stop": 59.1,
+     "ret": -0.43,
+     "stop_early": 64.3,
+     "stop_late": 46.7,
+     "n_late": 184
+    },
+    {
+     "range": "-0.60〜-0.07",
+     "n": 628,
+     "stop": 54.0,
+     "ret": 0.77,
+     "stop_early": 54.6,
+     "stop_late": 52.8,
+     "n_late": 212
+    },
+    {
+     "range": "-0.07〜0.32",
+     "n": 616,
+     "stop": 58.4,
+     "ret": 0.27,
+     "stop_early": 59.6,
+     "stop_late": 55.8,
+     "n_late": 190
+    },
+    {
+     "range": "0.32〜0.82",
+     "n": 622,
+     "stop": 58.4,
+     "ret": 0.72,
+     "stop_early": 58.8,
+     "stop_late": 57.8,
+     "n_late": 263
+    },
+    {
+     "range": "0.82〜5.54",
+     "n": 621,
+     "stop": 58.6,
+     "ret": 0.17,
+     "stop_early": 58.2,
+     "stop_late": 59.9,
+     "n_late": 142
+    }
+   ]
+  },
+  {
+   "feature": "ROE",
+   "spread": 4.8,
+   "consistency": -0.1,
+   "bins": [
+    {
+     "range": "-3323.39〜5.54",
+     "n": 632,
+     "stop": 57.1,
+     "ret": 0.06,
+     "stop_early": 59.4,
+     "stop_late": 52.1,
+     "n_late": 194
+    },
+    {
+     "range": "5.54〜8.54",
+     "n": 635,
+     "stop": 55.4,
+     "ret": 0.4,
+     "stop_early": 57.3,
+     "stop_late": 51.0,
+     "n_late": 192
+    },
+    {
+     "range": "8.54〜11.66",
+     "n": 635,
+     "stop": 56.4,
+     "ret": 0.29,
+     "stop_early": 56.6,
+     "stop_late": 55.9,
+     "n_late": 204
+    },
+    {
+     "range": "11.66〜16.41",
+     "n": 623,
+     "stop": 58.7,
+     "ret": 0.07,
+     "stop_early": 58.7,
+     "stop_late": 58.9,
+     "n_late": 207
+    },
+    {
+     "range": "16.41〜79.79",
+     "n": 631,
+     "stop": 60.2,
+     "ret": 0.78,
+     "stop_early": 63.1,
+     "stop_late": 54.5,
+     "n_late": 211
+    }
+   ]
+  },
+  {
+   "feature": "翌朝の窓(%)",
+   "spread": 4.8,
+   "consistency": 0.7,
+   "bins": [
+    {
+     "range": "-9.00〜-0.88",
+     "n": 651,
+     "stop": 58.1,
+     "ret": -0.28,
+     "stop_early": 58.8,
+     "stop_late": 56.4,
+     "n_late": 202
+    },
+    {
+     "range": "-0.88〜-0.21",
+     "n": 650,
+     "stop": 55.2,
+     "ret": 0.43,
+     "stop_early": 57.6,
+     "stop_late": 50.0,
+     "n_late": 202
+    },
+    {
+     "range": "-0.21〜0.19",
+     "n": 650,
+     "stop": 57.2,
+     "ret": 0.47,
+     "stop_early": 58.2,
+     "stop_late": 55.4,
+     "n_late": 222
+    },
+    {
+     "range": "0.19〜0.81",
+     "n": 650,
+     "stop": 57.8,
+     "ret": 0.06,
+     "stop_early": 59.2,
+     "stop_late": 54.8,
+     "n_late": 197
+    },
+    {
+     "range": "0.81〜16.49",
+     "n": 650,
+     "stop": 60.0,
+     "ret": 0.8,
+     "stop_early": 61.6,
+     "stop_late": 56.7,
+     "n_late": 215
+    }
+   ]
+  },
+  {
+   "feature": "営業利益率",
+   "spread": 4.6,
+   "consistency": -0.2,
+   "bins": [
+    {
+     "range": "-83.71〜4.74",
+     "n": 653,
+     "stop": 60.6,
+     "ret": -0.63,
+     "stop_early": 62.3,
+     "stop_late": 57.3,
+     "n_late": 218
+    },
+    {
+     "range": "4.74〜7.79",
+     "n": 650,
+     "stop": 56.2,
+     "ret": 0.48,
+     "stop_early": 59.6,
+     "stop_late": 49.3,
+     "n_late": 219
+    },
+    {
+     "range": "7.79〜11.21",
+     "n": 648,
+     "stop": 58.3,
+     "ret": 0.06,
+     "stop_early": 58.7,
+     "stop_late": 57.6,
+     "n_late": 210
+    },
+    {
+     "range": "11.21〜18.20",
+     "n": 650,
+     "stop": 57.2,
+     "ret": 0.53,
+     "stop_early": 59.0,
+     "stop_late": 53.4,
+     "n_late": 208
+    },
+    {
+     "range": "18.20〜66.60",
+     "n": 650,
+     "stop": 56.0,
+     "ret": 1.04,
+     "stop_early": 55.9,
+     "stop_late": 56.3,
+     "n_late": 183
+    }
+   ]
+  },
+  {
+   "feature": "利益成長率",
+   "spread": 4.3,
+   "consistency": -0.67,
+   "bins": [
+    {
+     "range": "-99.90〜-21.32",
+     "n": 546,
+     "stop": 55.7,
+     "ret": 0.44,
+     "stop_early": 56.3,
+     "stop_late": 54.3,
+     "n_late": 173
+    },
+    {
+     "range": "-21.32〜1.24",
+     "n": 545,
+     "stop": 60.0,
+     "ret": -0.03,
+     "stop_early": 63.2,
+     "stop_late": 53.6,
+     "n_late": 181
+    },
+    {
+     "range": "1.24〜23.50",
+     "n": 548,
+     "stop": 56.6,
+     "ret": 0.63,
+     "stop_early": 56.3,
+     "stop_late": 57.1,
+     "n_late": 182
+    },
+    {
+     "range": "23.50〜61.58",
+     "n": 542,
+     "stop": 58.7,
+     "ret": -0.02,
+     "stop_early": 60.8,
+     "stop_late": 53.9,
+     "n_late": 167
+    },
+    {
+     "range": "61.58〜10115113.00",
+     "n": 546,
+     "stop": 56.8,
+     "ret": 0.92,
+     "stop_early": 59.6,
+     "stop_late": 50.0,
+     "n_late": 160
+    }
+   ]
+  },
+  {
+   "feature": "前夜のダウ(%)",
+   "spread": 4.3,
+   "consistency": -0.21,
+   "bins": [
+    {
+     "range": "-5.50〜-0.58",
+     "n": 624,
+     "stop": 58.2,
+     "ret": -0.0,
+     "stop_early": 62.3,
+     "stop_late": 50.9,
+     "n_late": 224
+    },
+    {
+     "range": "-0.58〜-0.10",
+     "n": 626,
+     "stop": 55.9,
+     "ret": 0.64,
+     "stop_early": 57.5,
+     "stop_late": 51.5,
+     "n_late": 163
+    },
+    {
+     "range": "-0.10〜0.28",
+     "n": 620,
+     "stop": 60.2,
+     "ret": 0.12,
+     "stop_early": 61.5,
+     "stop_late": 57.2,
+     "n_late": 194
+    },
+    {
+     "range": "0.28〜0.71",
+     "n": 622,
+     "stop": 56.9,
+     "ret": 0.48,
+     "stop_early": 57.3,
+     "stop_late": 56.2,
+     "n_late": 217
+    },
+    {
+     "range": "0.71〜3.69",
+     "n": 619,
+     "stop": 57.4,
+     "ret": 0.28,
+     "stop_early": 57.5,
+     "stop_late": 57.0,
+     "n_late": 193
+    }
+   ]
+  },
+  {
+   "feature": "前夜のダウ(ドル)",
+   "spread": 4.0,
+   "consistency": -0.87,
+   "bins": [
+    {
+     "range": "-2231.07〜-211.16",
+     "n": 623,
+     "stop": 58.3,
+     "ret": -0.05,
+     "stop_early": 62.8,
+     "stop_late": 51.2,
+     "n_late": 244
+    },
+    {
+     "range": "-211.16〜-39.11",
+     "n": 623,
+     "stop": 56.0,
+     "ret": 0.63,
+     "stop_early": 57.6,
+     "stop_late": 51.3,
+     "n_late": 154
+    },
+    {
+     "range": "-39.11〜103.61",
+     "n": 623,
+     "stop": 60.0,
+     "ret": 0.04,
+     "stop_early": 61.3,
+     "stop_late": 56.1,
+     "n_late": 155
+    },
+    {
+     "range": "103.61〜278.24",
+     "n": 621,
+     "stop": 57.2,
+     "ret": 0.49,
+     "stop_early": 57.2,
+     "stop_late": 57.1,
+     "n_late": 198
+    },
+    {
+     "range": "278.24〜1508.05",
+     "n": 621,
+     "stop": 57.0,
+     "ret": 0.41,
+     "stop_early": 57.0,
+     "stop_late": 57.1,
+     "n_late": 240
+    }
+   ]
+  },
+  {
+   "feature": "Fランク",
+   "spread": 3.5,
+   "consistency": 0.1,
+   "bins": [
+    {
+     "range": "-0.00〜4.00",
+     "n": 1164,
+     "stop": 58.5,
+     "ret": -0.25,
+     "stop_early": 60.5,
+     "stop_late": 54.5,
+     "n_late": 382
+    },
+    {
+     "range": "4.00〜5.00",
+     "n": 602,
+     "stop": 58.0,
+     "ret": -0.11,
+     "stop_early": 59.0,
+     "stop_late": 56.1,
+     "n_late": 212
+    },
+    {
+     "range": "5.00〜6.00",
+     "n": 650,
+     "stop": 58.0,
+     "ret": 0.37,
+     "stop_early": 58.6,
+     "stop_late": 56.8,
+     "n_late": 220
+    },
+    {
+     "range": "6.00〜7.00",
+     "n": 442,
+     "stop": 55.0,
+     "ret": 1.58,
+     "stop_early": 58.2,
+     "stop_late": 46.8,
+     "n_late": 126
+    },
+    {
+     "range": "7.00〜10.00",
+     "n": 367,
+     "stop": 56.7,
+     "ret": 1.2,
+     "stop_early": 56.9,
+     "stop_late": 55.8,
+     "n_late": 86
+    }
+   ]
+  },
+  {
+   "feature": "合図の日の上昇(%)",
+   "spread": 3.4,
+   "consistency": -0.15,
+   "bins": [
+    {
+     "range": "-0.16〜1.22",
+     "n": 651,
+     "stop": 56.4,
+     "ret": 0.3,
+     "stop_early": 56.9,
+     "stop_late": 55.1,
+     "n_late": 178
+    },
+    {
+     "range": "1.22〜1.91",
+     "n": 650,
+     "stop": 56.6,
+     "ret": 0.42,
+     "stop_early": 59.9,
+     "stop_late": 50.7,
+     "n_late": 229
+    },
+    {
+     "range": "1.91〜2.67",
+     "n": 650,
+     "stop": 56.6,
+     "ret": 0.55,
+     "stop_early": 56.9,
+     "stop_late": 56.0,
+     "n_late": 207
+    },
+    {
+     "range": "2.67〜4.03",
+     "n": 650,
+     "stop": 58.9,
+     "ret": 0.35,
+     "stop_early": 61.0,
+     "stop_late": 54.7,
+     "n_late": 214
+    },
+    {
+     "range": "4.03〜18.18",
+     "n": 650,
+     "stop": 59.8,
+     "ret": -0.14,
+     "stop_early": 60.9,
+     "stop_late": 57.6,
+     "n_late": 210
+    }
+   ]
+  }
+ ],
+ "sector": [
+  {
+   "sector": "銀行業",
+   "n": 117,
+   "stop": 36.8,
+   "ret": 2.81
+  },
+  {
+   "sector": "鉄鋼",
+   "n": 51,
+   "stop": 39.2,
+   "ret": 2.78
+  },
+  {
+   "sector": "その他金融業",
+   "n": 52,
+   "stop": 50.0,
+   "ret": -0.0
+  },
+  {
+   "sector": "精密機器",
+   "n": 77,
+   "stop": 51.9,
+   "ret": 0.23
+  },
+  {
+   "sector": "小売業",
+   "n": 215,
+   "stop": 54.9,
+   "ret": 0.59
+  },
+  {
+   "sector": "その他製品",
+   "n": 60,
+   "stop": 55.0,
+   "ret": 1.61
+  },
+  {
+   "sector": "機械",
+   "n": 209,
+   "stop": 55.0,
+   "ret": 1.14
+  },
+  {
+   "sector": "輸送用機器",
+   "n": 136,
+   "stop": 55.1,
+   "ret": 0.32
+  },
+  {
+   "sector": "非鉄金属",
+   "n": 64,
+   "stop": 56.2,
+   "ret": 2.73
+  },
+  {
+   "sector": "陸運業",
+   "n": 134,
+   "stop": 56.7,
+   "ret": -0.15
+  },
+  {
+   "sector": "食料品",
+   "n": 134,
+   "stop": 56.7,
+   "ret": 0.28
+  },
+  {
+   "sector": "情報・通信業",
+   "n": 303,
+   "stop": 58.4,
+   "ret": 0.26
+  },
+  {
+   "sector": "医薬品",
+   "n": 109,
+   "stop": 58.7,
+   "ret": -0.25
+  },
+  {
+   "sector": "不動産業",
+   "n": 103,
+   "stop": 59.2,
+   "ret": -0.37
+  },
+  {
+   "sector": "電気・ガス業",
+   "n": 108,
+   "stop": 59.3,
+   "ret": -0.05
+  },
+  {
+   "sector": "ガラス・土石製品",
+   "n": 59,
+   "stop": 59.3,
+   "ret": -0.84
+  },
+  {
+   "sector": "卸売業",
+   "n": 91,
+   "stop": 59.3,
+   "ret": -0.33
+  },
+  {
+   "sector": "化学",
+   "n": 224,
+   "stop": 62.5,
+   "ret": -0.24
+  },
+  {
+   "sector": "サービス業",
+   "n": 252,
+   "stop": 63.5,
+   "ret": -0.42
+  },
+  {
+   "sector": "電気機器",
+   "n": 392,
+   "stop": 63.8,
+   "ret": -0.39
+  },
+  {
+   "sector": "建設業",
+   "n": 104,
+   "stop": 66.3,
+   "ret": -1.33
+  }
+ ],
+ "model": {
+  "auc_test": 0.563,
+  "n_train": 2213,
+  "n_test": 1038,
+  "importance": [
+   {
+    "feature": "最初のロスカット幅(%)",
+    "auc_drop": 0.0169
+   },
+   {
+    "feature": "直前20日の上昇(%)",
+    "auc_drop": 0.016
+   },
+   {
+    "feature": "ドル円の前夜変化(%)",
+    "auc_drop": 0.0049
+   },
+   {
+    "feature": "TOPIXの75日線からの位置(%)",
+    "auc_drop": 0.004
+   },
+   {
+    "feature": "時価総額(億円)",
+    "auc_drop": 0.0039
+   },
+   {
+    "feature": "PBR",
+    "auc_drop": 0.0035
+   },
+   {
+    "feature": "75日線の傾き(20日,%)",
+    "auc_drop": 0.0031
+   },
+   {
+    "feature": "前夜のナスダック(%)",
+    "auc_drop": 0.0027
+   },
+   {
+    "feature": "RSI",
+    "auc_drop": 0.0027
+   },
+   {
+    "feature": "直前5日の上昇(%)",
+    "auc_drop": 0.0022
+   },
+   {
+    "feature": "前夜のS&P500(%)",
+    "auc_drop": 0.0021
+   },
+   {
+    "feature": "PER",
+    "auc_drop": 0.0015
+   },
+   {
+    "feature": "負債資本倍率",
+    "auc_drop": 0.0011
+   },
+   {
+    "feature": "バンド幅(±2σ÷25日線,%)",
+    "auc_drop": 0.0006
+   },
+   {
+    "feature": "Fランク",
+    "auc_drop": 0.0003
+   }
+  ],
+  "test_by_predicted_risk": [
+   {
+    "group": 1,
+    "n": 208,
+    "stop": 47.1,
+    "ret": 2.11
+   },
+   {
+    "group": 2,
+    "n": 207,
+    "stop": 51.2,
+    "ret": 0.35
+   },
+   {
+    "group": 3,
+    "n": 208,
+    "stop": 54.8,
+    "ret": 0.26
+   },
+   {
+    "group": 4,
+    "n": 207,
+    "stop": 59.4,
+    "ret": 0.83
+   },
+   {
+    "group": 5,
+    "n": 208,
+    "stop": 61.1,
+    "ret": 2.14
+   }
+  ]
+ }
+}
