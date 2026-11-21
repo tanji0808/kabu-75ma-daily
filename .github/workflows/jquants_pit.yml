@@ -1,0 +1,41 @@
+name: 過去の決算データ（J-Quants）で空売りを検証し直す
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: J-Quantsから決算の概要を取得（取得済みの日は飛ばす。無料プランは1分5回までなので初回は約2時間）
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_MAX_MINUTES: "270"
+        run: python tools/jquants_fetch.py
+      - name: 取得したデータを保存（途中で止まっても、ここまでの分は残す）
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/jq || true
+          git commit -m "J-Quantsの決算データを更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
+      - name: その時点の決算でランクを付け直して検証
+        env:
+          TZ: Asia/Tokyo
+        run: python short_rel_pit.py
+      - name: 結果を保存
+        run: |
+          git add backtest/short_rel_pit*
+          git commit -m "過去の決算データでの空売り検証の結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
