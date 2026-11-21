@@ -130,7 +130,7 @@ def download_prices(codes: list[str], period: str = "1y") -> dict[str, pd.DataFr
         for attempt in range(3):
             try:
                 data = yf.download(tickers, period=period, interval="1d", group_by="ticker",
-                                   auto_adjust=False, threads=True, progress=False)
+                                   auto_adjust=os.environ.get("K_ADJUST") == "1", threads=True, progress=False)
                 break
             except Exception as e:  # 一時的な失敗は少し待って再試行
                 print(f"    取得に失敗（{e}）。再試行します…")

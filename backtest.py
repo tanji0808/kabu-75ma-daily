@@ -89,16 +89,100 @@ for base in ("ma25", "ma25_f", "m1s"):
     cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
                short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
     VARIANTS[base + "_half"] = cfg
-REASON = {"lock": "利益確保ライン割れ", "trail": "+1σ引き上げライン割れ", "stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
+REASON = {"sstop": "損切り（+1σ超え）", "lock": "利益確保ライン割れ", "trail": "+1σ引き上げライン割れ", "stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
           "bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
+
+# 空売り版：3ヶ月以上の上昇のあと、終値が75日線を上から下に割った日の翌日始値で空売り。引き上げ式ロスカットの反対
+SHORT_FEE = 0.0115          # 貸株料（年）
+VARIANTS["short_trail_calm"] = {"exit": "strail", "filter": "short+calm5s+rsi40", "fname": "空売り・急落除外", "tp": None,
+                                "side": "short", "name": "空売り：+1σで損切り。幅ぶん下がったら利益確保、−1σより下で引けたら−1σまで引き下げ",
+                                "short": "空売り（75日線割れ・急落除外・引き下げ式ロスカット）"}
+VARIANTS["short_trail"] = dict(VARIANTS["short_trail_calm"], filter="short", fname="空売り",
+                               short="空売り（75日線割れ・引き下げ式ロスカット）")
 
 if os.environ.get("BT_VARIANTS"):                 # 計算するパターンを絞る（例：trail_calm5_rsi60）
     VARIANTS = {k_: v_ for k_, v_ in VARIANTS.items() if k_ in os.environ["BT_VARIANTS"].split(",")}
 
 
 # ------------------------------------------------------------------ 合図
+def signal_days_short(df: pd.DataFrame, filt: str = "") -> np.ndarray:
+    """空売りの合図：3ヶ月以上の上昇のあと、終値が75日線を上から下に割った日。"""
+    c, h, l, v = df["Close"], df["High"], df["Low"], df["Volume"]
+    ma = c.rolling(k.MA).mean()
+    dd, cw = k.DOWN_DAYS, k.CROSS_WITHIN
+    rise = (ma / ma.shift(dd) - 1) >= k.MA_DECLINE_MIN
+    above = (c > ma).astype(float).where(ma.notna())
+    above_ratio = above.shift(cw + 1).rolling(dd - cw).mean() >= k.BELOW_RATIO_MIN
+    rng = (1 - l.rolling(k.DROP_LOOKBACK + 1).min() / h.rolling(k.DROP_LOOKBACK + 1).max()) >= k.DROP_MIN
+    gap = c / ma - 1
+    cross = (c.shift(1) >= ma.shift(1)) & (c < ma) & (gap < 0) & (gap >= -k.CROSS_GAP_MAX)
+    sig = rise & above_ratio & rng & cross & (v >= MIN_VOLUME)
+    parts = set(filt.split("+"))
+    if "calm5s" in parts:      # 急落除外：合図までの5日間の下落が−3%以内
+        sig = sig & ((c / c.shift(5) - 1) >= -0.03)
+    if "rsi40" in parts:       # 急落除外：RSI(14)が40以上
+        d_ = c.diff()
+        up = d_.clip(lower=0).ewm(alpha=1 / 14, adjust=False).mean()
+        dn = (-d_.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
+        sig = sig & ((100 - 100 / (1 + up / dn)) >= 40)
+    need = max(k.MA + dd, k.DROP_LOOKBACK) + 5
+    idx = np.flatnonzero(sig.fillna(False).to_numpy())
+    return idx[idx >= need - 1]
+
+
+def simulate_short(df: pd.DataFrame, sigs: np.ndarray) -> list[dict]:
+    """空売り：翌日始値で売り、最初は+1σで損切り。幅ぶん下がったら利益確保、−1σより下で引けたら−1σまで引き下げ。"""
+    o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
+    m25 = df["Close"].rolling(25).mean()
+    sd = df["Close"].rolling(25).std(ddof=0)
+    u1, d1 = (m25 + sd).to_numpy(), (m25 - sd).to_numpy()
+    dates, n = df.index, len(df)
+    trades, free_from = [], 0
+    for t in sigs:
+        if t < free_from:
+            continue
+        e = t + 1
+        if e >= n or not np.isfinite(o[e]) or o[e] <= 0:
+            continue
+        entry = o[e]
+        R = u1[t] - entry if u1[t] > entry else entry * 0.03
+        lock = stop = None
+        exit_sig, reason = None, None
+        for j in range(e, min(n, e + MAX_HOLD)):
+            if stop is None:
+                if c[j] > u1[j]:
+                    exit_sig, reason = j, "sstop"; break
+                if c[j] <= entry - R:
+                    lock = stop = entry - R
+            else:
+                if c[j] > stop:
+                    exit_sig, reason = j, ("lock" if stop == lock else "trail"); break
+                if c[j] < d1[j]:
+                    stop = min(stop, d1[j])
+        if exit_sig is None:
+            if e + MAX_HOLD - 1 < n:
+                exit_sig, reason = e + MAX_HOLD - 1, "time"
+            else:
+                free_from = n
+                continue
+        if exit_sig + 1 >= n:
+            x, px = exit_sig, c[exit_sig]
+        else:
+            x = exit_sig + 1
+            px = o[x]
+        days = int(x - e)
+        gross = (entry - px) / entry * 100
+        trades.append({
+            "signal": dates[t].strftime("%Y-%m-%d"), "entry": dates[e].strftime("%Y-%m-%d"),
+            "exit": dates[x].strftime("%Y-%m-%d"), "buy": round(float(entry), 1), "sell": round(float(px), 1),
+            "ret": round(gross - SHORT_FEE * days / 245 * 100, 2), "gross": round(gross, 2), "days": days,
+            "reason": reason, "touched": lock is not None})
+        free_from = x + 1
+    return trades
+
+
 def signal_days(df: pd.DataFrame, filt: str = "") -> np.ndarray:
     """スクリーナーの「本日突破」と同じ条件が成り立った日の位置を返す。"""
     c, h, l, v = df["Close"], df["High"], df["Low"], df["Volume"]
@@ -185,6 +269,8 @@ def simulate_bandwalk(df: pd.DataFrame, sigs: np.ndarray, sell_line: str = "u1")
 
 def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | None = None,
              half: bool = False) -> list[dict]:
+    if exit_rule == "strail":
+        return simulate_short(df, sigs)
     if exit_rule == "bw":
         return simulate_bandwalk(df, sigs, "u1")
     if exit_rule == "bw25":
@@ -410,7 +496,8 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
         df = df.dropna(subset=["Open", "Close"])
         first = df.index[0] if first is None else min(first, df.index[0])
         last = df.index[-1] if last is None else max(last, df.index[-1])
-        sig_by_filter = {fk: signal_days(df, fk) for fk in {c_["filter"] for c_ in VARIANTS.values()}}
+        sig_by_filter = {fk: (signal_days_short(df, fk) if fk.startswith("short") else signal_days(df, fk))
+                         for fk in {c_["filter"] for c_ in VARIANTS.values()}}
         for v, cfg in VARIANTS.items():
             for t in simulate(df, sig_by_filter[cfg["filter"]], cfg["exit"], cfg.get("tp"), cfg.get("half", False)):
                 t.update({"code": m["コード"], "name": m["銘柄名"], "sector": m["業種"]})

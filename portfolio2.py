@@ -23,11 +23,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kabu_75ma_search as k  # noqa: E402
 
 EQUITY0, MAX_EXPO, BASE_SIZE, BASE_CAP, RATE = 10_000_000, 20_000_000, 1_000_000, 20, 0.03
+SIDE = os.environ.get("P2_SIDE", "long")      # short = 空売り（損益の向きが逆、費用は貸株料）
+if SIDE == "short":
+    RATE = 0.0115
 SPLIT = os.environ.get("P2_SPLIT", "2025-01-01")
 
 t = pd.read_csv(os.environ.get("P2_TRADES", "backtest/trades_trail_calm5_rsi60.csv"), dtype={"code": str})
 MIN_RANK = int(os.environ.get("P2_MIN_RANK", 6))
 t = t[t["frank"].fillna(-1) >= MIN_RANK].copy() if MIN_RANK > 0 else t.copy()
+MAX_RANK = int(os.environ.get("P2_MAX_RANK", 10))
+if MAX_RANK < 10:
+    t = t[t["frank"].fillna(99) <= MAX_RANK].copy()
 t["entry"], t["exit"], t["signal"] = (pd.to_datetime(t[c]) for c in ("entry", "exit", "signal"))
 codes = sorted(t["code"].unique())
 prices = k.download_prices(codes + ["1306"], period=os.environ.get("P2_PERIOD", "6y"))
@@ -44,6 +50,9 @@ def stop_pct(r):
         return np.nan
     c = df["Close"]
     d1 = (c.rolling(25).mean() - c.rolling(25).std(ddof=0)).loc[r["signal"]]
+    if SIDE == "short":
+        u1 = (c.rolling(25).mean() + c.rolling(25).std(ddof=0)).loc[r["signal"]]
+        return (u1 - r["buy"]) / r["buy"] if u1 > r["buy"] else 0.03
     return (r["buy"] - d1) / r["buy"] if d1 < r["buy"] else 0.03
 t["stop_pct"] = t.apply(stop_pct, axis=1)
 t = t.dropna(subset=["stop_pct"])
@@ -83,7 +92,7 @@ def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False,
         still = []
         for p in open_pos:
             if p["exit"] == d:
-                realized += p["shares"] * p["sell"] - p["cost"]
+                realized += (p["shares"] * p["sell"] - p["cost"]) * (-1 if SIDE == "short" else 1)
             else:
                 still.append(p)
         open_pos = still
@@ -101,7 +110,7 @@ def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False,
             size = (RISK * equity_now / r["stop_pct"]) if vol else BASE_SIZE
             size = min(size, 3 * BASE_SIZE)
             factor = 1.0
-            if regime and etf is not None and etf.loc[:d].iloc[-1] < etf_ma200.loc[:d].iloc[-1]:
+            if regime and etf is not None and ((etf.loc[:d].iloc[-1] < etf_ma200.loc[:d].iloc[-1]) != (SIDE == "short")):
                 factor *= 0.5
             if ddctl and half_dd:
                 factor *= 0.5
@@ -116,8 +125,10 @@ def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False,
         # 4) 今日の終値で評価・金利
         expo = sum(p["cost"] for p in open_pos)
         unreal = sum(p["shares"] * close.at[d, p["code"]] - p["cost"] for p in open_pos if p["code"] in close)
+        if SIDE == "short":
+            unreal = -unreal
         equity = EQUITY0 + realized + unreal + etf_pnl - interest
-        borrowed = max(0.0, expo - equity) if cash else expo
+        borrowed = expo if SIDE == "short" else (max(0.0, expo - equity) if cash else expo)
         interest += borrowed * RATE / 245
         equity -= borrowed * RATE / 245
         prev_idle = max(0.0, equity - expo) if idle_etf else 0.0
@@ -158,7 +169,11 @@ CONFIGS = [
     ("⑥＋①②③④（リスク対策すべて）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True}),
     ("⑥＋①②③④＋⑤（全部）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True, "idle_etf": True}),
 ]
-out = {"risk_pct": round(RISK * 100, 3), "min_rank": MIN_RANK, "split": SPLIT, "trades_in": int(len(t)), "from": str(days[0].date()), "to": str(days[-1].date()), "results": []}
+if SIDE == "short":
+    CONFIGS = [("空売り 基準（100万円×20銘柄・貸株料1.15%）", {}),
+               ("空売り＋③ TOPIXが200日線の上なら半分", {"regime": True}),
+               ("空売り＋② 同じ業種は3銘柄まで", {"sector": True})]
+out = {"side": SIDE, "max_rank": MAX_RANK, "risk_pct": round(RISK * 100, 3), "min_rank": MIN_RANK, "split": SPLIT, "trades_in": int(len(t)), "from": str(days[0].date()), "to": str(days[-1].date()), "results": []}
 for name, cfg in CONFIGS:
     s, taken, interest = simulate(**cfg)
     yearly = s["eq"].groupby(s.index.year).last()
@@ -166,7 +181,8 @@ for name, cfg in CONFIGS:
     res = {"name": name, "trades": taken, "interest": round(interest), "all": metrics(s, taken, interest),
            "train": metrics(s, taken, interest, hi=pd.Timestamp(SPLIT) - pd.Timedelta(days=1)),
            "test": metrics(s, taken, interest, lo=pd.Timestamp(SPLIT)),
-           "by_year": {str(k_): v for k_, v in by_year.items()}}
+           "by_year": {str(k_): v for k_, v in by_year.items()},
+           "daily": {str(d_.date()): round(float(v_)) for d_, v_ in s["eq"].items()}}
     out["results"].append(res)
     a = res["all"]
     print(f"{name}: 年{a['annual'] / 1e4:.0f}万 最大落込{a['max_dd'] / 1e4:.0f}万({a['max_dd_pct']}%) "
