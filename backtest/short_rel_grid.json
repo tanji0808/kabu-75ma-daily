@@ -1,0 +1,1446 @@
+{
+ "generated": "2026-11-21 22:33",
+ "cost_pct": 0.1,
+ "results": {
+  "L5_G3_mk_f4__m2": {
+   "trades": 762,
+   "total_pnl": 5089202,
+   "after_cost": 4397542,
+   "win_rate": 40.2,
+   "profit_factor": 1.3,
+   "max_drawdown": -1361952,
+   "avg_ret_pct": 0.75,
+   "by_year_after_cost": {
+    "2021": 220762,
+    "2022": 914477,
+    "2023": 906134,
+    "2024": 884533,
+    "2025": 57223,
+    "2026": 1414410
+   },
+   "plus_years": 6,
+   "years": 6,
+   "after_cost_excl_top10": 1194899
+  },
+  "L5_G3_mk_f4__lk25c": {
+   "trades": 838,
+   "total_pnl": 3333672,
+   "after_cost": 2570037,
+   "win_rate": 42.4,
+   "profit_factor": 1.19,
+   "max_drawdown": -1685816,
+   "avg_ret_pct": 0.54,
+   "by_year_after_cost": {
+    "2021": 332301,
+    "2022": 1130724,
+    "2023": 545426,
+    "2024": 28460,
+    "2025": -486370,
+    "2026": 1019494
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -483250
+  },
+  "L5_G3_mk__m2": {
+   "trades": 1042,
+   "total_pnl": -1813239,
+   "after_cost": -2764150,
+   "win_rate": 36.5,
+   "profit_factor": 0.94,
+   "max_drawdown": -6615704,
+   "avg_ret_pct": -0.18,
+   "by_year_after_cost": {
+    "2021": 758723,
+    "2022": 855023,
+    "2023": -1746724,
+    "2024": -602733,
+    "2025": -3270645,
+    "2026": 1242207
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -5921823
+  },
+  "L5_G3_mk__lk25c": {
+   "trades": 1205,
+   "total_pnl": -1519083,
+   "after_cost": -2619968,
+   "win_rate": 36.8,
+   "profit_factor": 0.95,
+   "max_drawdown": -5989844,
+   "avg_ret_pct": -0.11,
+   "by_year_after_cost": {
+    "2021": 677391,
+    "2022": 751060,
+    "2023": -1355447,
+    "2024": -1080350,
+    "2025": -2348981,
+    "2026": 736359
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -5872282
+  },
+  "L5_G3_f4__m2": {
+   "trades": 929,
+   "total_pnl": 5056137,
+   "after_cost": 4209773,
+   "win_rate": 39.9,
+   "profit_factor": 1.21,
+   "max_drawdown": -2774665,
+   "avg_ret_pct": 0.61,
+   "by_year_after_cost": {
+    "2021": 1346868,
+    "2022": 740927,
+    "2023": 200620,
+    "2024": 1757718,
+    "2025": -473010,
+    "2026": 636649
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 820335
+  },
+  "L5_G3_f4__lk25c": {
+   "trades": 1051,
+   "total_pnl": 4085728,
+   "after_cost": 3131211,
+   "win_rate": 42.1,
+   "profit_factor": 1.17,
+   "max_drawdown": -1948180,
+   "avg_ret_pct": 0.46,
+   "by_year_after_cost": {
+    "2021": 768920,
+    "2022": 1064270,
+    "2023": -240010,
+    "2024": 438050,
+    "2025": -154871,
+    "2026": 1254851
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -155592
+  },
+  "L5_G3__m2": {
+   "trades": 1212,
+   "total_pnl": -1716577,
+   "after_cost": -2820230,
+   "win_rate": 36.3,
+   "profit_factor": 0.95,
+   "max_drawdown": -8491918,
+   "avg_ret_pct": -0.21,
+   "by_year_after_cost": {
+    "2021": 508238,
+    "2022": 868508,
+    "2023": -2899400,
+    "2024": -105286,
+    "2025": -2544471,
+    "2026": 1352181
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -6665718
+  },
+  "L5_G3__lk25c": {
+   "trades": 1396,
+   "total_pnl": -1330278,
+   "after_cost": -2599749,
+   "win_rate": 38.5,
+   "profit_factor": 0.96,
+   "max_drawdown": -6739825,
+   "avg_ret_pct": -0.06,
+   "by_year_after_cost": {
+    "2021": 330120,
+    "2022": 754721,
+    "2023": -2123388,
+    "2024": -128802,
+    "2025": -1708344,
+    "2026": 275944
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -5688986
+  },
+  "L5_G5_mk_f4__m2": {
+   "trades": 450,
+   "total_pnl": 3792647,
+   "after_cost": 3371424,
+   "win_rate": 46.0,
+   "profit_factor": 1.28,
+   "max_drawdown": -2189830,
+   "avg_ret_pct": 1.05,
+   "by_year_after_cost": {
+    "2021": 322274,
+    "2022": 1510788,
+    "2023": 1290265,
+    "2024": 212344,
+    "2025": -1109746,
+    "2026": 1145497
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 150247
+  },
+  "L5_G5_mk_f4__lk25c": {
+   "trades": 479,
+   "total_pnl": 4820859,
+   "after_cost": 4374367,
+   "win_rate": 47.4,
+   "profit_factor": 1.4,
+   "max_drawdown": -1430661,
+   "avg_ret_pct": 1.21,
+   "by_year_after_cost": {
+    "2021": 708916,
+    "2022": 1722601,
+    "2023": 972494,
+    "2024": 208301,
+    "2025": -448912,
+    "2026": 1210966
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 1262627
+  },
+  "L5_G5_mk__m2": {
+   "trades": 785,
+   "total_pnl": 478727,
+   "after_cost": -239618,
+   "win_rate": 39.6,
+   "profit_factor": 1.02,
+   "max_drawdown": -4793989,
+   "avg_ret_pct": 0.1,
+   "by_year_after_cost": {
+    "2021": 696746,
+    "2022": 1785532,
+    "2023": 324795,
+    "2024": -1614321,
+    "2025": -1970432,
+    "2026": 538061
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -3591954
+  },
+  "L5_G5_mk__lk25c": {
+   "trades": 868,
+   "total_pnl": 933751,
+   "after_cost": 135450,
+   "win_rate": 41.8,
+   "profit_factor": 1.04,
+   "max_drawdown": -4205688,
+   "avg_ret_pct": 0.13,
+   "by_year_after_cost": {
+    "2021": 882223,
+    "2022": 1596303,
+    "2023": 358879,
+    "2024": -1084045,
+    "2025": -2069932,
+    "2026": 452022
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -3146859
+  },
+  "L5_G5_f4__m2": {
+   "trades": 575,
+   "total_pnl": 5755444,
+   "after_cost": 5221909,
+   "win_rate": 47.1,
+   "profit_factor": 1.32,
+   "max_drawdown": -2038877,
+   "avg_ret_pct": 1.19,
+   "by_year_after_cost": {
+    "2021": 63169,
+    "2022": 1894873,
+    "2023": 1065268,
+    "2024": 930473,
+    "2025": -150758,
+    "2026": 1418882
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 1685839
+  },
+  "L5_G5_f4__lk25c": {
+   "trades": 634,
+   "total_pnl": 6678550,
+   "after_cost": 6094089,
+   "win_rate": 48.4,
+   "profit_factor": 1.4,
+   "max_drawdown": -1323574,
+   "avg_ret_pct": 1.19,
+   "by_year_after_cost": {
+    "2021": 620765,
+    "2022": 2092248,
+    "2023": 827153,
+    "2024": 417815,
+    "2025": 623365,
+    "2026": 1512741
+   },
+   "plus_years": 6,
+   "years": 6,
+   "after_cost_excl_top10": 2763113
+  },
+  "L5_G5__m2": {
+   "trades": 931,
+   "total_pnl": -275132,
+   "after_cost": -1127395,
+   "win_rate": 40.3,
+   "profit_factor": 0.99,
+   "max_drawdown": -5826099,
+   "avg_ret_pct": 0.05,
+   "by_year_after_cost": {
+    "2021": 142006,
+    "2022": 1948163,
+    "2023": -164520,
+    "2024": -1201574,
+    "2025": -1195786,
+    "2026": -655683
+   },
+   "plus_years": 2,
+   "years": 6,
+   "after_cost_excl_top10": -4708947
+  },
+  "L5_G5__lk25c": {
+   "trades": 1064,
+   "total_pnl": 1537218,
+   "after_cost": 565527,
+   "win_rate": 42.4,
+   "profit_factor": 1.05,
+   "max_drawdown": -5122053,
+   "avg_ret_pct": 0.18,
+   "by_year_after_cost": {
+    "2021": 453048,
+    "2022": 2683517,
+    "2023": -172042,
+    "2024": -543353,
+    "2025": -1691020,
+    "2026": -164622
+   },
+   "plus_years": 2,
+   "years": 6,
+   "after_cost_excl_top10": -2963895
+  },
+  "L5_G7_mk_f4__m2": {
+   "trades": 269,
+   "total_pnl": 2257219,
+   "after_cost": 2008545,
+   "win_rate": 51.7,
+   "profit_factor": 1.25,
+   "max_drawdown": -2101295,
+   "avg_ret_pct": 1.15,
+   "by_year_after_cost": {
+    "2021": 79173,
+    "2022": 908204,
+    "2023": 1198927,
+    "2024": 783087,
+    "2025": -1771648,
+    "2026": 810799
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -748248
+  },
+  "L5_G7_mk_f4__lk25c": {
+   "trades": 271,
+   "total_pnl": 2480224,
+   "after_cost": 2229593,
+   "win_rate": 50.6,
+   "profit_factor": 1.31,
+   "max_drawdown": -1523178,
+   "avg_ret_pct": 1.19,
+   "by_year_after_cost": {
+    "2021": 510662,
+    "2022": 872423,
+    "2023": 710319,
+    "2024": 685368,
+    "2025": -1458060,
+    "2026": 908878
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -261161
+  },
+  "L5_G7_mk__m2": {
+   "trades": 513,
+   "total_pnl": -569867,
+   "after_cost": -1042414,
+   "win_rate": 44.4,
+   "profit_factor": 0.97,
+   "max_drawdown": -5015143,
+   "avg_ret_pct": 0.04,
+   "by_year_after_cost": {
+    "2021": 171269,
+    "2022": 1218360,
+    "2023": 926586,
+    "2024": 158734,
+    "2025": -3208960,
+    "2026": -308406
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -4043571
+  },
+  "L5_G7_mk__lk25c": {
+   "trades": 542,
+   "total_pnl": -755696,
+   "after_cost": -1256017,
+   "win_rate": 42.8,
+   "profit_factor": 0.96,
+   "max_drawdown": -4334206,
+   "avg_ret_pct": 0.01,
+   "by_year_after_cost": {
+    "2021": 520769,
+    "2022": 432000,
+    "2023": 693707,
+    "2024": -100666,
+    "2025": -3062000,
+    "2026": 260171
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -3986780
+  },
+  "L5_G7_f4__m2": {
+   "trades": 364,
+   "total_pnl": 2553163,
+   "after_cost": 2218670,
+   "win_rate": 50.5,
+   "profit_factor": 1.18,
+   "max_drawdown": -2646551,
+   "avg_ret_pct": 0.95,
+   "by_year_after_cost": {
+    "2021": 72888,
+    "2022": 787712,
+    "2023": 693660,
+    "2024": 1132066,
+    "2025": -1725533,
+    "2026": 1257874
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -1038654
+  },
+  "L5_G7_f4__lk25c": {
+   "trades": 372,
+   "total_pnl": 2353285,
+   "after_cost": 2011629,
+   "win_rate": 49.7,
+   "profit_factor": 1.19,
+   "max_drawdown": -2280893,
+   "avg_ret_pct": 0.84,
+   "by_year_after_cost": {
+    "2021": 571333,
+    "2022": 770048,
+    "2023": 276260,
+    "2024": 996615,
+    "2025": -1673379,
+    "2026": 1070750
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -868835
+  },
+  "L5_G7__m2": {
+   "trades": 649,
+   "total_pnl": 933545,
+   "after_cost": 331242,
+   "win_rate": 45.3,
+   "profit_factor": 1.04,
+   "max_drawdown": -6734662,
+   "avg_ret_pct": 0.05,
+   "by_year_after_cost": {
+    "2021": 502889,
+    "2022": 1388469,
+    "2023": 139715,
+    "2024": 469510,
+    "2025": -2984452,
+    "2026": 815110
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -4208951
+  },
+  "L5_G7__lk25c": {
+   "trades": 694,
+   "total_pnl": 352794,
+   "after_cost": -289646,
+   "win_rate": 42.8,
+   "profit_factor": 1.01,
+   "max_drawdown": -6434056,
+   "avg_ret_pct": -0.26,
+   "by_year_after_cost": {
+    "2021": 385223,
+    "2022": 336986,
+    "2023": -261062,
+    "2024": 401515,
+    "2025": -2988060,
+    "2026": 1835751
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -6064774
+  },
+  "L10_G3_mk_f4__m2": {
+   "trades": 524,
+   "total_pnl": 3331451,
+   "after_cost": 2848081,
+   "win_rate": 44.8,
+   "profit_factor": 1.3,
+   "max_drawdown": -1928825,
+   "avg_ret_pct": 0.67,
+   "by_year_after_cost": {
+    "2021": 1088173,
+    "2022": 299843,
+    "2023": 1274289,
+    "2024": 721443,
+    "2025": -882524,
+    "2026": 346856
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 431446
+  },
+  "L10_G3_mk_f4__lk25c": {
+   "trades": 562,
+   "total_pnl": 3634474,
+   "after_cost": 3117938,
+   "win_rate": 45.2,
+   "profit_factor": 1.37,
+   "max_drawdown": -1287098,
+   "avg_ret_pct": 0.68,
+   "by_year_after_cost": {
+    "2021": 1146838,
+    "2022": 433998,
+    "2023": 839724,
+    "2024": 859369,
+    "2025": -259005,
+    "2026": 97013
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 873769
+  },
+  "L10_G3_mk__m2": {
+   "trades": 851,
+   "total_pnl": -2556452,
+   "after_cost": -3337680,
+   "win_rate": 40.3,
+   "profit_factor": 0.88,
+   "max_drawdown": -5498634,
+   "avg_ret_pct": -0.2,
+   "by_year_after_cost": {
+    "2021": 339908,
+    "2022": 765870,
+    "2023": -519802,
+    "2024": -362869,
+    "2025": -1840001,
+    "2026": -1720786
+   },
+   "plus_years": 2,
+   "years": 6,
+   "after_cost_excl_top10": -5614954
+  },
+  "L10_G3_mk__lk25c": {
+   "trades": 957,
+   "total_pnl": -2497528,
+   "after_cost": -3387255,
+   "win_rate": 42.0,
+   "profit_factor": 0.88,
+   "max_drawdown": -4829830,
+   "avg_ret_pct": -0.03,
+   "by_year_after_cost": {
+    "2021": 483274,
+    "2022": 917681,
+    "2023": -351612,
+    "2024": -628571,
+    "2025": -1370797,
+    "2026": -2437230
+   },
+   "plus_years": 2,
+   "years": 6,
+   "after_cost_excl_top10": -5435490
+  },
+  "L10_G3_f4__m2": {
+   "trades": 577,
+   "total_pnl": 4856535,
+   "after_cost": 4324234,
+   "win_rate": 46.1,
+   "profit_factor": 1.4,
+   "max_drawdown": -2065349,
+   "avg_ret_pct": 0.9,
+   "by_year_after_cost": {
+    "2021": 1688935,
+    "2022": 915571,
+    "2023": 1395834,
+    "2024": 347917,
+    "2025": -730356,
+    "2026": 706332
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 1443039
+  },
+  "L10_G3_f4__lk25c": {
+   "trades": 620,
+   "total_pnl": 5070106,
+   "after_cost": 4501216,
+   "win_rate": 46.3,
+   "profit_factor": 1.47,
+   "max_drawdown": -1243988,
+   "avg_ret_pct": 0.86,
+   "by_year_after_cost": {
+    "2021": 1721950,
+    "2022": 879359,
+    "2023": 969784,
+    "2024": 715523,
+    "2025": -255218,
+    "2026": 469817
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 1868997
+  },
+  "L10_G3__m2": {
+   "trades": 937,
+   "total_pnl": -99043,
+   "after_cost": -953658,
+   "win_rate": 41.7,
+   "profit_factor": 1.0,
+   "max_drawdown": -4782222,
+   "avg_ret_pct": 0.03,
+   "by_year_after_cost": {
+    "2021": 592106,
+    "2022": 1033247,
+    "2023": -637202,
+    "2024": -313478,
+    "2025": -1685678,
+    "2026": 57347
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -3866525
+  },
+  "L10_G3__lk25c": {
+   "trades": 1068,
+   "total_pnl": 243171,
+   "after_cost": -742541,
+   "win_rate": 43.9,
+   "profit_factor": 1.01,
+   "max_drawdown": -4097581,
+   "avg_ret_pct": 0.15,
+   "by_year_after_cost": {
+    "2021": 841083,
+    "2022": 962649,
+    "2023": -104560,
+    "2024": -522521,
+    "2025": -1439978,
+    "2026": -479213
+   },
+   "plus_years": 2,
+   "years": 6,
+   "after_cost_excl_top10": -3504223
+  },
+  "L10_G5_mk_f4__m2": {
+   "trades": 269,
+   "total_pnl": 2542358,
+   "after_cost": 2296472,
+   "win_rate": 50.6,
+   "profit_factor": 1.45,
+   "max_drawdown": -695410,
+   "avg_ret_pct": 1.02,
+   "by_year_after_cost": {
+    "2021": 556503,
+    "2022": 192323,
+    "2023": 556089,
+    "2024": 502071,
+    "2025": -165845,
+    "2026": 655329
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 209866
+  },
+  "L10_G5_mk_f4__lk25c": {
+   "trades": 271,
+   "total_pnl": 2571496,
+   "after_cost": 2323622,
+   "win_rate": 49.4,
+   "profit_factor": 1.54,
+   "max_drawdown": -609067,
+   "avg_ret_pct": 1.03,
+   "by_year_after_cost": {
+    "2021": 706193,
+    "2022": 288819,
+    "2023": 539454,
+    "2024": 588818,
+    "2025": -42518,
+    "2026": 242853
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 388242
+  },
+  "L10_G5_mk__m2": {
+   "trades": 523,
+   "total_pnl": 1000386,
+   "after_cost": 518647,
+   "win_rate": 46.1,
+   "profit_factor": 1.08,
+   "max_drawdown": -2719873,
+   "avg_ret_pct": 0.38,
+   "by_year_after_cost": {
+    "2021": 445307,
+    "2022": 1184848,
+    "2023": 357758,
+    "2024": -207248,
+    "2025": -892301,
+    "2026": -369716
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -1957937
+  },
+  "L10_G5_mk__lk25c": {
+   "trades": 571,
+   "total_pnl": 1822412,
+   "after_cost": 1297192,
+   "win_rate": 46.1,
+   "profit_factor": 1.16,
+   "max_drawdown": -2495889,
+   "avg_ret_pct": 0.5,
+   "by_year_after_cost": {
+    "2021": 661572,
+    "2022": 1009006,
+    "2023": 363291,
+    "2024": 250699,
+    "2025": -615046,
+    "2026": -372331
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -1138460
+  },
+  "L10_G5_f4__m2": {
+   "trades": 302,
+   "total_pnl": 3319002,
+   "after_cost": 3042593,
+   "win_rate": 51.0,
+   "profit_factor": 1.5,
+   "max_drawdown": -729853,
+   "avg_ret_pct": 1.19,
+   "by_year_after_cost": {
+    "2021": 611704,
+    "2022": 699830,
+    "2023": 556324,
+    "2024": 233313,
+    "2025": -9988,
+    "2026": 951408
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 576503
+  },
+  "L10_G5_f4__lk25c": {
+   "trades": 305,
+   "total_pnl": 3339860,
+   "after_cost": 3060479,
+   "win_rate": 49.5,
+   "profit_factor": 1.61,
+   "max_drawdown": -529092,
+   "avg_ret_pct": 1.17,
+   "by_year_after_cost": {
+    "2021": 761394,
+    "2022": 796326,
+    "2023": 539689,
+    "2024": 339141,
+    "2025": -7239,
+    "2026": 631167
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 861053
+  },
+  "L10_G5__m2": {
+   "trades": 578,
+   "total_pnl": 2785412,
+   "after_cost": 2252030,
+   "win_rate": 48.3,
+   "profit_factor": 1.19,
+   "max_drawdown": -2850745,
+   "avg_ret_pct": 0.69,
+   "by_year_after_cost": {
+    "2021": 833076,
+    "2022": 1012691,
+    "2023": 438904,
+    "2024": -23817,
+    "2025": -586606,
+    "2026": 577781
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -706712
+  },
+  "L10_G5__lk25c": {
+   "trades": 639,
+   "total_pnl": 3506637,
+   "after_cost": 2918997,
+   "win_rate": 48.2,
+   "profit_factor": 1.27,
+   "max_drawdown": -2239064,
+   "avg_ret_pct": 0.71,
+   "by_year_after_cost": {
+    "2021": 990835,
+    "2022": 909222,
+    "2023": 506848,
+    "2024": 468223,
+    "2025": -433334,
+    "2026": 477202
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 109999
+  },
+  "L10_G7_mk_f4__m2": {
+   "trades": 142,
+   "total_pnl": 1578357,
+   "after_cost": 1450539,
+   "win_rate": 55.6,
+   "profit_factor": 1.55,
+   "max_drawdown": -768681,
+   "avg_ret_pct": 1.27,
+   "by_year_after_cost": {
+    "2021": 104567,
+    "2022": 346412,
+    "2023": 23681,
+    "2024": 384362,
+    "2025": -385204,
+    "2026": 976719
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -211526
+  },
+  "L10_G7_mk_f4__lk25c": {
+   "trades": 142,
+   "total_pnl": 1676636,
+   "after_cost": 1548818,
+   "win_rate": 54.2,
+   "profit_factor": 1.73,
+   "max_drawdown": -558986,
+   "avg_ret_pct": 1.32,
+   "by_year_after_cost": {
+    "2021": 246133,
+    "2022": 420653,
+    "2023": -59766,
+    "2024": 489202,
+    "2025": -105493,
+    "2026": 558088
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": 82281
+  },
+  "L10_G7_mk__m2": {
+   "trades": 291,
+   "total_pnl": 3389452,
+   "after_cost": 3122517,
+   "win_rate": 54.6,
+   "profit_factor": 1.53,
+   "max_drawdown": -1318548,
+   "avg_ret_pct": 1.23,
+   "by_year_after_cost": {
+    "2021": 386829,
+    "2022": 1114495,
+    "2023": 161187,
+    "2024": 688816,
+    "2025": -727286,
+    "2026": 1498475
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 669502
+  },
+  "L10_G7_mk__lk25c": {
+   "trades": 298,
+   "total_pnl": 3525148,
+   "after_cost": 3252053,
+   "win_rate": 53.7,
+   "profit_factor": 1.67,
+   "max_drawdown": -1199207,
+   "avg_ret_pct": 1.26,
+   "by_year_after_cost": {
+    "2021": 513643,
+    "2022": 761313,
+    "2023": 284102,
+    "2024": 940314,
+    "2025": -525319,
+    "2026": 1277998
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 1030573
+  },
+  "L10_G7_f4__m2": {
+   "trades": 160,
+   "total_pnl": 2250298,
+   "after_cost": 2105577,
+   "win_rate": 57.5,
+   "profit_factor": 1.72,
+   "max_drawdown": -796497,
+   "avg_ret_pct": 1.62,
+   "by_year_after_cost": {
+    "2021": 104567,
+    "2022": 744498,
+    "2023": 57795,
+    "2024": 457482,
+    "2025": -199776,
+    "2026": 941008
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 334214
+  },
+  "L10_G7_f4__lk25c": {
+   "trades": 160,
+   "total_pnl": 2460568,
+   "after_cost": 2315847,
+   "win_rate": 56.2,
+   "profit_factor": 2.0,
+   "max_drawdown": -501303,
+   "avg_ret_pct": 1.68,
+   "by_year_after_cost": {
+    "2021": 246133,
+    "2022": 818739,
+    "2023": -25652,
+    "2024": 547061,
+    "2025": -11164,
+    "2026": 740728
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": 707287
+  },
+  "L10_G7__m2": {
+   "trades": 331,
+   "total_pnl": 4984916,
+   "after_cost": 4681580,
+   "win_rate": 57.1,
+   "profit_factor": 1.71,
+   "max_drawdown": -1166164,
+   "avg_ret_pct": 1.6,
+   "by_year_after_cost": {
+    "2021": 603964,
+    "2022": 1205258,
+    "2023": 243498,
+    "2024": 967569,
+    "2025": -268941,
+    "2026": 1930230
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 2097907
+  },
+  "L10_G7__lk25c": {
+   "trades": 339,
+   "total_pnl": 4750983,
+   "after_cost": 4439710,
+   "win_rate": 56.3,
+   "profit_factor": 1.8,
+   "max_drawdown": -1069566,
+   "avg_ret_pct": 1.48,
+   "by_year_after_cost": {
+    "2021": 672272,
+    "2022": 740942,
+    "2023": 406749,
+    "2024": 1145569,
+    "2025": -341587,
+    "2026": 1815764
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 2035519
+  },
+  "L20_G3_mk_f4__m2": {
+   "trades": 311,
+   "total_pnl": 2389427,
+   "after_cost": 2107731,
+   "win_rate": 51.1,
+   "profit_factor": 1.42,
+   "max_drawdown": -621814,
+   "avg_ret_pct": 0.91,
+   "by_year_after_cost": {
+    "2021": 789799,
+    "2022": 313400,
+    "2023": 269841,
+    "2024": 517415,
+    "2025": -166303,
+    "2026": 383578
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 496595
+  },
+  "L20_G3_mk_f4__lk25c": {
+   "trades": 325,
+   "total_pnl": 2572651,
+   "after_cost": 2278722,
+   "win_rate": 49.2,
+   "profit_factor": 1.59,
+   "max_drawdown": -490040,
+   "avg_ret_pct": 0.92,
+   "by_year_after_cost": {
+    "2021": 853985,
+    "2022": 404505,
+    "2023": 257211,
+    "2024": 502961,
+    "2025": -176402,
+    "2026": 436460
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 783054
+  },
+  "L20_G3_mk__m2": {
+   "trades": 537,
+   "total_pnl": 2635114,
+   "after_cost": 2145686,
+   "win_rate": 48.0,
+   "profit_factor": 1.27,
+   "max_drawdown": -1286079,
+   "avg_ret_pct": 0.51,
+   "by_year_after_cost": {
+    "2021": 483907,
+    "2022": 881480,
+    "2023": -409313,
+    "2024": 1285975,
+    "2025": -1140888,
+    "2026": 1044525
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": 209421
+  },
+  "L20_G3_mk__lk25c": {
+   "trades": 609,
+   "total_pnl": 1692233,
+   "after_cost": 1136506,
+   "win_rate": 45.2,
+   "profit_factor": 1.18,
+   "max_drawdown": -1510274,
+   "avg_ret_pct": 0.32,
+   "by_year_after_cost": {
+    "2021": 596371,
+    "2022": 475911,
+    "2023": -320239,
+    "2024": 1127228,
+    "2025": -1373334,
+    "2026": 630569
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -334336
+  },
+  "L20_G3_f4__m2": {
+   "trades": 319,
+   "total_pnl": 2478967,
+   "after_cost": 2189613,
+   "win_rate": 52.0,
+   "profit_factor": 1.42,
+   "max_drawdown": -606267,
+   "avg_ret_pct": 0.92,
+   "by_year_after_cost": {
+    "2021": 539558,
+    "2022": 431429,
+    "2023": 357927,
+    "2024": 643423,
+    "2025": -166303,
+    "2026": 383578
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 575128
+  },
+  "L20_G3_f4__lk25c": {
+   "trades": 333,
+   "total_pnl": 2779637,
+   "after_cost": 2478050,
+   "win_rate": 50.2,
+   "profit_factor": 1.61,
+   "max_drawdown": -490040,
+   "avg_ret_pct": 0.96,
+   "by_year_after_cost": {
+    "2021": 721190,
+    "2022": 522534,
+    "2023": 345297,
+    "2024": 628970,
+    "2025": -176402,
+    "2026": 436460
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 979033
+  },
+  "L20_G3__m2": {
+   "trades": 564,
+   "total_pnl": 3193579,
+   "after_cost": 2679376,
+   "win_rate": 50.0,
+   "profit_factor": 1.31,
+   "max_drawdown": -1316316,
+   "avg_ret_pct": 0.6,
+   "by_year_after_cost": {
+    "2021": 319326,
+    "2022": 1065215,
+    "2023": -222865,
+    "2024": 1498475,
+    "2025": -1134083,
+    "2026": 1153308
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": 743111
+  },
+  "L20_G3__lk25c": {
+   "trades": 634,
+   "total_pnl": 2194746,
+   "after_cost": 1616391,
+   "win_rate": 46.8,
+   "profit_factor": 1.23,
+   "max_drawdown": -1557599,
+   "avg_ret_pct": 0.4,
+   "by_year_after_cost": {
+    "2021": 477929,
+    "2022": 548512,
+    "2023": -133791,
+    "2024": 1368203,
+    "2025": -1383815,
+    "2026": 739352
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": 143135
+  },
+  "L20_G5_mk_f4__m2": {
+   "trades": 177,
+   "total_pnl": 1166152,
+   "after_cost": 1002734,
+   "win_rate": 55.9,
+   "profit_factor": 1.34,
+   "max_drawdown": -702874,
+   "avg_ret_pct": 0.97,
+   "by_year_after_cost": {
+    "2021": 684192,
+    "2022": 42455,
+    "2023": 80958,
+    "2024": -65617,
+    "2025": -522288,
+    "2026": 783034
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -143124
+  },
+  "L20_G5_mk_f4__lk25c": {
+   "trades": 180,
+   "total_pnl": 880909,
+   "after_cost": 714789,
+   "win_rate": 51.7,
+   "profit_factor": 1.3,
+   "max_drawdown": -734578,
+   "avg_ret_pct": 0.74,
+   "by_year_after_cost": {
+    "2021": 551219,
+    "2022": 69373,
+    "2023": 35646,
+    "2024": -104860,
+    "2025": -523112,
+    "2026": 686523
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -407929
+  },
+  "L20_G5_mk__m2": {
+   "trades": 327,
+   "total_pnl": 1370768,
+   "after_cost": 1069467,
+   "win_rate": 54.4,
+   "profit_factor": 1.22,
+   "max_drawdown": -975653,
+   "avg_ret_pct": 0.46,
+   "by_year_after_cost": {
+    "2021": 560003,
+    "2022": 138146,
+    "2023": 23385,
+    "2024": 159735,
+    "2025": -869204,
+    "2026": 1057401
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -313399
+  },
+  "L20_G5_mk__lk25c": {
+   "trades": 359,
+   "total_pnl": 1300917,
+   "after_cost": 970237,
+   "win_rate": 49.9,
+   "profit_factor": 1.24,
+   "max_drawdown": -1030752,
+   "avg_ret_pct": 0.41,
+   "by_year_after_cost": {
+    "2021": 523398,
+    "2022": 78817,
+    "2023": 238335,
+    "2024": 104330,
+    "2025": -966097,
+    "2026": 991453
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -264500
+  },
+  "L20_G5_f4__m2": {
+   "trades": 182,
+   "total_pnl": 1442112,
+   "after_cost": 1273933,
+   "win_rate": 57.1,
+   "profit_factor": 1.42,
+   "max_drawdown": -669675,
+   "avg_ret_pct": 1.1,
+   "by_year_after_cost": {
+    "2021": 684192,
+    "2022": 160484,
+    "2023": 144658,
+    "2024": 23853,
+    "2025": -522288,
+    "2026": 783034
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 109670
+  },
+  "L20_G5_f4__lk25c": {
+   "trades": 185,
+   "total_pnl": 1156869,
+   "after_cost": 985988,
+   "win_rate": 53.0,
+   "profit_factor": 1.39,
+   "max_drawdown": -577590,
+   "avg_ret_pct": 0.88,
+   "by_year_after_cost": {
+    "2021": 551219,
+    "2022": 187402,
+    "2023": 99346,
+    "2024": -15389,
+    "2025": -523112,
+    "2026": 686523
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -161435
+  },
+  "L20_G5__m2": {
+   "trades": 342,
+   "total_pnl": 1952760,
+   "after_cost": 1637633,
+   "win_rate": 56.4,
+   "profit_factor": 1.31,
+   "max_drawdown": -946745,
+   "avg_ret_pct": 0.62,
+   "by_year_after_cost": {
+    "2021": 560003,
+    "2022": 321881,
+    "2023": 127475,
+    "2024": 339792,
+    "2025": -801107,
+    "2026": 1089587
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 246234
+  },
+  "L20_G5__lk25c": {
+   "trades": 374,
+   "total_pnl": 1693197,
+   "after_cost": 1348691,
+   "win_rate": 51.3,
+   "profit_factor": 1.3,
+   "max_drawdown": -1089252,
+   "avg_ret_pct": 0.51,
+   "by_year_after_cost": {
+    "2021": 523398,
+    "2022": 151418,
+    "2023": 342426,
+    "2024": 284387,
+    "2025": -976578,
+    "2026": 1023639
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": 101048
+  },
+  "L20_G7_mk_f4__m2": {
+   "trades": 88,
+   "total_pnl": 788873,
+   "after_cost": 708721,
+   "win_rate": 61.4,
+   "profit_factor": 1.44,
+   "max_drawdown": -454536,
+   "avg_ret_pct": 1.06,
+   "by_year_after_cost": {
+    "2021": 268214,
+    "2022": 199703,
+    "2023": 103656,
+    "2024": 141872,
+    "2025": -223827,
+    "2026": 219101
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -333074
+  },
+  "L20_G7_mk_f4__lk25c": {
+   "trades": 88,
+   "total_pnl": 682677,
+   "after_cost": 602525,
+   "win_rate": 56.8,
+   "profit_factor": 1.49,
+   "max_drawdown": -392739,
+   "avg_ret_pct": 0.88,
+   "by_year_after_cost": {
+    "2021": 292334,
+    "2022": 199703,
+    "2023": 21151,
+    "2024": 103767,
+    "2025": -162595,
+    "2026": 148163
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -333713
+  },
+  "L20_G7_mk__m2": {
+   "trades": 179,
+   "total_pnl": 643971,
+   "after_cost": 479377,
+   "win_rate": 57.5,
+   "profit_factor": 1.19,
+   "max_drawdown": -679269,
+   "avg_ret_pct": 0.41,
+   "by_year_after_cost": {
+    "2021": 344443,
+    "2022": 354692,
+    "2023": -84172,
+    "2024": -18349,
+    "2025": -511724,
+    "2026": 394486
+   },
+   "plus_years": 3,
+   "years": 6,
+   "after_cost_excl_top10": -584663
+  },
+  "L20_G7_mk__lk25c": {
+   "trades": 185,
+   "total_pnl": 486373,
+   "after_cost": 316289,
+   "win_rate": 52.4,
+   "profit_factor": 1.16,
+   "max_drawdown": -685199,
+   "avg_ret_pct": 0.32,
+   "by_year_after_cost": {
+    "2021": 187560,
+    "2022": 340688,
+    "2023": 58541,
+    "2024": 21357,
+    "2025": -591581,
+    "2026": 299721
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -685805
+  },
+  "L20_G7_f4__m2": {
+   "trades": 91,
+   "total_pnl": 972788,
+   "after_cost": 889793,
+   "win_rate": 62.6,
+   "profit_factor": 1.54,
+   "max_drawdown": -454536,
+   "avg_ret_pct": 1.24,
+   "by_year_after_cost": {
+    "2021": 268214,
+    "2022": 317732,
+    "2023": 137770,
+    "2024": 170800,
+    "2025": -223827,
+    "2026": 219101
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -187947
+  },
+  "L20_G7_f4__lk25c": {
+   "trades": 91,
+   "total_pnl": 866592,
+   "after_cost": 783597,
+   "win_rate": 58.2,
+   "profit_factor": 1.62,
+   "max_drawdown": -392739,
+   "avg_ret_pct": 1.06,
+   "by_year_after_cost": {
+    "2021": 292334,
+    "2022": 317732,
+    "2023": 55265,
+    "2024": 132695,
+    "2025": -162595,
+    "2026": 148163
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -209930
+  },
+  "L20_G7__m2": {
+   "trades": 187,
+   "total_pnl": 995658,
+   "after_cost": 823612,
+   "win_rate": 59.4,
+   "profit_factor": 1.29,
+   "max_drawdown": -653194,
+   "avg_ret_pct": 0.59,
+   "by_year_after_cost": {
+    "2021": 344443,
+    "2022": 472721,
+    "2023": -9667,
+    "2024": 101165,
+    "2025": -511724,
+    "2026": 426672
+   },
+   "plus_years": 4,
+   "years": 6,
+   "after_cost_excl_top10": -268543
+  },
+  "L20_G7__lk25c": {
+   "trades": 193,
+   "total_pnl": 838060,
+   "after_cost": 660524,
+   "win_rate": 54.4,
+   "profit_factor": 1.28,
+   "max_drawdown": -685199,
+   "avg_ret_pct": 0.5,
+   "by_year_after_cost": {
+    "2021": 187560,
+    "2022": 458717,
+    "2023": 133046,
+    "2024": 140872,
+    "2025": -591581,
+    "2026": 331907
+   },
+   "plus_years": 5,
+   "years": 6,
+   "after_cost_excl_top10": -379057
+  }
+ }
+}
