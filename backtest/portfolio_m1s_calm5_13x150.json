@@ -1,0 +1,37 @@
+{
+ "variant": "m1s_calm5",
+ "size": 1500000.0,
+ "cap": 13,
+ "equity": 10000000.0,
+ "rate": 0.03,
+ "trades": 470,
+ "signals": 794,
+ "years": 5.41,
+ "final_pnl": 13634039,
+ "annual_pnl": 2520158,
+ "max_dd": 4023166,
+ "max_dd_date": "2022-05-12",
+ "max_dd_pct": 35.6,
+ "min_ratio": 39.2,
+ "min_ratio_date": "2022-05-16",
+ "days_ratio_below": {
+  "20": 0,
+  "25": 0,
+  "30": 0
+ },
+ "max_expo": 19500000,
+ "avg_expo": 13632857,
+ "max_positions": 13,
+ "avg_positions": 9.0,
+ "interest_total": 2337061,
+ "by_year": {
+  "2021": -1038155,
+  "2022": 1545867,
+  "2023": 5661615,
+  "2024": -33664,
+  "2025": 4352185,
+  "2026": 3146191
+ },
+ "worst_unreal": -153673,
+ "worst_unreal_date": "2021-07-30"
+}
