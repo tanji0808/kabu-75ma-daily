@@ -50,9 +50,18 @@ t = t.sort_values(["entry", "frank", "stop_pct"], ascending=[True, False, True])
 
 days = pd.bdate_range(t["entry"].min(), t["exit"].max())
 close = pd.DataFrame({c: prices[c]["Close"] for c in codes if c in prices}).reindex(days).ffill()
-etf = prices["1306"]["Close"].reindex(days).ffill() if "1306" in prices else None
-etf_ma200 = prices["1306"]["Close"].rolling(200).mean().reindex(days).ffill() if etf is not None else None
-etf_ret = etf.pct_change().fillna(0) if etf is not None else None
+etf = etf_ma200 = etf_ret = None
+if "1306" in prices:
+    raw = prices["1306"]["Close"].dropna()
+    r_ = raw.pct_change().fillna(0)
+    jumps = r_[r_.abs() > 0.2]
+    if len(jumps):
+        print("ETF（1306）の株価の飛び（分割などとみなして補正）:", {str(d.date()): round(float(v) * 100, 1) for d, v in jumps.items()})
+    r_[r_.abs() > 0.2] = 0.0                         # 株式分割などによる見かけの急変を除く
+    idx = (1 + r_).cumprod()                         # 分割の影響を除いた指数
+    etf = idx.reindex(days).ffill()
+    etf_ma200 = idx.rolling(200).mean().reindex(days).ffill()
+    etf_ret = etf.pct_change().fillna(0)
 
 # ①の損の上限：2021〜2024年の取引で、平均の金額が BASE_SIZE になる割合
 train = t[t["entry"] < SPLIT]
