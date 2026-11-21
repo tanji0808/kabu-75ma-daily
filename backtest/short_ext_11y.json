@@ -1,0 +1,1483 @@
+{
+ "generated": "2026-11-22 07:38",
+ "period": "11y",
+ "results": {
+  "base": {
+   "trades": 548,
+   "total_pnl": 363618,
+   "win_rate": 45.1,
+   "avg_win": 58188,
+   "avg_loss": -46541,
+   "profit_factor": 1.03,
+   "max_drawdown": -3446748,
+   "lend_fee_total": 258942,
+   "avg_days": 16.9,
+   "by_year": {
+    "2016": {
+     "pnl": -1015896,
+     "trades": 47
+    },
+    "2017": {
+     "pnl": -362246,
+     "trades": 41
+    },
+    "2018": {
+     "pnl": 537395,
+     "trades": 36
+    },
+    "2019": {
+     "pnl": -1390289,
+     "trades": 49
+    },
+    "2020": {
+     "pnl": -616861,
+     "trades": 54
+    },
+    "2021": {
+     "pnl": 528358,
+     "trades": 46
+    },
+    "2022": {
+     "pnl": 735043,
+     "trades": 38
+    },
+    "2023": {
+     "pnl": 600020,
+     "trades": 46
+    },
+    "2024": {
+     "pnl": 287571,
+     "trades": 60
+    },
+    "2025": {
+     "pnl": 40577,
+     "trades": 55
+    },
+    "2026": {
+     "pnl": 1019946,
+     "trades": 76
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 3,
+    "利確（−2σ割れ）": 226,
+    "損切り（+1σ超え）": 319
+   },
+   "first": "2016-04-21",
+   "last": "2026-11-20",
+   "after_cost": -139000,
+   "avg_ret_pct": 0.11,
+   "avg_notional": 917187,
+   "by_year_detail": {
+    "2016": {
+     "trades": 47,
+     "win_rate": 27.7,
+     "pnl": -1015896,
+     "after_cost": -1058765
+    },
+    "2017": {
+     "trades": 41,
+     "win_rate": 48.8,
+     "pnl": -362246,
+     "after_cost": -400340
+    },
+    "2018": {
+     "trades": 36,
+     "win_rate": 66.7,
+     "pnl": 537395,
+     "after_cost": 504057
+    },
+    "2019": {
+     "trades": 49,
+     "win_rate": 30.6,
+     "pnl": -1390289,
+     "after_cost": -1435433
+    },
+    "2020": {
+     "trades": 54,
+     "win_rate": 29.6,
+     "pnl": -616861,
+     "after_cost": -666630
+    },
+    "2021": {
+     "trades": 46,
+     "win_rate": 54.3,
+     "pnl": 528358,
+     "after_cost": 487222
+    },
+    "2022": {
+     "trades": 38,
+     "win_rate": 52.6,
+     "pnl": 735043,
+     "after_cost": 699830
+    },
+    "2023": {
+     "trades": 46,
+     "win_rate": 58.7,
+     "pnl": 600020,
+     "after_cost": 556324
+    },
+    "2024": {
+     "trades": 60,
+     "win_rate": 48.3,
+     "pnl": 287571,
+     "after_cost": 233313
+    },
+    "2025": {
+     "trades": 55,
+     "win_rate": 43.6,
+     "pnl": 40577,
+     "after_cost": -9988
+    },
+    "2026": {
+     "trades": 76,
+     "win_rate": 44.7,
+     "pnl": 1019946,
+     "after_cost": 951408
+    }
+   },
+   "plus_years": 6,
+   "years": 11,
+   "after_cost_excl_top10": -2704849
+  },
+  "sec": {
+   "trades": 643,
+   "total_pnl": -407498,
+   "win_rate": 43.2,
+   "avg_win": 60726,
+   "avg_loss": -47368,
+   "profit_factor": 0.98,
+   "max_drawdown": -3857293,
+   "lend_fee_total": 284003,
+   "avg_days": 15.9,
+   "by_year": {
+    "2016": {
+     "pnl": -838108,
+     "trades": 58
+    },
+    "2017": {
+     "pnl": -760600,
+     "trades": 65
+    },
+    "2018": {
+     "pnl": 592001,
+     "trades": 47
+    },
+    "2019": {
+     "pnl": -1562227,
+     "trades": 66
+    },
+    "2020": {
+     "pnl": -945925,
+     "trades": 83
+    },
+    "2021": {
+     "pnl": 626013,
+     "trades": 47
+    },
+    "2022": {
+     "pnl": 513587,
+     "trades": 43
+    },
+    "2023": {
+     "pnl": 906927,
+     "trades": 43
+    },
+    "2024": {
+     "pnl": 138019,
+     "trades": 49
+    },
+    "2025": {
+     "pnl": -222627,
+     "trades": 63
+    },
+    "2026": {
+     "pnl": 1145442,
+     "trades": 79
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 256,
+    "損切り（+1σ超え）": 385
+   },
+   "first": "2016-04-25",
+   "last": "2026-11-20",
+   "after_cost": -1001520,
+   "avg_ret_pct": -0.05,
+   "avg_notional": 923830,
+   "by_year_detail": {
+    "2016": {
+     "trades": 58,
+     "win_rate": 32.8,
+     "pnl": -838108,
+     "after_cost": -890919
+    },
+    "2017": {
+     "trades": 65,
+     "win_rate": 36.9,
+     "pnl": -760600,
+     "after_cost": -819997
+    },
+    "2018": {
+     "trades": 47,
+     "win_rate": 63.8,
+     "pnl": 592001,
+     "after_cost": 548663
+    },
+    "2019": {
+     "trades": 66,
+     "win_rate": 31.8,
+     "pnl": -1562227,
+     "after_cost": -1622905
+    },
+    "2020": {
+     "trades": 83,
+     "win_rate": 27.7,
+     "pnl": -945925,
+     "after_cost": -1022003
+    },
+    "2021": {
+     "trades": 47,
+     "win_rate": 53.2,
+     "pnl": 626013,
+     "after_cost": 582810
+    },
+    "2022": {
+     "trades": 43,
+     "win_rate": 53.5,
+     "pnl": 513587,
+     "after_cost": 474146
+    },
+    "2023": {
+     "trades": 43,
+     "win_rate": 65.1,
+     "pnl": 906927,
+     "after_cost": 863298
+    },
+    "2024": {
+     "trades": 49,
+     "win_rate": 46.9,
+     "pnl": 138019,
+     "after_cost": 94012
+    },
+    "2025": {
+     "trades": 63,
+     "win_rate": 41.3,
+     "pnl": -222627,
+     "after_cost": -281722
+    },
+    "2026": {
+     "trades": 79,
+     "win_rate": 45.6,
+     "pnl": 1145442,
+     "after_cost": 1073096
+    }
+   },
+   "plus_years": 6,
+   "years": 11,
+   "after_cost_excl_top10": -3604403
+  },
+  "sec+tpx": {
+   "trades": 377,
+   "total_pnl": 493719,
+   "win_rate": 48.8,
+   "avg_win": 58783,
+   "avg_loss": -53484,
+   "profit_factor": 1.05,
+   "max_drawdown": -2426236,
+   "lend_fee_total": 181574,
+   "avg_days": 17.1,
+   "by_year": {
+    "2016": {
+     "pnl": -1335731,
+     "trades": 36
+    },
+    "2017": {
+     "pnl": -338335,
+     "trades": 36
+    },
+    "2018": {
+     "pnl": 583438,
+     "trades": 32
+    },
+    "2019": {
+     "pnl": -912723,
+     "trades": 31
+    },
+    "2020": {
+     "pnl": -208186,
+     "trades": 39
+    },
+    "2021": {
+     "pnl": 413710,
+     "trades": 30
+    },
+    "2022": {
+     "pnl": 348763,
+     "trades": 25
+    },
+    "2023": {
+     "pnl": 525281,
+     "trades": 34
+    },
+    "2024": {
+     "pnl": 288696,
+     "trades": 32
+    },
+    "2025": {
+     "pnl": -274804,
+     "trades": 41
+    },
+    "2026": {
+     "pnl": 1403610,
+     "trades": 41
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 175,
+    "損切り（+1σ超え）": 200
+   },
+   "first": "2016-04-25",
+   "last": "2026-11-20",
+   "after_cost": 143842,
+   "avg_ret_pct": 0.18,
+   "avg_notional": 928053,
+   "by_year_detail": {
+    "2016": {
+     "trades": 36,
+     "win_rate": 19.4,
+     "pnl": -1335731,
+     "after_cost": -1368559
+    },
+    "2017": {
+     "trades": 36,
+     "win_rate": 50.0,
+     "pnl": -338335,
+     "after_cost": -371599
+    },
+    "2018": {
+     "trades": 32,
+     "win_rate": 71.9,
+     "pnl": 583438,
+     "after_cost": 553438
+    },
+    "2019": {
+     "trades": 31,
+     "win_rate": 41.9,
+     "pnl": -912723,
+     "after_cost": -941249
+    },
+    "2020": {
+     "trades": 39,
+     "win_rate": 33.3,
+     "pnl": -208186,
+     "after_cost": -244095
+    },
+    "2021": {
+     "trades": 30,
+     "win_rate": 60.0,
+     "pnl": 413710,
+     "after_cost": 386327
+    },
+    "2022": {
+     "trades": 25,
+     "win_rate": 52.0,
+     "pnl": 348763,
+     "after_cost": 325193
+    },
+    "2023": {
+     "trades": 34,
+     "win_rate": 64.7,
+     "pnl": 525281,
+     "after_cost": 492509
+    },
+    "2024": {
+     "trades": 32,
+     "win_rate": 53.1,
+     "pnl": 288696,
+     "after_cost": 259752
+    },
+    "2025": {
+     "trades": 41,
+     "win_rate": 41.5,
+     "pnl": -274804,
+     "after_cost": -313407
+    },
+    "2026": {
+     "trades": 41,
+     "win_rate": 56.1,
+     "pnl": 1403610,
+     "after_cost": 1365532
+    }
+   },
+   "plus_years": 6,
+   "years": 11,
+   "after_cost_excl_top10": -2405573
+  },
+  "bull": {
+   "trades": 482,
+   "total_pnl": 173688,
+   "win_rate": 44.4,
+   "avg_win": 57565,
+   "avg_loss": -45318,
+   "profit_factor": 1.01,
+   "max_drawdown": -2924033,
+   "lend_fee_total": 227872,
+   "avg_days": 16.9,
+   "by_year": {
+    "2016": {
+     "pnl": -647410,
+     "trades": 23
+    },
+    "2017": {
+     "pnl": -362246,
+     "trades": 41
+    },
+    "2018": {
+     "pnl": 276213,
+     "trades": 28
+    },
+    "2019": {
+     "pnl": -1220269,
+     "trades": 29
+    },
+    "2020": {
+     "pnl": -500422,
+     "trades": 50
+    },
+    "2021": {
+     "pnl": 528358,
+     "trades": 46
+    },
+    "2022": {
+     "pnl": 212767,
+     "trades": 29
+    },
+    "2023": {
+     "pnl": 600020,
+     "trades": 46
+    },
+    "2024": {
+     "pnl": 200659,
+     "trades": 59
+    },
+    "2025": {
+     "pnl": 66072,
+     "trades": 55
+    },
+    "2026": {
+     "pnl": 1019946,
+     "trades": 76
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 3,
+    "利確（−2σ割れ）": 196,
+    "損切り（+1σ超え）": 283
+   },
+   "first": "2016-10-20",
+   "last": "2026-11-20",
+   "after_cost": -267969,
+   "avg_ret_pct": 0.08,
+   "avg_notional": 916301,
+   "by_year_detail": {
+    "2016": {
+     "trades": 23,
+     "win_rate": 17.4,
+     "pnl": -647410,
+     "after_cost": -668287
+    },
+    "2017": {
+     "trades": 41,
+     "win_rate": 48.8,
+     "pnl": -362246,
+     "after_cost": -400340
+    },
+    "2018": {
+     "trades": 28,
+     "win_rate": 64.3,
+     "pnl": 276213,
+     "after_cost": 250409
+    },
+    "2019": {
+     "trades": 29,
+     "win_rate": 17.2,
+     "pnl": -1220269,
+     "after_cost": -1246992
+    },
+    "2020": {
+     "trades": 50,
+     "win_rate": 30.0,
+     "pnl": -500422,
+     "after_cost": -546759
+    },
+    "2021": {
+     "trades": 46,
+     "win_rate": 54.3,
+     "pnl": 528358,
+     "after_cost": 487222
+    },
+    "2022": {
+     "trades": 29,
+     "win_rate": 48.3,
+     "pnl": 212767,
+     "after_cost": 186074
+    },
+    "2023": {
+     "trades": 46,
+     "win_rate": 58.7,
+     "pnl": 600020,
+     "after_cost": 556324
+    },
+    "2024": {
+     "trades": 59,
+     "win_rate": 47.5,
+     "pnl": 200659,
+     "after_cost": 147372
+    },
+    "2025": {
+     "trades": 55,
+     "win_rate": 43.6,
+     "pnl": 66072,
+     "after_cost": 15597
+    },
+    "2026": {
+     "trades": 76,
+     "win_rate": 44.7,
+     "pnl": 1019946,
+     "after_cost": 951408
+    }
+   },
+   "plus_years": 7,
+   "years": 11,
+   "after_cost_excl_top10": -2830856
+  },
+  "bear": {
+   "trades": 72,
+   "total_pnl": 296406,
+   "win_rate": 50.0,
+   "avg_win": 61992,
+   "avg_loss": -53758,
+   "profit_factor": 1.15,
+   "max_drawdown": -599841,
+   "lend_fee_total": 32561,
+   "avg_days": 16.4,
+   "by_year": {
+    "2016": {
+     "pnl": -368486,
+     "trades": 24
+    },
+    "2018": {
+     "pnl": 261182,
+     "trades": 8
+    },
+    "2019": {
+     "pnl": -170020,
+     "trades": 20
+    },
+    "2020": {
+     "pnl": -64227,
+     "trades": 9
+    },
+    "2022": {
+     "pnl": 537220,
+     "trades": 9
+    },
+    "2024": {
+     "pnl": 86912,
+     "trades": 1
+    },
+    "2025": {
+     "pnl": 13825,
+     "trades": 1
+    }
+   },
+   "by_reason": {
+    "利確（−2σ割れ）": 33,
+    "損切り（+1σ超え）": 39
+   },
+   "first": "2016-04-21",
+   "last": "2025-06-09",
+   "after_cost": 229883,
+   "avg_ret_pct": 0.44,
+   "avg_notional": 923927,
+   "by_year_detail": {
+    "2016": {
+     "trades": 24,
+     "win_rate": 37.5,
+     "pnl": -368486,
+     "after_cost": -390478
+    },
+    "2018": {
+     "trades": 8,
+     "win_rate": 75.0,
+     "pnl": 261182,
+     "after_cost": 253648
+    },
+    "2019": {
+     "trades": 20,
+     "win_rate": 50.0,
+     "pnl": -170020,
+     "after_cost": -188441
+    },
+    "2020": {
+     "trades": 9,
+     "win_rate": 33.3,
+     "pnl": -64227,
+     "after_cost": -72331
+    },
+    "2022": {
+     "trades": 9,
+     "win_rate": 66.7,
+     "pnl": 537220,
+     "after_cost": 528695
+    },
+    "2024": {
+     "trades": 1,
+     "win_rate": 100.0,
+     "pnl": 86912,
+     "after_cost": 85940
+    },
+    "2025": {
+     "trades": 1,
+     "win_rate": 100.0,
+     "pnl": 13825,
+     "after_cost": 12850
+    }
+   },
+   "plus_years": 4,
+   "years": 7,
+   "after_cost_excl_top10": -956054
+  },
+  "vsize": {
+   "trades": 539,
+   "total_pnl": 547063,
+   "win_rate": 45.1,
+   "avg_win": 44518,
+   "avg_loss": -34698,
+   "profit_factor": 1.05,
+   "max_drawdown": -1917368,
+   "lend_fee_total": 201648,
+   "avg_days": 17.0,
+   "by_year": {
+    "2016": {
+     "pnl": -608552,
+     "trades": 47
+    },
+    "2017": {
+     "pnl": -280146,
+     "trades": 41
+    },
+    "2018": {
+     "pnl": 562534,
+     "trades": 33
+    },
+    "2019": {
+     "pnl": -807827,
+     "trades": 48
+    },
+    "2020": {
+     "pnl": -325689,
+     "trades": 54
+    },
+    "2021": {
+     "pnl": 371143,
+     "trades": 45
+    },
+    "2022": {
+     "pnl": 187855,
+     "trades": 38
+    },
+    "2023": {
+     "pnl": 554392,
+     "trades": 45
+    },
+    "2024": {
+     "pnl": 482237,
+     "trades": 59
+    },
+    "2025": {
+     "pnl": -82728,
+     "trades": 55
+    },
+    "2026": {
+     "pnl": 493844,
+     "trades": 74
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 3,
+    "利確（−2σ割れ）": 221,
+    "損切り（+1σ超え）": 315
+   },
+   "first": "2016-04-21",
+   "last": "2026-11-20",
+   "after_cost": 128876,
+   "avg_ret_pct": 0.09,
+   "avg_notional": 775856,
+   "by_year_detail": {
+    "2016": {
+     "trades": 47,
+     "win_rate": 27.7,
+     "pnl": -608552,
+     "after_cost": -638432
+    },
+    "2017": {
+     "trades": 41,
+     "win_rate": 48.8,
+     "pnl": -280146,
+     "after_cost": -315256
+    },
+    "2018": {
+     "trades": 33,
+     "win_rate": 66.7,
+     "pnl": 562534,
+     "after_cost": 535861
+    },
+    "2019": {
+     "trades": 48,
+     "win_rate": 31.2,
+     "pnl": -807827,
+     "after_cost": -848986
+    },
+    "2020": {
+     "trades": 54,
+     "win_rate": 29.6,
+     "pnl": -325689,
+     "after_cost": -362725
+    },
+    "2021": {
+     "trades": 45,
+     "win_rate": 55.6,
+     "pnl": 371143,
+     "after_cost": 334797
+    },
+    "2022": {
+     "trades": 38,
+     "win_rate": 52.6,
+     "pnl": 187855,
+     "after_cost": 157418
+    },
+    "2023": {
+     "trades": 45,
+     "win_rate": 60.0,
+     "pnl": 554392,
+     "after_cost": 514258
+    },
+    "2024": {
+     "trades": 59,
+     "win_rate": 49.2,
+     "pnl": 482237,
+     "after_cost": 434765
+    },
+    "2025": {
+     "trades": 55,
+     "win_rate": 43.6,
+     "pnl": -82728,
+     "after_cost": -118267
+    },
+    "2026": {
+     "trades": 74,
+     "win_rate": 43.2,
+     "pnl": 493844,
+     "after_cost": 435443
+    }
+   },
+   "plus_years": 6,
+   "years": 11,
+   "after_cost_excl_top10": -1638251
+  },
+  "sec+bull": {
+   "trades": 528,
+   "total_pnl": -445510,
+   "win_rate": 42.8,
+   "avg_win": 59450,
+   "avg_loss": -45964,
+   "profit_factor": 0.97,
+   "max_drawdown": -3309688,
+   "lend_fee_total": 237691,
+   "avg_days": 16.1,
+   "by_year": {
+    "2016": {
+     "pnl": -755799,
+     "trades": 26
+    },
+    "2017": {
+     "pnl": -760600,
+     "trades": 65
+    },
+    "2018": {
+     "pnl": 262464,
+     "trades": 34
+    },
+    "2019": {
+     "pnl": -1467685,
+     "trades": 37
+    },
+    "2020": {
+     "pnl": -242395,
+     "trades": 59
+    },
+    "2021": {
+     "pnl": 626013,
+     "trades": 47
+    },
+    "2022": {
+     "pnl": -30751,
+     "trades": 30
+    },
+    "2023": {
+     "pnl": 906927,
+     "trades": 43
+    },
+    "2024": {
+     "pnl": 51107,
+     "trades": 48
+    },
+    "2025": {
+     "pnl": -180233,
+     "trades": 60
+    },
+    "2026": {
+     "pnl": 1145442,
+     "trades": 79
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 208,
+    "損切り（+1σ超え）": 318
+   },
+   "first": "2016-10-07",
+   "last": "2026-11-20",
+   "after_cost": -934169,
+   "avg_ret_pct": -0.07,
+   "avg_notional": 925491,
+   "by_year_detail": {
+    "2016": {
+     "trades": 26,
+     "win_rate": 23.1,
+     "pnl": -755799,
+     "after_cost": -779584
+    },
+    "2017": {
+     "trades": 65,
+     "win_rate": 36.9,
+     "pnl": -760600,
+     "after_cost": -819997
+    },
+    "2018": {
+     "trades": 34,
+     "win_rate": 61.8,
+     "pnl": 262464,
+     "after_cost": 231150
+    },
+    "2019": {
+     "trades": 37,
+     "win_rate": 16.2,
+     "pnl": -1467685,
+     "after_cost": -1501933
+    },
+    "2020": {
+     "trades": 59,
+     "win_rate": 32.2,
+     "pnl": -242395,
+     "after_cost": -296585
+    },
+    "2021": {
+     "trades": 47,
+     "win_rate": 53.2,
+     "pnl": 626013,
+     "after_cost": 582810
+    },
+    "2022": {
+     "trades": 30,
+     "win_rate": 46.7,
+     "pnl": -30751,
+     "after_cost": -57910
+    },
+    "2023": {
+     "trades": 43,
+     "win_rate": 65.1,
+     "pnl": 906927,
+     "after_cost": 863298
+    },
+    "2024": {
+     "trades": 48,
+     "win_rate": 45.8,
+     "pnl": 51107,
+     "after_cost": 8071
+    },
+    "2025": {
+     "trades": 60,
+     "win_rate": 41.7,
+     "pnl": -180233,
+     "after_cost": -236585
+    },
+    "2026": {
+     "trades": 79,
+     "win_rate": 45.6,
+     "pnl": 1145442,
+     "after_cost": 1073096
+    }
+   },
+   "plus_years": 5,
+   "years": 11,
+   "after_cost_excl_top10": -3537052
+  },
+  "sec+tpx+bull": {
+   "trades": 328,
+   "total_pnl": 536841,
+   "win_rate": 48.5,
+   "avg_win": 58436,
+   "avg_loss": -51802,
+   "profit_factor": 1.06,
+   "max_drawdown": -1960878,
+   "lend_fee_total": 158360,
+   "avg_days": 17.1,
+   "by_year": {
+    "2016": {
+     "pnl": -631674,
+     "trades": 21
+    },
+    "2017": {
+     "pnl": -338335,
+     "trades": 36
+    },
+    "2018": {
+     "pnl": 322256,
+     "trades": 24
+    },
+    "2019": {
+     "pnl": -750654,
+     "trades": 16
+    },
+    "2020": {
+     "pnl": -281337,
+     "trades": 36
+    },
+    "2021": {
+     "pnl": 413710,
+     "trades": 30
+    },
+    "2022": {
+     "pnl": -39171,
+     "trades": 19
+    },
+    "2023": {
+     "pnl": 525281,
+     "trades": 34
+    },
+    "2024": {
+     "pnl": 201784,
+     "trades": 31
+    },
+    "2025": {
+     "pnl": -288629,
+     "trades": 40
+    },
+    "2026": {
+     "pnl": 1403610,
+     "trades": 41
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 153,
+    "損切り（+1σ超え）": 173
+   },
+   "first": "2016-10-20",
+   "last": "2026-11-20",
+   "after_cost": 232348,
+   "avg_ret_pct": 0.22,
+   "avg_notional": 928330,
+   "by_year_detail": {
+    "2016": {
+     "trades": 21,
+     "win_rate": 19.0,
+     "pnl": -631674,
+     "after_cost": -650710
+    },
+    "2017": {
+     "trades": 36,
+     "win_rate": 50.0,
+     "pnl": -338335,
+     "after_cost": -371599
+    },
+    "2018": {
+     "trades": 24,
+     "win_rate": 70.8,
+     "pnl": 322256,
+     "after_cost": 299790
+    },
+    "2019": {
+     "trades": 16,
+     "win_rate": 31.2,
+     "pnl": -750654,
+     "after_cost": -765262
+    },
+    "2020": {
+     "trades": 36,
+     "win_rate": 30.6,
+     "pnl": -281337,
+     "after_cost": -314727
+    },
+    "2021": {
+     "trades": 30,
+     "win_rate": 60.0,
+     "pnl": 413710,
+     "after_cost": 386327
+    },
+    "2022": {
+     "trades": 19,
+     "win_rate": 47.4,
+     "pnl": -39171,
+     "after_cost": -57064
+    },
+    "2023": {
+     "trades": 34,
+     "win_rate": 64.7,
+     "pnl": 525281,
+     "after_cost": 492509
+    },
+    "2024": {
+     "trades": 31,
+     "win_rate": 51.6,
+     "pnl": 201784,
+     "after_cost": 173811
+    },
+    "2025": {
+     "trades": 40,
+     "win_rate": 40.0,
+     "pnl": -288629,
+     "after_cost": -326257
+    },
+    "2026": {
+     "trades": 41,
+     "win_rate": 56.1,
+     "pnl": 1403610,
+     "after_cost": 1365532
+    }
+   },
+   "plus_years": 5,
+   "years": 11,
+   "after_cost_excl_top10": -2307478
+  },
+  "bull+vsize": {
+   "trades": 473,
+   "total_pnl": 344816,
+   "win_rate": 44.4,
+   "avg_win": 45477,
+   "avg_loss": -35001,
+   "profit_factor": 1.04,
+   "max_drawdown": -1834814,
+   "lend_fee_total": 182069,
+   "avg_days": 17.0,
+   "by_year": {
+    "2016": {
+     "pnl": -464272,
+     "trades": 23
+    },
+    "2017": {
+     "pnl": -280146,
+     "trades": 41
+    },
+    "2018": {
+     "pnl": 355615,
+     "trades": 25
+    },
+    "2019": {
+     "pnl": -855786,
+     "trades": 28
+    },
+    "2020": {
+     "pnl": -228420,
+     "trades": 50
+    },
+    "2021": {
+     "pnl": 371143,
+     "trades": 45
+    },
+    "2022": {
+     "pnl": 11225,
+     "trades": 29
+    },
+    "2023": {
+     "pnl": 554392,
+     "trades": 45
+    },
+    "2024": {
+     "pnl": 434286,
+     "trades": 58
+    },
+    "2025": {
+     "pnl": -47065,
+     "trades": 55
+    },
+    "2026": {
+     "pnl": 493844,
+     "trades": 74
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 3,
+    "利確（−2σ割れ）": 191,
+    "損切り（+1σ超え）": 279
+   },
+   "first": "2016-10-20",
+   "last": "2026-11-20",
+   "after_cost": -33824,
+   "avg_ret_pct": 0.06,
+   "avg_notional": 800509,
+   "by_year_detail": {
+    "2016": {
+     "trades": 23,
+     "win_rate": 17.4,
+     "pnl": -464272,
+     "after_cost": -480090
+    },
+    "2017": {
+     "trades": 41,
+     "win_rate": 48.8,
+     "pnl": -280146,
+     "after_cost": -315256
+    },
+    "2018": {
+     "trades": 25,
+     "win_rate": 64.0,
+     "pnl": 355615,
+     "after_cost": 333962
+    },
+    "2019": {
+     "trades": 28,
+     "win_rate": 17.9,
+     "pnl": -855786,
+     "after_cost": -883651
+    },
+    "2020": {
+     "trades": 50,
+     "win_rate": 30.0,
+     "pnl": -228420,
+     "after_cost": -264360
+    },
+    "2021": {
+     "trades": 45,
+     "win_rate": 55.6,
+     "pnl": 371143,
+     "after_cost": 334797
+    },
+    "2022": {
+     "trades": 29,
+     "win_rate": 48.3,
+     "pnl": 11225,
+     "after_cost": -13423
+    },
+    "2023": {
+     "trades": 45,
+     "win_rate": 60.0,
+     "pnl": 554392,
+     "after_cost": 514258
+    },
+    "2024": {
+     "trades": 58,
+     "win_rate": 48.3,
+     "pnl": 434286,
+     "after_cost": 387350
+    },
+    "2025": {
+     "trades": 55,
+     "win_rate": 43.6,
+     "pnl": -47065,
+     "after_cost": -82853
+    },
+    "2026": {
+     "trades": 74,
+     "win_rate": 43.2,
+     "pnl": 493844,
+     "after_cost": 435443
+    }
+   },
+   "plus_years": 5,
+   "years": 11,
+   "after_cost_excl_top10": -1800952
+  },
+  "sec+vsize": {
+   "trades": 640,
+   "total_pnl": -10956,
+   "win_rate": 43.0,
+   "avg_win": 46442,
+   "avg_loss": -35021,
+   "profit_factor": 1.0,
+   "max_drawdown": -2613880,
+   "lend_fee_total": 226631,
+   "avg_days": 15.8,
+   "by_year": {
+    "2016": {
+     "pnl": -594385,
+     "trades": 58
+    },
+    "2017": {
+     "pnl": -619153,
+     "trades": 65
+    },
+    "2018": {
+     "pnl": 654161,
+     "trades": 46
+    },
+    "2019": {
+     "pnl": -1021831,
+     "trades": 66
+    },
+    "2020": {
+     "pnl": -544266,
+     "trades": 83
+    },
+    "2021": {
+     "pnl": 482516,
+     "trades": 47
+    },
+    "2022": {
+     "pnl": 182427,
+     "trades": 43
+    },
+    "2023": {
+     "pnl": 706467,
+     "trades": 43
+    },
+    "2024": {
+     "pnl": 154761,
+     "trades": 49
+    },
+    "2025": {
+     "pnl": -330494,
+     "trades": 63
+    },
+    "2026": {
+     "pnl": 918841,
+     "trades": 77
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 253,
+    "損切り（+1σ超え）": 385
+   },
+   "first": "2016-04-25",
+   "last": "2026-11-20",
+   "after_cost": -522852,
+   "avg_ret_pct": -0.09,
+   "avg_notional": 799838,
+   "by_year_detail": {
+    "2016": {
+     "trades": 58,
+     "win_rate": 32.8,
+     "pnl": -594385,
+     "after_cost": -634796
+    },
+    "2017": {
+     "trades": 65,
+     "win_rate": 36.9,
+     "pnl": -619153,
+     "after_cost": -686604
+    },
+    "2018": {
+     "trades": 46,
+     "win_rate": 63.0,
+     "pnl": 654161,
+     "after_cost": 612965
+    },
+    "2019": {
+     "trades": 66,
+     "win_rate": 31.8,
+     "pnl": -1021831,
+     "after_cost": -1078972
+    },
+    "2020": {
+     "trades": 83,
+     "win_rate": 27.7,
+     "pnl": -544266,
+     "after_cost": -607784
+    },
+    "2021": {
+     "trades": 47,
+     "win_rate": 53.2,
+     "pnl": 482516,
+     "after_cost": 449438
+    },
+    "2022": {
+     "trades": 43,
+     "win_rate": 53.5,
+     "pnl": 182427,
+     "after_cost": 151779
+    },
+    "2023": {
+     "trades": 43,
+     "win_rate": 65.1,
+     "pnl": 706467,
+     "after_cost": 669057
+    },
+    "2024": {
+     "trades": 49,
+     "win_rate": 46.9,
+     "pnl": 154761,
+     "after_cost": 121907
+    },
+    "2025": {
+     "trades": 63,
+     "win_rate": 41.3,
+     "pnl": -330494,
+     "after_cost": -379739
+    },
+    "2026": {
+     "trades": 77,
+     "win_rate": 44.2,
+     "pnl": 918841,
+     "after_cost": 859896
+    }
+   },
+   "plus_years": 6,
+   "years": 11,
+   "after_cost_excl_top10": -2384280
+  },
+  "sec+bull+vsize": {
+   "trades": 525,
+   "total_pnl": -108370,
+   "win_rate": 42.5,
+   "avg_win": 46529,
+   "avg_loss": -34716,
+   "profit_factor": 0.99,
+   "max_drawdown": -2313128,
+   "lend_fee_total": 194595,
+   "avg_days": 16.0,
+   "by_year": {
+    "2016": {
+     "pnl": -608481,
+     "trades": 26
+    },
+    "2017": {
+     "pnl": -619153,
+     "trades": 65
+    },
+    "2018": {
+     "pnl": 356330,
+     "trades": 33
+    },
+    "2019": {
+     "pnl": -1107975,
+     "trades": 37
+    },
+    "2020": {
+     "pnl": 27806,
+     "trades": 59
+    },
+    "2021": {
+     "pnl": 482516,
+     "trades": 47
+    },
+    "2022": {
+     "pnl": -56545,
+     "trades": 30
+    },
+    "2023": {
+     "pnl": 706467,
+     "trades": 43
+    },
+    "2024": {
+     "pnl": 106810,
+     "trades": 48
+    },
+    "2025": {
+     "pnl": -314986,
+     "trades": 60
+    },
+    "2026": {
+     "pnl": 918841,
+     "trades": 77
+    }
+   },
+   "by_reason": {
+    "保有中（最終日の終値で評価）": 2,
+    "利確（−2σ割れ）": 205,
+    "損切り（+1σ超え）": 318
+   },
+   "first": "2016-10-07",
+   "last": "2026-11-20",
+   "after_cost": -541362,
+   "avg_ret_pct": -0.12,
+   "avg_notional": 824747,
+   "by_year_detail": {
+    "2016": {
+     "trades": 26,
+     "win_rate": 23.1,
+     "pnl": -608481,
+     "after_cost": -629352
+    },
+    "2017": {
+     "trades": 65,
+     "win_rate": 36.9,
+     "pnl": -619153,
+     "after_cost": -686604
+    },
+    "2018": {
+     "trades": 33,
+     "win_rate": 60.6,
+     "pnl": 356330,
+     "after_cost": 325252
+    },
+    "2019": {
+     "trades": 37,
+     "win_rate": 16.2,
+     "pnl": -1107975,
+     "after_cost": -1145948
+    },
+    "2020": {
+     "trades": 59,
+     "win_rate": 32.2,
+     "pnl": 27806,
+     "after_cost": -16853
+    },
+    "2021": {
+     "trades": 47,
+     "win_rate": 53.2,
+     "pnl": 482516,
+     "after_cost": 449438
+    },
+    "2022": {
+     "trades": 30,
+     "win_rate": 46.7,
+     "pnl": -56545,
+     "after_cost": -78050
+    },
+    "2023": {
+     "trades": 43,
+     "win_rate": 65.1,
+     "pnl": 706467,
+     "after_cost": 669057
+    },
+    "2024": {
+     "trades": 48,
+     "win_rate": 45.8,
+     "pnl": 106810,
+     "after_cost": 74492
+    },
+    "2025": {
+     "trades": 60,
+     "win_rate": 41.7,
+     "pnl": -314986,
+     "after_cost": -362690
+    },
+    "2026": {
+     "trades": 77,
+     "win_rate": 44.2,
+     "pnl": 918841,
+     "after_cost": 859896
+    }
+   },
+   "plus_years": 5,
+   "years": 11,
+   "after_cost_excl_top10": -2387581
+  }
+ }
+}
