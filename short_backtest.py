@@ -173,6 +173,13 @@ def main() -> None:
         pc = df["Close"].shift(1)
         bad = (df[["Open", "High", "Close"]].max(axis=1) > pc * 1.6) | (df[["Open", "Low", "Close"]].min(axis=1) < pc * 0.4)
         df = df[~bad]
+        # 上場廃止・再上場などで30日以上データが途切れている銘柄は、途切れた後だけを使う
+        gaps = np.where(np.diff(df.index.values).astype("timedelta64[D]").astype(int) > 30)[0]
+        if len(gaps):
+            df = df.iloc[gaps[-1] + 1:]
+        # 20日の中央値から3倍以上・3分の1以下に離れた値がある日も除く
+        med = df["Close"].rolling(20, min_periods=5, center=True).median()
+        df = df[(df[["Open", "High", "Close"]].max(axis=1) < med * 3) & (df[["Open", "Low", "Close"]].min(axis=1) > med / 3)]
         if len(df) < WARMUP + 20:
             continue
         sigs = signals(df)
