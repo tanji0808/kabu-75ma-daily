@@ -168,7 +168,11 @@ def main() -> None:
     raw = {p: [] for p in PATTERNS}
     nsig = 0
     for code, df in prices.items():
-        df = df[df["Open"] > 0]
+        df = df[(df["Open"] > 0) & (df["Low"] > 0)]
+        # 明らかに壊れた値（前日終値の1.6倍超・0.4倍未満の始値・高値・安値）がある日を除く
+        pc = df["Close"].shift(1)
+        bad = (df[["Open", "High", "Close"]].max(axis=1) > pc * 1.6) | (df[["Open", "Low", "Close"]].min(axis=1) < pc * 0.4)
+        df = df[~bad]
         if len(df) < WARMUP + 20:
             continue
         sigs = signals(df)
