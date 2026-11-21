@@ -23,13 +23,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kabu_75ma_search as k  # noqa: E402
 
 EQUITY0, MAX_EXPO, BASE_SIZE, BASE_CAP, RATE = 10_000_000, 20_000_000, 1_000_000, 20, 0.03
-SPLIT = "2025-01-01"
+SPLIT = os.environ.get("P2_SPLIT", "2025-01-01")
 
-t = pd.read_csv("backtest/trades_trail_calm5_rsi60.csv", dtype={"code": str})
-t = t[t["frank"] >= 6].copy()
+t = pd.read_csv(os.environ.get("P2_TRADES", "backtest/trades_trail_calm5_rsi60.csv"), dtype={"code": str})
+MIN_RANK = int(os.environ.get("P2_MIN_RANK", 6))
+t = t[t["frank"].fillna(-1) >= MIN_RANK].copy() if MIN_RANK > 0 else t.copy()
 t["entry"], t["exit"], t["signal"] = (pd.to_datetime(t[c]) for c in ("entry", "exit", "signal"))
 codes = sorted(t["code"].unique())
-prices = k.download_prices(codes + ["1306"], period="6y")
+prices = k.download_prices(codes + ["1306"], period=os.environ.get("P2_PERIOD", "6y"))
 def norm(df):
     df = df.copy()
     df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
@@ -157,7 +158,7 @@ CONFIGS = [
     ("⑥＋①②③④（リスク対策すべて）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True}),
     ("⑥＋①②③④＋⑤（全部）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True, "idle_etf": True}),
 ]
-out = {"risk_pct": round(RISK * 100, 3), "results": []}
+out = {"risk_pct": round(RISK * 100, 3), "min_rank": MIN_RANK, "split": SPLIT, "trades_in": int(len(t)), "from": str(days[0].date()), "to": str(days[-1].date()), "results": []}
 for name, cfg in CONFIGS:
     s, taken, interest = simulate(**cfg)
     yearly = s["eq"].groupby(s.index.year).last()
@@ -172,5 +173,5 @@ for name, cfg in CONFIGS:
           f"前半 年{res['train']['annual'] / 1e4:.0f}万/落込{res['train']['max_dd_pct']}% 後半 年{res['test']['annual'] / 1e4:.0f}万/落込{res['test']['max_dd_pct']}% "
           f"取引{taken} 金利{interest / 1e4:.0f}万 平均建玉{a['avg_expo'] / 1e4:.0f}万")
 os.makedirs("backtest", exist_ok=True)
-with open("backtest/portfolio2.json", "w", encoding="utf-8") as f:
+with open(os.environ.get("P2_OUT", "backtest/portfolio2.json"), "w", encoding="utf-8") as f:
     json.dump(out, f, ensure_ascii=False, indent=1)

@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kabu_75ma_search as k  # noqa: E402
 
 PERIOD = os.environ.get("BT_PERIOD", "6y")      # 指標の計算に半年ほど使うので、検証期間は約5年半
+OUT = os.environ.get("BT_OUT", "backtest")       # 結果の保存先（10年版などは別のフォルダに）
 MIN_VOLUME = k.MIN_VOLUME
 MAX_HOLD = 120
 # 売り方 × 買いの絞り込み の組み合わせ
@@ -91,6 +92,10 @@ for base in ("ma25", "ma25_f", "m1s"):
 REASON = {"lock": "利益確保ライン割れ", "trail": "+1σ引き上げライン割れ", "stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
           "bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
+
+
+if os.environ.get("BT_VARIANTS"):                 # 計算するパターンを絞る（例：trail_calm5_rsi60）
+    VARIANTS = {k_: v_ for k_, v_ in VARIANTS.items() if k_ in os.environ["BT_VARIANTS"].split(",")}
 
 
 # ------------------------------------------------------------------ 合図
@@ -413,7 +418,7 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
                 t["excess"] = None if t["bench"] is None else round(t["ret"] - t["bench"], 2)
                 all_tr[v].append(t)
     attach_ranks(master, prices, all_tr)
-    os.makedirs("backtest", exist_ok=True)
+    os.makedirs(OUT, exist_ok=True)
     result = {"generated": datetime.now().strftime("%Y-%m-%d %H:%M"), "stocks": len(prices),
               "data_from": first.strftime("%Y-%m-%d") if first is not None else None,
               "data_to": last.strftime("%Y-%m-%d") if last is not None else None,
@@ -422,14 +427,14 @@ def run(master: pd.DataFrame, prices: dict, bench: pd.DataFrame | None) -> dict:
         tr = pd.DataFrame(all_tr[v])
         if not tr.empty:
             tr = tr.sort_values("entry").reset_index(drop=True)
-            tr.to_csv(f"backtest/trades_{v}.csv", index=False, encoding="utf-8-sig")
+            tr.to_csv(f"{OUT}/trades_{v}.csv", index=False, encoding="utf-8-sig")
         s = summarize(tr)
         s["by_rank"] = rank_stats(tr, result["data_to"]) if result["data_to"] else []
         s.update({"name": cfg["name"], "fname": cfg["fname"], "short": cfg["short"], "exit_rule": cfg["exit"], "filter": cfg["filter"]})
         s["first_entry"] = tr["entry"].min() if not tr.empty else None
         s["recent"] = tr.sort_values("entry", ascending=False).head(300).to_dict("records") if not tr.empty else []
         result["variants"][v] = s
-    with open("backtest/summary.json", "w", encoding="utf-8") as f:
+    with open(f"{OUT}/summary.json", "w", encoding="utf-8") as f:
         json.dump({**result, "variants": {v: {kk: vv for kk, vv in s.items() if kk != "recent"}
                                           for v, s in result["variants"].items()}}, f, ensure_ascii=False, indent=1)
     return result
@@ -453,8 +458,9 @@ def main() -> None:
         if s.get("n"):
             print(f"{v} {s['fname']}／{s['name']}: {s['n']}回 勝率{s['win']}% 平均{s['avg']}% "
                   f"平均利益{s['avg_win']}% 平均損失{s['avg_loss']}% TOPIX比{s['excess_avg']}%")
-    from backtest_page import build
-    build(result, "web/backtest.html")
+    if OUT == "backtest":
+        from backtest_page import build
+        build(result, "web/backtest.html")
     print("結果ページ: web/backtest.html")
 
 
