@@ -1,0 +1,37 @@
+{
+ "variant": "trail",
+ "size": 1000000.0,
+ "cap": 20,
+ "equity": 10000000.0,
+ "rate": 0.03,
+ "trades": 986,
+ "signals": 1459,
+ "years": 5.41,
+ "final_pnl": 11622273,
+ "annual_pnl": 2148297,
+ "max_dd": 3756930,
+ "max_dd_date": "2022-05-17",
+ "max_dd_pct": 30.4,
+ "min_ratio": 43.0,
+ "min_ratio_date": "2022-05-17",
+ "days_ratio_below": {
+  "20": 0,
+  "25": 0,
+  "30": 0
+ },
+ "max_expo": 20000000,
+ "avg_expo": 12862509,
+ "max_positions": 20,
+ "avg_positions": 12.8,
+ "interest_total": 2222327,
+ "by_year": {
+  "2021": 671117,
+  "2022": -772529,
+  "2023": 3317912,
+  "2024": 2428934,
+  "2025": 5304198,
+  "2026": 672641
+ },
+ "worst_unreal": -821224,
+ "worst_unreal_date": "2022-03-07"
+}
