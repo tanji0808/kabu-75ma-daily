@@ -12,6 +12,9 @@ on:
       equity:
         description: "自己資金（円）"
         default: "10000000"
+      variant:
+        description: "手法（m1s=−1σ割れ、trail=引き上げ式ロスカット など）"
+        default: "m1s"
 
 permissions:
   contents: write
@@ -32,6 +35,7 @@ jobs:
           PF_SIZE: ${{ github.event.inputs.size }}
           PF_CAP: ${{ github.event.inputs.cap }}
           PF_EQUITY: ${{ github.event.inputs.equity }}
+          PF_VARIANT: ${{ github.event.inputs.variant }}
         run: python portfolio_sim.py
       - name: 結果を保存
         run: |
