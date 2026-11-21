@@ -397,8 +397,8 @@ footer{{max-width:760px;margin:0 auto;padding:8px 16px 30px;font-size:11px;color
 条件：3ヶ月以上の下落後、75日線を下から突き抜けそう／抜けた直後・出来高{MIN_VOLUME:,}株以上<br>
 絞り込み：抜けた日（突破目前は当日）に25日線が上向き・出来高が20日平均の{FILTER_VOL_X}倍以上<br>
 チャート（約6ヶ月）：<span class="lg2" style="background:#1d1d1b"></span>終値<span class="lg2" style="background:#2a8a4a"></span>25日線<span class="lg2" style="background:#7a4fbf"></span>75日線<span class="lg2" style="background:#d9534f"></span>+2σ<span class="lg2" style="background:#f0a35e"></span>+1σ<span class="lg2" style="background:#5fa8d8"></span>−1σ<span class="lg2" style="background:#2f6fc4"></span>−2σ（ボリンジャー25日）<br>
-右上の「F」はファンダメンタルランク（10点満点）。カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a>　<a href="forward.html" style="color:#1f4e79">フォワードテスト</a></div></header>
-<div class="wrap">{body}</div>
+右上の「F」はファンダメンタルランク（10点満点）。カードをタップすると、同じ見方の大きいチャートとPER・PBRなどが開きます。<a href="index.html" style="color:#1f4e79">スクリーナーに戻る</a>　<a href="forward.html" style="color:#1f4e79;font-weight:700">今日の売買（採用ルール）</a></div></header>
+<div class="wrap"><a href="forward.html" style="grid-column:1/-1;display:block;background:#1f4e79;color:#fff;border-radius:10px;padding:12px 14px;text-decoration:none;font-size:13.5px">▶ 採用ルール（急騰除外・ランク6以上・引き上げ式ロスカット）で「明日買う銘柄」と「持っている銘柄のロスカット」は <b>今日の売買</b> ページへ</a>{body}</div>
 <footer>機械的に条件で拾った候補で、売買のおすすめではありません。最終判断はチャートを見てご自身で行ってください。データ：Yahoo Finance（yfinance）／東証上場銘柄一覧</footer>
 </body></html>"""
     with open(path, "w", encoding="utf-8") as f:
