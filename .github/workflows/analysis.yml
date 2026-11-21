@@ -1,0 +1,31 @@
+name: 分析スクリプトを実行
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "実行するスクリプト（例：signal_stats.py）"
+        default: "signal_stats.py"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python "${{ github.event.inputs.script }}"
+      - name: 結果を保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backtest/*.json
+          git commit -m "分析結果を更新" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
