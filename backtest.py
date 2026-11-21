@@ -69,13 +69,19 @@ VARIANTS["s1m25"] = {"exit": "s1m25", "filter": "", "fname": FILTERS[""], "tp": 
                      "name": "+1σに乗った後+1σ割れで利確／25日線割れで損切り", "short": "A:+1σ割れ利確・25日線損切り"}
 VARIANTS["u1hit"] = {"exit": "u1hit", "filter": "", "fname": FILTERS[""], "tp": None,
                      "name": "終値が+1σに届いたら利確／25日線割れで損切り", "short": "B:+1σ到達で利確・25日線損切り"}
+VARIANTS["trail"] = {"exit": "trail", "filter": "", "fname": FILTERS[""], "tp": None,
+                     "name": "−1σで損切り。損切り幅ぶん上がったら利益確保ラインへ、+1σより上に出たら+1σまで引き上げ",
+                     "short": "引き上げ式ロスカット（+1σ追従）"}
+VARIANTS["trail_lock"] = {"exit": "trail_lock", "filter": "", "fname": FILTERS[""], "tp": None,
+                          "name": "−1σで損切り。損切り幅ぶん上がったら利益確保ラインへ（+1σでは引き上げない）",
+                          "short": "引き上げ式ロスカット（確保ラインのみ）"}
 # +10%で半分だけ利確し、残り半分はもとの売り方まで持つパターン
 for base in ("ma25", "ma25_f", "m1s"):
     cfg = dict(VARIANTS[base])
     cfg.update(tp=TP, half=True, name=cfg["name"] + f"＋{int(TP * 100)}%で半分利確",
                short=cfg["short"] + f"＋{int(TP * 100)}%で半分利確")
     VARIANTS[base + "_half"] = cfg
-REASON = {"stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
+REASON = {"lock": "利益確保ライン割れ", "trail": "+1σ引き上げライン割れ", "stop25": "損切り（25日線割れ）", "hit": "利確（+1σ到達）", "bw25_win": "25日線割れ（利益）", "bw25_loss": "25日線割れ（損失）",
           "bw_win": "+1σ割れ（利益）", "bw_loss": "+1σ割れ（損失）", "tp": "+10%で利確", "take": "利確（+1σ割れ）", "stop": "損切り（75日線割れ）", "time": "期間満了",
           "ma25": "25日線割れ", "m1s": "−1σ割れ"}
 
@@ -181,7 +187,10 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | Non
         entry = o[e]
         touched1 = touched2 = False
         exit_sig, reason, tp_px = None, None, None
-        half_px = None                                  # 半分利確したときの値段
+        half_px = None
+        # 引き上げ式ロスカット：最初の損切り幅 R ＝ 買値 −（合図の日の −1σ）
+        R = entry - d1[t] if d1[t] < entry else entry * 0.03
+        lock = stop = None                                  # 半分利確したときの値段
         target = entry * (1 + tp) if tp else None
         for j in range(e, min(n, e + MAX_HOLD)):
             # 半分利確：指値に届いたら半分だけ売り、残りはそのまま持ち続ける
@@ -196,7 +205,18 @@ def simulate(df: pd.DataFrame, sigs: np.ndarray, exit_rule: str, tp: float | Non
                     exit_sig, reason, tp_px = j, "tp", o[j]; break
                 if hi[j] >= target:                      # 場中に目標に届いた → 目標の値段で売れる
                     exit_sig, reason, tp_px = j, "tp", target; break
-            if exit_rule == "s1":
+            if exit_rule in ("trail", "trail_lock"):
+                if stop is None:
+                    if c[j] < d1[j]:
+                        exit_sig, reason = j, "m1s"; break
+                    if c[j] >= entry + R:                 # 損切り幅ぶん上がった → 利益確保ラインへ
+                        lock = stop = entry + R
+                else:
+                    if c[j] < stop:
+                        exit_sig, reason = j, ("lock" if stop == lock else "trail"); break
+                    if exit_rule == "trail" and c[j] > u1[j]:   # バンドウォーク → +1σまで引き上げ（下げない）
+                        stop = max(stop, u1[j])
+            elif exit_rule == "s1":
                 if touched1 and c[j] < u1[j]:
                     exit_sig, reason = j, "take"; break
                 if c[j] < ma75[j]:
