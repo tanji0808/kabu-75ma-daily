@@ -51,11 +51,18 @@ R_MULT = 2.0
 WARMUP = 140          # 指標の計算に使う日数。これより前は合図を出さない
 OUT = "backtest"
 
-PATTERNS = {
+BASE = {
     "A": "75日線+1%で損切り／損切り幅の2倍で利確",
     "B": "75日線+1%で損切り／終値が25日線を上回ったら買い戻し",
     "C": "20日高値+1%で損切り／損切り幅の2倍で利確",
 }
+# 相場全体の条件（TOPIX連動ETF 1306 の合図の日の終値で判定）
+MARKET = {
+    "": "相場の条件なし",
+    "m": "TOPIXが75日線より下のときだけ",
+    "m2": "TOPIXが75日線より下で、75日線が20日前より下向きのときだけ",
+}
+PATTERNS = {b + (("_" + m) if m else ""): f"{bn}（{mn}）" for m, mn in MARKET.items() for b, bn in BASE.items()}
 
 
 def signals(df: pd.DataFrame) -> list[dict]:
@@ -87,6 +94,7 @@ def simulate(code: str, df: pd.DataFrame, sig: dict, pat: str) -> dict | None:
     ma25 = pd.Series(c).rolling(25).mean().to_numpy()
     e = sig["i"] + 1
     entry = o[e]
+    pat = pat[0]
     base = sig["hi20"] if pat == "C" else sig["ma75"]
     stop = base * (1 + BUF)
     per = stop - entry
@@ -161,7 +169,19 @@ def stats(tr: list[dict]) -> dict:
     }
 
 
+def market_days() -> dict[str, set]:
+    import yfinance as yf
+    b = yf.download("1306.T", period=PERIOD, interval="1d", auto_adjust=True, progress=False)["Close"].squeeze().dropna()
+    ma = b.rolling(75).mean()
+    below = b < ma
+    down = below & (ma < ma.shift(20))
+    f = lambda m: {d.strftime("%Y-%m-%d") for d, ok in m.items() if ok}
+    print(f"TOPIXが75日線より下の日: {int(below.sum())} / {len(b)}、さらに75日線が下向きの日: {int(down.sum())}")
+    return {"": None, "m": f(below), "m2": f(down)}
+
+
 def main() -> None:
+    mkt = market_days()
     master = k.load_prime_list()
     prices = k.download_prices(master["コード"].tolist(), period=PERIOD)
     os.makedirs(OUT, exist_ok=True)
@@ -185,9 +205,11 @@ def main() -> None:
         sigs = signals(df)
         nsig += len(sigs)
         for p in PATTERNS:
+            allow = mkt[p.split("_")[1] if "_" in p else ""]
             busy_until = ""
             for s in sigs:      # 同じ銘柄を持っている間の新しい合図は無視
-                if df.index[s["i"]].strftime("%Y-%m-%d") <= busy_until:
+                sd = df.index[s["i"]].strftime("%Y-%m-%d")
+                if sd <= busy_until or (allow is not None and sd not in allow):
                     continue
                 t = simulate(code, df, s, p)
                 if t:
