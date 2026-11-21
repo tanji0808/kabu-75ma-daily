@@ -12,6 +12,8 @@
          （注文の値段は前日の終値で計算した −1σ・−2σ。寄り付きで飛び越えたら始値で約定。
            同じ日に両方に届いたら −1σ の逆指値が先に約定したとみなす＝厳しめ）
   lockt: lock と同じだが、安値が −1σ に届いた時点で注文を置く
+  lk25 : lock と同じだが、逆指値を −1σ ではなく 25日線（前日の値）に置く
+  lk25c: 25日線に逆指値。利確は −2σ の指値ではなく、終値が −2σ を割ったら翌日の始値で買い戻す
   どれも最長60営業日。
 
 絞り込み（合図の日に判定）
@@ -47,7 +49,9 @@ COST = 0.001
 
 EXITS = {"m1": "−1σ割れで利確", "m2": "−2σ割れで利確", "ma25": "25日線割れ後、25日線超えで買い戻し",
          "lock": "終値が−1σを割ったら、−1σに逆指値（戻れば利益確保）・−2σに指値で利確",
-         "lockt": "安値が−1σに届いたら、−1σに逆指値（戻れば利益確保）・−2σに指値で利確"}
+         "lockt": "安値が−1σに届いたら、−1σに逆指値（戻れば利益確保）・−2σに指値で利確",
+         "lk25": "終値が−1σを割ったら、25日線に逆指値（戻れば利益確保）・−2σに指値で利確",
+         "lk25c": "終値が−1σを割ったら、25日線に逆指値（戻れば利益確保）・終値が−2σを割ったら翌日の始値で利確"}
 FILTERS = {"": "絞り込みなし", "hot": "上げすぎ（RSI70以上か25日線+10%以上）", "mk25": "TOPIXが25日線より下",
            "mk75": "TOPIXが75日線より下", "vol": "割れた日の出来高1.5倍以上",
            "hot+mk25": "上げすぎ＋TOPIXが25日線より下", "hot+vol": "上げすぎ＋出来高1.5倍以上",
@@ -98,7 +102,8 @@ def simulate(code: str, df: pd.DataFrame, i: int, exit_rule: str, cache: dict) -
     exit_i, why, below25, armed, px = None, None, False, False, None
     for j in range(e, min(n - 1, e + bw.MAX_HOLD)):
         if armed:
-            s1, s2 = d1[j - 1], d2[j - 1]
+            s1 = m25[j - 1] if exit_rule.startswith("lk25") else d1[j - 1]
+            s2 = -np.inf if exit_rule == "lk25c" else d2[j - 1]
             if o[j] <= s2:
                 px, why = o[j], "利確（−2σ・寄りで約定）"
             elif o[j] >= s1:
@@ -110,9 +115,15 @@ def simulate(code: str, df: pd.DataFrame, i: int, exit_rule: str, cache: dict) -
             if px is not None:
                 exit_i = j
                 break
+            if exit_rule == "lk25c" and c[j] < d2[j]:
+                exit_i, why = j + 1, "利確（−2σ割れ）"
+                break
             continue
-        if exit_rule == "lock" and c[j] < d1[j]:
+        if exit_rule in ("lock", "lk25", "lk25c") and c[j] < d1[j]:
             armed = True
+            if exit_rule == "lk25c" and c[j] < d2[j]:
+                exit_i, why = j + 1, "利確（−2σ割れ）"
+                break
             continue
         if exit_rule == "lockt" and j > e and l[j] <= d1[j - 1]:
             armed = True
