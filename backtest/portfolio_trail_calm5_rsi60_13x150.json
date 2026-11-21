@@ -1,0 +1,37 @@
+{
+ "variant": "trail_calm5_rsi60",
+ "size": 1500000.0,
+ "cap": 13,
+ "equity": 10000000.0,
+ "rate": 0.03,
+ "trades": 602,
+ "signals": 693,
+ "years": 5.41,
+ "final_pnl": 12254014,
+ "annual_pnl": 2265070,
+ "max_dd": 3501109,
+ "max_dd_date": "2022-05-16",
+ "max_dd_pct": 30.7,
+ "min_ratio": 42.2,
+ "min_ratio_date": "2022-05-31",
+ "days_ratio_below": {
+  "20": 0,
+  "25": 0,
+  "30": 0
+ },
+ "max_expo": 19500000,
+ "avg_expo": 9373323,
+ "max_positions": 13,
+ "avg_positions": 5.9,
+ "interest_total": 1540286,
+ "by_year": {
+  "2021": 35989,
+  "2022": 271607,
+  "2023": 3332916,
+  "2024": 926439,
+  "2025": 5523765,
+  "2026": 2163297
+ },
+ "worst_unreal": -633968,
+ "worst_unreal_date": "2022-03-07"
+}
