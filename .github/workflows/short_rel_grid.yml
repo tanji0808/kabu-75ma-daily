@@ -25,6 +25,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backtest/short_rel_grid.json
+          git add backtest/short_rel_grid.json backtest/short_rel_trades_*
           git commit -m "空売りバックテスト結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q

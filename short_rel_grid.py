@@ -10,7 +10,7 @@
   f4  : ファンダメンタルランク4以下を条件にするか（あり／なし）
 買い戻し : m2（−2σ割れで利確）と lk25c（25日線逆指値＋−2σ割れで利確）。損切りはどちらも+1σ超え。
 資金・費用・注意点は short_bw_backtest.py と同じ。往復0.1%の売買コストを引いた収支も出す。
-出力 : backtest/short_rel_grid.json
+出力 : backtest/short_rel_grid.json, backtest/short_rel_trades_<設定>.csv（SAVE の設定だけ）
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ PERIOD = os.environ.get("BT_PERIOD", "6y")
 OUT = "backtest"
 COST = 0.001
 LS, GS, MKS, FS, EXS = (5, 10, 20), (3, 5, 7), (True, False), (True, False), ("m2", "lk25c")
+SAVE = {"L10_G5_f4__m2", "L10_G5_f4__lk25c"}   # スクリーナーの「★ バンドウォーク崩れ×TOPIXより弱い」と同じ設定
 
 
 def key(L, G, mk, f4, ex):
@@ -122,7 +123,10 @@ def main() -> None:
                 busy = t["exit_date"]
     res = {}
     for kname, tr in raw.items():
-        res[kname] = summarize(sb.portfolio(tr))
+        taken = sb.portfolio(tr)
+        res[kname] = summarize(taken)
+        if kname in SAVE:   # サイトのプリセットと同じ設定は、取引の一覧も保存する
+            pd.DataFrame(taken).to_csv(os.path.join(OUT, f"short_rel_trades_{kname}.csv"), index=False, encoding="utf-8-sig")
         s = res[kname]
         print(f"{kname:24s} {s.get('trades', 0):5d}回 費用後 {s.get('after_cost', 0):>11,}円 "
               f"プラスの年 {s.get('plus_years')}/{s.get('years')} 落ち込み {s.get('max_drawdown', 0):>10,}円")
