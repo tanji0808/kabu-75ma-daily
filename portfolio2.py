@@ -69,7 +69,7 @@ RISK = float(BASE_SIZE * train["stop_pct"].median() / EQUITY0)
 print(f"①の1回の損の上限：資金の {RISK * 100:.2f}%（最初のロスカット幅の中央値 {train['stop_pct'].median() * 100:.1f}%）")
 
 
-def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False, cash=False):
+def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False, cash=False, etf_trend=False):
     by_entry = {d: g for d, g in t.groupby("entry")}
     open_pos = []          # dict(code, sector, shares, cost, exit)
     realized = etf_pnl = interest = 0.0
@@ -120,6 +120,8 @@ def simulate(vol=False, sector=False, regime=False, ddctl=False, idle_etf=False,
         interest += borrowed * RATE / 245
         equity -= borrowed * RATE / 245
         prev_idle = max(0.0, equity - expo) if idle_etf else 0.0
+        if etf_trend and etf is not None and etf.loc[d] < etf_ma200.loc[d]:
+            prev_idle = 0.0                          # TOPIXが200日線の下にある間はETFを持たない
         peak = max(peak, equity)
         if ddctl:
             if equity < peak * 0.85:
@@ -150,6 +152,8 @@ CONFIGS = [
     ("⑥＋③ TOPIXが200日線の下なら半分", {"cash": True, "regime": True}),
     ("⑥＋④ 資産が−15%なら半分", {"cash": True, "ddctl": True}),
     ("⑥＋⑤ 遊休資金をTOPIX ETFに", {"cash": True, "idle_etf": True}),
+    ("⑥＋③＋⑤（効いた3つ）", {"cash": True, "regime": True, "idle_etf": True}),
+    ("⑥＋③＋⑤（ETFも200日線の下では持たない）", {"cash": True, "regime": True, "idle_etf": True, "etf_trend": True}),
     ("⑥＋①②③④（リスク対策すべて）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True}),
     ("⑥＋①②③④＋⑤（全部）", {"cash": True, "vol": True, "sector": True, "regime": True, "ddctl": True, "idle_etf": True}),
 ]
