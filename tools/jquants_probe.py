@@ -40,5 +40,6 @@ def get(path, **params):
 
 import os as _os
 for _p in _os.environ.get("PROBE", "/fins/summary").split(","):
-    get(_p, code="7203")
-    time.sleep(13)
+    _p, _, _d = _p.partition("@")      # 例 /fins/summary@20170105 → その日の分を確認
+    get(_p, **({"date": _d} if _d else {"code": "7203"}))
+    time.sleep(3)
