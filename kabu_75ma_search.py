@@ -545,6 +545,14 @@ def main() -> None:
             forward_test.run(master, prices, ranks, out_dir)
         except Exception as e:
             print(f"フォワードテストの更新に失敗しました（{e}）")
+    if os.environ.get("KABU_FORWARD2") == "1":   # フォワードテスト2（買い＋空売り・点数で金額）
+        try:
+            import forward_test2
+            forward_test2.run(master, prices, ranks, out_dir)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"フォワードテスト2の更新に失敗しました（{e}）")
     order = {"本日突破": 0, "突破直後": 1, "突破目前": 2}
     rows.sort(key=lambda r: (order[r["状態"]], abs(r["75日線との差(%)"])))
 

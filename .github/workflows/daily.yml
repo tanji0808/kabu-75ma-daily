@@ -47,6 +47,16 @@ jobs:
             git commit -m "財務データを更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)"
             git pull --rebase -q origin main && git push -q
           fi
+      - name: J-Quantsの決算・信用残を更新（取れた分だけ。失敗しても続ける）
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_WAIT: "1.1"
+          JQ_MAX_MINUTES: "10"
+          JQ_SAVE_MINUTES: "0"
+          JQ_MARGIN: "1"
+        run: python tools/jquants_fetch.py
       - name: 東証プライムを検索
         env:
           TZ: Asia/Tokyo
@@ -54,10 +64,12 @@ jobs:
           KABU_PAGE_NAME: cards.html
           KABU_DATA_JSON: data.json
           KABU_FORWARD: "1"
+          KABU_FORWARD2: "1"
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
         run: python kabu_75ma_search.py
       - name: フォワードテストの記録を保存
         run: |
-          git add data/forward.json 2>/dev/null || true
+          git add data/forward.json data/forward2.json data/jq 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "フォワードテストの記録を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)"
             git pull --rebase -q origin main && git push -q
