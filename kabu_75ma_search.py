@@ -145,10 +145,13 @@ def delisted_prices(codes: list[str], period: str) -> dict[str, pd.DataFrame]:
     since = pd.Timestamp.today().normalize() - pd.DateOffset(years=years)
     out = {}
     for c, g in b.groupby("c4"):
+        if g["Code"].nunique() > 1:      # 同じ4桁に複数のコードがあるときは、データの多い方を使う
+            g = g[g["Code"] == g["Code"].value_counts().idxmax()]
         df = pd.DataFrame({"Open": g["AdjO"].values, "High": g["AdjH"].values, "Low": g["AdjL"].values,
                            "Close": g["AdjC"].values, "Volume": g["AdjVo"].values},
                           index=pd.DatetimeIndex(pd.to_datetime(g["Date"].values)))
         df = df.sort_index().dropna(subset=["Close"])
+        df = df[~df.index.duplicated(keep="last")]
         df = df[(df.index >= since) & (df["Close"] > 0)]
         if len(df):
             out[c] = df
