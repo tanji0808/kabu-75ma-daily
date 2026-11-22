@@ -114,6 +114,44 @@ def load_prime_list() -> pd.DataFrame:
         "業種": df["33業種区分"].str.strip(),
     }).reset_index(drop=True)
     print(f"  プライム銘柄: {len(out)}")
+    if os.environ.get("K_DELISTED") == "1":
+        out = pd.concat([out, delisted_list()], ignore_index=True).drop_duplicates("コード")
+        print(f"  上場廃止銘柄を加えて: {len(out)}")
+    return out
+
+
+DELISTED_DIR = "data/jq"
+
+
+def delisted_list() -> pd.DataFrame:
+    """東証一部・プライムだったことがあり、今は上場していない銘柄（J-Quants の過去の上場銘柄一覧から）。
+    バックテストで「今ある銘柄だけ」で検証する偏りを直すために使う（環境変数 K_DELISTED=1 のとき）。"""
+    h = pd.read_csv(os.path.join(DELISTED_DIR, "master_history.csv.gz"), dtype=str)
+    now = set(pd.read_csv(os.path.join(DELISTED_DIR, "master.csv"), dtype=str)["Code"])
+    big = h[h["MktNm"].fillna("").str.contains("一部|プライム")]
+    gone = big[~big["Code"].isin(now)].sort_values("Date").groupby("Code").last().reset_index()
+    return pd.DataFrame({"コード": gone["Code"].str[:4], "銘柄名": gone["CoName"], "業種": gone["S33Nm"]})
+
+
+def delisted_prices(codes: list[str], period: str) -> dict[str, pd.DataFrame]:
+    """上場廃止銘柄の日足（J-Quants の分割調整済みの値）を、yfinance と同じ形にして返す。"""
+    p = os.path.join(DELISTED_DIR, "delisted_bars.csv.gz")
+    if not os.path.exists(p):
+        return {}
+    b = pd.read_csv(p, dtype={"Code": str})
+    b["c4"] = b["Code"].str[:4]
+    b = b[b["c4"].isin(set(codes))]
+    years = int("".join(ch for ch in period if ch.isdigit()) or 1)
+    since = pd.Timestamp.today().normalize() - pd.DateOffset(years=years)
+    out = {}
+    for c, g in b.groupby("c4"):
+        df = pd.DataFrame({"Open": g["AdjO"].values, "High": g["AdjH"].values, "Low": g["AdjL"].values,
+                           "Close": g["AdjC"].values, "Volume": g["AdjVo"].values},
+                          index=pd.DatetimeIndex(pd.to_datetime(g["Date"].values)))
+        df = df.sort_index().dropna(subset=["Close"])
+        df = df[(df.index >= since) & (df["Close"] > 0)]
+        if len(df):
+            out[c] = df
     return out
 
 
@@ -146,6 +184,11 @@ def download_prices(codes: list[str], period: str = "1y") -> dict[str, pd.DataFr
             except KeyError:
                 pass
         time.sleep(1)
+    if os.environ.get("K_DELISTED") == "1":
+        miss = [c for c in codes if c not in result]
+        add = delisted_prices(miss, period)
+        result.update(add)
+        print(f"  上場廃止銘柄の株価をJ-Quantsのデータで補いました: {len(add)}銘柄")
     # 取引時間中（15:45より前）に実行したときは、まだ確定していない当日分を使わない
     try:
         from zoneinfo import ZoneInfo

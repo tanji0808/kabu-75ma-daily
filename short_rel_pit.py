@@ -36,6 +36,7 @@ import short_bw2_backtest as b2  # noqa: E402
 PERIOD = os.environ.get("BT_PERIOD", "6y")
 OUT = "backtest"
 SUF = "" if PERIOD == "6y" else f"_{PERIOD}"
+SUF += os.environ.get("BT_TAG", "")   # 例 _delisted（上場廃止銘柄を含めたとき）
 COST = 0.001
 L, G, FMAX = 10, 5, 4
 NUM = ["Sales", "OP", "NP", "EPS", "BPS", "Eq", "TA", "DivAnn", "FDivAnn", "NxFDivAnn",

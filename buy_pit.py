@@ -30,6 +30,7 @@ MIN_RANK = 6
 LOT = 1_000_000
 PERIOD = os.environ.get("BT_PERIOD", "6y")
 SUF = "" if PERIOD == "6y" else f"_{PERIOD}"
+SUF += os.environ.get("BT_TAG", "")   # 例 _delisted（上場廃止銘柄を含めたとき）
 
 
 def group(d: pd.DataFrame) -> dict:
