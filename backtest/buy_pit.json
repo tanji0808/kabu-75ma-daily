@@ -1,0 +1,53 @@
+{
+ "generated": "2026-11-22 12:19",
+ "window": [
+  "2025-05-16",
+  "2026-08-28"
+ ],
+ "min_rank": 6,
+ "results": {
+  "all": {
+   "trades": 364,
+   "win_rate": 53.3,
+   "avg_ret_pct": 2.32,
+   "pnl_yen_100man_each": 8430100,
+   "avg_excess_pct": 1.38
+  },
+  "now_rank6": {
+   "trades": 159,
+   "win_rate": 57.9,
+   "avg_ret_pct": 4.21,
+   "pnl_yen_100man_each": 6695300,
+   "avg_excess_pct": 3.0
+  },
+  "pit_rank6": {
+   "trades": 113,
+   "win_rate": 55.8,
+   "avg_ret_pct": 2.78,
+   "pnl_yen_100man_each": 3139600,
+   "avg_excess_pct": 1.6
+  },
+  "both": {
+   "trades": 69,
+   "win_rate": 59.4,
+   "avg_ret_pct": 4.27,
+   "pnl_yen_100man_each": 2946500,
+   "avg_excess_pct": 2.82
+  },
+  "now_only": {
+   "trades": 90,
+   "win_rate": 56.7,
+   "avg_ret_pct": 4.17,
+   "pnl_yen_100man_each": 3748800,
+   "avg_excess_pct": 3.15
+  },
+  "pit_only": {
+   "trades": 44,
+   "win_rate": 50.0,
+   "avg_ret_pct": 0.44,
+   "pnl_yen_100man_each": 193100,
+   "avg_excess_pct": -0.32
+  },
+  "pit_rank_missing": 13
+ }
+}
