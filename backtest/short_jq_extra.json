@@ -1,6 +1,6 @@
 {
- "generated": "2026-11-22 12:22",
- "shortable_count": 2670,
+ "generated": "2026-11-22 14:12",
+ "shortable_count": 2674,
  "A_shortable": {
   "_6y": {
    "all": {
@@ -279,17 +279,17 @@
  },
  "B_earnings_drop": {
   "drop3__m2": {
-   "trades": 525,
-   "win_rate": 52.4,
-   "total_pnl": -466238,
-   "after_cost": -945523,
-   "max_drawdown": -1928204,
-   "avg_ret_pct": -0.18,
+   "trades": 789,
+   "win_rate": 53.5,
+   "total_pnl": 366278,
+   "after_cost": -352866,
+   "max_drawdown": -1985522,
+   "avg_ret_pct": -0.12,
    "by_year": {
     "2024": {
-     "trades": 107,
-     "win_rate": 56.1,
-     "after_cost": 301508
+     "trades": 305,
+     "win_rate": 57.0,
+     "after_cost": -68628
     },
     "2025": {
      "trades": 253,
@@ -297,24 +297,24 @@
      "after_cost": -285842
     },
     "2026": {
-     "trades": 165,
-     "win_rate": 50.3,
-     "after_cost": -961189
+     "trades": 231,
+     "win_rate": 50.2,
+     "after_cost": 1603
     }
    }
   },
   "drop3__lk25c": {
-   "trades": 616,
-   "win_rate": 49.2,
-   "total_pnl": -787533,
-   "after_cost": -1347310,
-   "max_drawdown": -2169742,
-   "avg_ret_pct": -0.2,
+   "trades": 921,
+   "win_rate": 51.0,
+   "total_pnl": 411922,
+   "after_cost": -423648,
+   "max_drawdown": -2786672,
+   "avg_ret_pct": -0.1,
    "by_year": {
     "2024": {
-     "trades": 123,
-     "win_rate": 55.3,
-     "after_cost": 203287
+     "trades": 345,
+     "win_rate": 55.9,
+     "after_cost": -149738
     },
     "2025": {
      "trades": 291,
@@ -322,274 +322,274 @@
      "after_cost": -460065
     },
     "2026": {
-     "trades": 202,
-     "win_rate": 46.0,
-     "after_cost": -1090533
+     "trades": 285,
+     "win_rate": 47.4,
+     "after_cost": 186155
     }
    }
   },
   "drop3__h20": {
-   "trades": 233,
-   "win_rate": 42.9,
-   "total_pnl": -3625094,
-   "after_cost": -3834893,
-   "max_drawdown": -4009392,
-   "avg_ret_pct": -1.77,
+   "trades": 336,
+   "win_rate": 46.4,
+   "total_pnl": -3768765,
+   "after_cost": -4071884,
+   "max_drawdown": -4514475,
+   "avg_ret_pct": -1.29,
    "by_year": {
     "2024": {
-     "trades": 30,
-     "win_rate": 53.3,
-     "after_cost": -495966
+     "trades": 110,
+     "win_rate": 48.2,
+     "after_cost": -1235864
     },
     "2025": {
-     "trades": 114,
-     "win_rate": 40.4,
-     "after_cost": -2167963
+     "trades": 113,
+     "win_rate": 42.5,
+     "after_cost": -2042746
     },
     "2026": {
-     "trades": 89,
-     "win_rate": 42.7,
-     "after_cost": -1170963
+     "trades": 113,
+     "win_rate": 48.7,
+     "after_cost": -793274
     }
    }
   },
   "drop3_f4__m2": {
-   "trades": 267,
-   "win_rate": 47.2,
-   "total_pnl": -1443266,
-   "after_cost": -1684507,
-   "max_drawdown": -2044140,
-   "avg_ret_pct": -0.59,
+   "trades": 532,
+   "win_rate": 54.1,
+   "total_pnl": 991665,
+   "after_cost": 510003,
+   "max_drawdown": -1456459,
+   "avg_ret_pct": 0.18,
    "by_year": {
     "2024": {
-     "trades": 9,
-     "win_rate": 44.4,
-     "after_cost": 44946
+     "trades": 209,
+     "win_rate": 60.8,
+     "after_cost": 645440
     },
     "2025": {
-     "trades": 133,
-     "win_rate": 48.1,
-     "after_cost": -832656
+     "trades": 155,
+     "win_rate": 50.3,
+     "after_cost": 12272
     },
     "2026": {
-     "trades": 125,
-     "win_rate": 46.4,
-     "after_cost": -896797
+     "trades": 168,
+     "win_rate": 49.4,
+     "after_cost": -147709
     }
    }
   },
   "drop3_f4__lk25c": {
-   "trades": 323,
-   "win_rate": 44.9,
-   "total_pnl": -1101952,
-   "after_cost": -1393476,
-   "max_drawdown": -2074189,
-   "avg_ret_pct": -0.36,
+   "trades": 614,
+   "win_rate": 50.8,
+   "total_pnl": 1321449,
+   "after_cost": 766185,
+   "max_drawdown": -1513683,
+   "avg_ret_pct": 0.19,
    "by_year": {
     "2024": {
-     "trades": 9,
-     "win_rate": 55.6,
-     "after_cost": 90328
+     "trades": 231,
+     "win_rate": 58.4,
+     "after_cost": 844683
     },
     "2025": {
-     "trades": 171,
-     "win_rate": 45.0,
-     "after_cost": -964734
+     "trades": 195,
+     "win_rate": 45.1,
+     "after_cost": -329480
     },
     "2026": {
-     "trades": 143,
-     "win_rate": 44.1,
-     "after_cost": -519070
+     "trades": 188,
+     "win_rate": 47.3,
+     "after_cost": 250982
     }
    }
   },
   "drop3_f4__h20": {
-   "trades": 163,
-   "win_rate": 37.4,
-   "total_pnl": -3866451,
-   "after_cost": -4014878,
-   "max_drawdown": -4344285,
-   "avg_ret_pct": -2.55,
+   "trades": 278,
+   "win_rate": 41.7,
+   "total_pnl": -4085449,
+   "after_cost": -4336057,
+   "max_drawdown": -5096846,
+   "avg_ret_pct": -1.51,
    "by_year": {
     "2024": {
-     "trades": 7,
-     "win_rate": 14.3,
-     "after_cost": -293681
+     "trades": 93,
+     "win_rate": 44.1,
+     "after_cost": -1689373
     },
     "2025": {
-     "trades": 90,
-     "win_rate": 37.8,
-     "after_cost": -2248447
+     "trades": 99,
+     "win_rate": 39.4,
+     "after_cost": -1560848
     },
     "2026": {
-     "trades": 66,
-     "win_rate": 39.4,
-     "after_cost": -1472749
+     "trades": 86,
+     "win_rate": 41.9,
+     "after_cost": -1085835
     }
    }
   },
   "drop3_shortable__m2": {
-   "trades": 510,
-   "win_rate": 52.5,
-   "total_pnl": -514404,
-   "after_cost": -978523,
-   "max_drawdown": -2127010,
-   "avg_ret_pct": -0.19,
+   "trades": 764,
+   "win_rate": 52.7,
+   "total_pnl": -209496,
+   "after_cost": -905012,
+   "max_drawdown": -2168654,
+   "avg_ret_pct": -0.21,
    "by_year": {
     "2024": {
-     "trades": 104,
-     "win_rate": 56.7,
-     "after_cost": 392576
+     "trades": 297,
+     "win_rate": 56.9,
+     "after_cost": -10136
     },
     "2025": {
      "trades": 243,
-     "win_rate": 52.3,
-     "after_cost": -299203
+     "win_rate": 51.9,
+     "after_cost": -414090
     },
     "2026": {
-     "trades": 163,
-     "win_rate": 50.3,
-     "after_cost": -1071895
+     "trades": 224,
+     "win_rate": 48.2,
+     "after_cost": -480785
     }
    }
   },
   "drop3_shortable__lk25c": {
-   "trades": 597,
-   "win_rate": 49.1,
-   "total_pnl": -804358,
-   "after_cost": -1346260,
-   "max_drawdown": -2201326,
-   "avg_ret_pct": -0.21,
+   "trades": 891,
+   "win_rate": 50.2,
+   "total_pnl": -107642,
+   "after_cost": -915720,
+   "max_drawdown": -2783802,
+   "avg_ret_pct": -0.17,
    "by_year": {
     "2024": {
-     "trades": 119,
-     "win_rate": 55.5,
-     "after_cost": 248691
+     "trades": 335,
+     "win_rate": 55.2,
+     "after_cost": -230623
     },
     "2025": {
      "trades": 281,
      "win_rate": 49.5,
-     "after_cost": -306953
+     "after_cost": -303717
     },
     "2026": {
-     "trades": 197,
+     "trades": 275,
      "win_rate": 44.7,
-     "after_cost": -1287998
+     "after_cost": -381378
     }
    }
   },
   "drop3_shortable__h20": {
-   "trades": 229,
-   "win_rate": 43.7,
-   "total_pnl": -2300096,
-   "after_cost": -2506178,
-   "max_drawdown": -2955282,
-   "avg_ret_pct": -1.07,
+   "trades": 331,
+   "win_rate": 45.9,
+   "total_pnl": -2114513,
+   "after_cost": -2413285,
+   "max_drawdown": -3182344,
+   "avg_ret_pct": -0.69,
    "by_year": {
     "2024": {
-     "trades": 30,
-     "win_rate": 53.3,
-     "after_cost": -385149
+     "trades": 110,
+     "win_rate": 47.3,
+     "after_cost": -998428
     },
     "2025": {
-     "trades": 112,
-     "win_rate": 40.2,
-     "after_cost": -1121059
+     "trades": 111,
+     "win_rate": 42.3,
+     "after_cost": -995841
     },
     "2026": {
-     "trades": 87,
-     "win_rate": 44.8,
-     "after_cost": -999970
+     "trades": 110,
+     "win_rate": 48.2,
+     "after_cost": -419014
     }
    }
   },
   "drop3_f4+shortable__m2": {
-   "trades": 260,
-   "win_rate": 47.7,
-   "total_pnl": -1291569,
-   "after_cost": -1526102,
-   "max_drawdown": -2031372,
-   "avg_ret_pct": -0.54,
+   "trades": 523,
+   "win_rate": 54.1,
+   "total_pnl": 557976,
+   "after_cost": 85216,
+   "max_drawdown": -1375185,
+   "avg_ret_pct": 0.1,
    "by_year": {
     "2024": {
-     "trades": 8,
-     "win_rate": 50.0,
-     "after_cost": 63630
+     "trades": 207,
+     "win_rate": 60.9,
+     "after_cost": 558235
     },
     "2025": {
-     "trades": 130,
-     "win_rate": 49.2,
-     "after_cost": -678667
+     "trades": 153,
+     "win_rate": 51.0,
+     "after_cost": 139651
     },
     "2026": {
-     "trades": 122,
-     "win_rate": 45.9,
-     "after_cost": -911065
+     "trades": 163,
+     "win_rate": 48.5,
+     "after_cost": -612670
     }
    }
   },
   "drop3_f4+shortable__lk25c": {
-   "trades": 316,
-   "win_rate": 45.3,
-   "total_pnl": -937757,
-   "after_cost": -1222549,
-   "max_drawdown": -1973319,
-   "avg_ret_pct": -0.3,
+   "trades": 604,
+   "win_rate": 50.8,
+   "total_pnl": 989139,
+   "after_cost": 443453,
+   "max_drawdown": -1529803,
+   "avg_ret_pct": 0.14,
    "by_year": {
     "2024": {
-     "trades": 8,
-     "win_rate": 62.5,
-     "after_cost": 109012
+     "trades": 228,
+     "win_rate": 58.8,
+     "after_cost": 838036
     },
     "2025": {
-     "trades": 168,
-     "win_rate": 45.8,
-     "after_cost": -819720
+     "trades": 193,
+     "win_rate": 45.6,
+     "after_cost": -202101
     },
     "2026": {
-     "trades": 140,
-     "win_rate": 43.6,
-     "after_cost": -511841
+     "trades": 183,
+     "win_rate": 46.4,
+     "after_cost": -192481
     }
    }
   },
   "drop3_f4+shortable__h20": {
-   "trades": 158,
-   "win_rate": 38.0,
-   "total_pnl": -2494074,
-   "after_cost": -2637193,
-   "max_drawdown": -3217797,
-   "avg_ret_pct": -1.69,
+   "trades": 273,
+   "win_rate": 42.1,
+   "total_pnl": -3089225,
+   "after_cost": -3335170,
+   "max_drawdown": -3737564,
+   "avg_ret_pct": -1.15,
    "by_year": {
     "2024": {
-     "trades": 7,
-     "win_rate": 14.3,
-     "after_cost": -293681
+     "trades": 92,
+     "win_rate": 45.7,
+     "after_cost": -1382607
     },
     "2025": {
-     "trades": 86,
-     "win_rate": 37.2,
-     "after_cost": -1674818
+     "trades": 97,
+     "win_rate": 38.1,
+     "after_cost": -1079628
     },
     "2026": {
-     "trades": 65,
-     "win_rate": 41.5,
-     "after_cost": -668693
+     "trades": 84,
+     "win_rate": 42.9,
+     "after_cost": -872934
     }
    }
   },
   "drop5__m2": {
-   "trades": 479,
-   "win_rate": 51.8,
-   "total_pnl": -918218,
-   "after_cost": -1356978,
-   "max_drawdown": -2120748,
-   "avg_ret_pct": -0.15,
+   "trades": 725,
+   "win_rate": 53.4,
+   "total_pnl": 22935,
+   "after_cost": -637862,
+   "max_drawdown": -2278503,
+   "avg_ret_pct": 0.05,
    "by_year": {
     "2024": {
-     "trades": 100,
-     "win_rate": 56.0,
-     "after_cost": 232630
+     "trades": 283,
+     "win_rate": 57.6,
+     "after_cost": 873733
     },
     "2025": {
      "trades": 235,
@@ -597,24 +597,24 @@
      "after_cost": -1090453
     },
     "2026": {
-     "trades": 144,
-     "win_rate": 52.8,
-     "after_cost": -499154
+     "trades": 207,
+     "win_rate": 52.2,
+     "after_cost": -421141
     }
    }
   },
   "drop5__lk25c": {
-   "trades": 546,
-   "win_rate": 49.8,
-   "total_pnl": 248503,
-   "after_cost": -248796,
-   "max_drawdown": -1338257,
-   "avg_ret_pct": 0.14,
+   "trades": 828,
+   "win_rate": 51.6,
+   "total_pnl": 1389102,
+   "after_cost": 637577,
+   "max_drawdown": -1570109,
+   "avg_ret_pct": 0.24,
    "by_year": {
     "2024": {
-     "trades": 112,
-     "win_rate": 55.4,
-     "after_cost": 160476
+     "trades": 319,
+     "win_rate": 55.8,
+     "after_cost": 713574
     },
     "2025": {
      "trades": 259,
@@ -622,24 +622,24 @@
      "after_cost": -337423
     },
     "2026": {
-     "trades": 175,
-     "win_rate": 48.6,
-     "after_cost": -71849
+     "trades": 250,
+     "win_rate": 49.6,
+     "after_cost": 261426
     }
    }
   },
   "drop5__h20": {
-   "trades": 225,
-   "win_rate": 45.8,
-   "total_pnl": -2863043,
-   "after_cost": -3064984,
+   "trades": 325,
+   "win_rate": 47.1,
+   "total_pnl": -2833058,
+   "after_cost": -3125079,
    "max_drawdown": -4452829,
-   "avg_ret_pct": -1.3,
+   "avg_ret_pct": -1.02,
    "by_year": {
     "2024": {
-     "trades": 28,
-     "win_rate": 64.3,
-     "after_cost": 106470
+     "trades": 106,
+     "win_rate": 51.9,
+     "after_cost": -765740
     },
     "2025": {
      "trades": 113,
@@ -647,149 +647,149 @@
      "after_cost": -1603767
     },
     "2026": {
-     "trades": 84,
-     "win_rate": 46.4,
-     "after_cost": -1567687
+     "trades": 106,
+     "win_rate": 49.1,
+     "after_cost": -755571
     }
    }
   },
   "drop5_f4__m2": {
-   "trades": 233,
-   "win_rate": 52.4,
-   "total_pnl": -570912,
-   "after_cost": -780933,
-   "max_drawdown": -1845976,
-   "avg_ret_pct": -0.21,
+   "trades": 485,
+   "win_rate": 56.9,
+   "total_pnl": 1687200,
+   "after_cost": 1249688,
+   "max_drawdown": -1880829,
+   "avg_ret_pct": 0.45,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 188,
+     "win_rate": 64.4,
+     "after_cost": 1419450
     },
     "2025": {
-     "trades": 125,
-     "win_rate": 52.0,
-     "after_cost": -751916
+     "trades": 158,
+     "win_rate": 50.6,
+     "after_cost": -607067
     },
     "2026": {
-     "trades": 103,
-     "win_rate": 51.5,
-     "after_cost": -254219
+     "trades": 139,
+     "win_rate": 54.0,
+     "after_cost": 437306
     }
    }
   },
   "drop5_f4__lk25c": {
-   "trades": 260,
-   "win_rate": 50.4,
-   "total_pnl": 376119,
-   "after_cost": 142158,
-   "max_drawdown": -1240811,
-   "avg_ret_pct": 0.23,
+   "trades": 533,
+   "win_rate": 54.6,
+   "total_pnl": 2392318,
+   "after_cost": 1911182,
+   "max_drawdown": -1435012,
+   "avg_ret_pct": 0.53,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 206,
+     "win_rate": 59.7,
+     "after_cost": 1090698
     },
     "2025": {
-     "trades": 140,
-     "win_rate": 50.7,
-     "after_cost": -495288
+     "trades": 174,
+     "win_rate": 51.1,
+     "after_cost": -278366
     },
     "2026": {
-     "trades": 115,
-     "win_rate": 48.7,
-     "after_cost": 412244
+     "trades": 153,
+     "win_rate": 51.6,
+     "after_cost": 1098850
     }
    }
   },
   "drop5_f4__h20": {
-   "trades": 141,
-   "win_rate": 46.1,
-   "total_pnl": -775872,
-   "after_cost": -903511,
-   "max_drawdown": -1732346,
-   "avg_ret_pct": -0.5,
+   "trades": 240,
+   "win_rate": 48.3,
+   "total_pnl": -1397538,
+   "after_cost": -1613037,
+   "max_drawdown": -2427257,
+   "avg_ret_pct": -0.53,
    "by_year": {
     "2024": {
-     "trades": 4,
-     "win_rate": 25.0,
-     "after_cost": -143882
+     "trades": 78,
+     "win_rate": 53.8,
+     "after_cost": -1120623
     },
     "2025": {
-     "trades": 79,
-     "win_rate": 50.6,
-     "after_cost": -270253
+     "trades": 88,
+     "win_rate": 46.6,
+     "after_cost": -413564
     },
     "2026": {
-     "trades": 58,
-     "win_rate": 41.4,
-     "after_cost": -489375
+     "trades": 74,
+     "win_rate": 44.6,
+     "after_cost": -78850
     }
    }
   },
   "drop5_shortable__m2": {
-   "trades": 464,
-   "win_rate": 51.7,
-   "total_pnl": -787312,
-   "after_cost": -1212700,
-   "max_drawdown": -1992749,
-   "avg_ret_pct": -0.13,
+   "trades": 699,
+   "win_rate": 52.6,
+   "total_pnl": -416735,
+   "after_cost": -1052629,
+   "max_drawdown": -2189926,
+   "avg_ret_pct": -0.0,
    "by_year": {
     "2024": {
-     "trades": 97,
-     "win_rate": 55.7,
-     "after_cost": 259349
+     "trades": 276,
+     "win_rate": 57.2,
+     "after_cost": 874225
     },
     "2025": {
      "trades": 227,
-     "win_rate": 50.2,
-     "after_cost": -799873
+     "win_rate": 49.8,
+     "after_cost": -812549
     },
     "2026": {
-     "trades": 140,
-     "win_rate": 51.4,
-     "after_cost": -672176
+     "trades": 196,
+     "win_rate": 49.5,
+     "after_cost": -1114304
     }
    }
   },
   "drop5_shortable__lk25c": {
-   "trades": 529,
-   "win_rate": 49.0,
-   "total_pnl": -371176,
-   "after_cost": -853418,
-   "max_drawdown": -1706552,
-   "avg_ret_pct": 0.02,
+   "trades": 807,
+   "win_rate": 50.1,
+   "total_pnl": 163746,
+   "after_cost": -566690,
+   "max_drawdown": -2127305,
+   "avg_ret_pct": 0.09,
    "by_year": {
     "2024": {
-     "trades": 109,
-     "win_rate": 55.0,
-     "after_cost": 187196
+     "trades": 319,
+     "win_rate": 54.5,
+     "after_cost": 640187
     },
     "2025": {
      "trades": 248,
-     "win_rate": 48.4,
-     "after_cost": -505290
+     "win_rate": 48.0,
+     "after_cost": -517966
     },
     "2026": {
-     "trades": 172,
-     "win_rate": 45.9,
-     "after_cost": -535323
+     "trades": 240,
+     "win_rate": 46.2,
+     "after_cost": -688910
     }
    }
   },
   "drop5_shortable__h20": {
-   "trades": 222,
-   "win_rate": 46.4,
-   "total_pnl": -2596802,
-   "after_cost": -2796118,
-   "max_drawdown": -3792821,
-   "avg_ret_pct": -1.23,
+   "trades": 322,
+   "win_rate": 48.4,
+   "total_pnl": -2601351,
+   "after_cost": -2888974,
+   "max_drawdown": -3739383,
+   "avg_ret_pct": -0.8,
    "by_year": {
     "2024": {
-     "trades": 28,
-     "win_rate": 60.7,
-     "after_cost": -233818
+     "trades": 106,
+     "win_rate": 53.8,
+     "after_cost": -745897
     },
     "2025": {
      "trades": 109,
@@ -797,99 +797,99 @@
      "after_cost": -1049764
     },
     "2026": {
-     "trades": 85,
-     "win_rate": 45.9,
-     "after_cost": -1512535
+     "trades": 107,
+     "win_rate": 48.6,
+     "after_cost": -1093313
     }
    }
   },
   "drop5_f4+shortable__m2": {
-   "trades": 228,
-   "win_rate": 52.2,
-   "total_pnl": -534435,
-   "after_cost": -739834,
-   "max_drawdown": -1725892,
-   "avg_ret_pct": -0.19,
+   "trades": 481,
+   "win_rate": 56.3,
+   "total_pnl": 1000711,
+   "after_cost": 566923,
+   "max_drawdown": -1750575,
+   "avg_ret_pct": 0.31,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 187,
+     "win_rate": 63.6,
+     "after_cost": 1209051
     },
     "2025": {
-     "trades": 122,
-     "win_rate": 52.5,
-     "after_cost": -608537
+     "trades": 157,
+     "win_rate": 51.6,
+     "after_cost": -453375
     },
     "2026": {
-     "trades": 101,
-     "win_rate": 50.5,
-     "after_cost": -356499
+     "trades": 137,
+     "win_rate": 51.8,
+     "after_cost": -188752
     }
    }
   },
   "drop5_f4+shortable__lk25c": {
-   "trades": 253,
-   "win_rate": 50.2,
-   "total_pnl": 414007,
-   "after_cost": 186639,
-   "max_drawdown": -1119316,
-   "avg_ret_pct": 0.26,
+   "trades": 525,
+   "win_rate": 54.3,
+   "total_pnl": 1971013,
+   "after_cost": 1497423,
+   "max_drawdown": -1468095,
+   "avg_ret_pct": 0.46,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 204,
+     "win_rate": 59.8,
+     "after_cost": 1132744
     },
     "2025": {
-     "trades": 137,
-     "win_rate": 51.1,
-     "after_cost": -351909
+     "trades": 173,
+     "win_rate": 52.0,
+     "after_cost": -124674
     },
     "2026": {
-     "trades": 111,
-     "win_rate": 47.7,
-     "after_cost": 313347
+     "trades": 148,
+     "win_rate": 49.3,
+     "after_cost": 489353
     }
    }
   },
   "drop5_f4+shortable__h20": {
-   "trades": 137,
-   "win_rate": 45.3,
-   "total_pnl": -287976,
-   "after_cost": -411771,
-   "max_drawdown": -1255421,
-   "avg_ret_pct": -0.1,
+   "trades": 234,
+   "win_rate": 48.7,
+   "total_pnl": -1173598,
+   "after_cost": -1383323,
+   "max_drawdown": -1861126,
+   "avg_ret_pct": -0.4,
    "by_year": {
     "2024": {
-     "trades": 4,
-     "win_rate": 25.0,
-     "after_cost": -143882
+     "trades": 77,
+     "win_rate": 54.5,
+     "after_cost": -1036434
     },
     "2025": {
-     "trades": 77,
-     "win_rate": 49.4,
-     "after_cost": -91121
+     "trades": 87,
+     "win_rate": 47.1,
+     "after_cost": -120314
     },
     "2026": {
-     "trades": 56,
-     "win_rate": 41.1,
-     "after_cost": -176767
+     "trades": 70,
+     "win_rate": 44.3,
+     "after_cost": -226574
     }
    }
   },
   "drop8__m2": {
-   "trades": 404,
-   "win_rate": 56.4,
-   "total_pnl": -1041754,
-   "after_cost": -1407118,
+   "trades": 635,
+   "win_rate": 56.7,
+   "total_pnl": 844126,
+   "after_cost": 271670,
    "max_drawdown": -3017648,
-   "avg_ret_pct": -0.19,
+   "avg_ret_pct": 0.19,
    "by_year": {
     "2024": {
-     "trades": 92,
-     "win_rate": 66.3,
-     "after_cost": 977990
+     "trades": 259,
+     "win_rate": 60.6,
+     "after_cost": 1921543
     },
     "2025": {
      "trades": 192,
@@ -897,24 +897,24 @@
      "after_cost": -1475856
     },
     "2026": {
-     "trades": 120,
-     "win_rate": 55.8,
-     "after_cost": -909252
+     "trades": 184,
+     "win_rate": 56.0,
+     "after_cost": -174015
     }
    }
   },
   "drop8__lk25c": {
-   "trades": 447,
-   "win_rate": 53.9,
-   "total_pnl": 299057,
-   "after_cost": -104908,
-   "max_drawdown": -1739787,
-   "avg_ret_pct": 0.16,
+   "trades": 699,
+   "win_rate": 54.2,
+   "total_pnl": 1721499,
+   "after_cost": 1091633,
+   "max_drawdown": -1783711,
+   "avg_ret_pct": 0.31,
    "by_year": {
     "2024": {
-     "trades": 94,
-     "win_rate": 63.8,
-     "after_cost": 882299
+     "trades": 278,
+     "win_rate": 58.3,
+     "after_cost": 1466337
     },
     "2025": {
      "trades": 208,
@@ -922,24 +922,24 @@
      "after_cost": -615663
     },
     "2026": {
-     "trades": 145,
-     "win_rate": 50.3,
-     "after_cost": -371544
+     "trades": 213,
+     "win_rate": 51.2,
+     "after_cost": 240960
     }
    }
   },
   "drop8__h20": {
-   "trades": 200,
-   "win_rate": 46.0,
-   "total_pnl": -3095557,
-   "after_cost": -3274459,
-   "max_drawdown": -3793954,
-   "avg_ret_pct": -1.65,
+   "trades": 290,
+   "win_rate": 50.0,
+   "total_pnl": -673091,
+   "after_cost": -932575,
+   "max_drawdown": -3975735,
+   "avg_ret_pct": -0.39,
    "by_year": {
     "2024": {
-     "trades": 25,
-     "win_rate": 56.0,
-     "after_cost": -500876
+     "trades": 97,
+     "win_rate": 56.7,
+     "after_cost": 467886
     },
     "2025": {
      "trades": 106,
@@ -947,99 +947,99 @@
      "after_cost": -590034
     },
     "2026": {
-     "trades": 69,
-     "win_rate": 42.0,
-     "after_cost": -2183548
+     "trades": 87,
+     "win_rate": 47.1,
+     "after_cost": -810428
     }
    }
   },
   "drop8_f4__m2": {
-   "trades": 183,
-   "win_rate": 54.6,
-   "total_pnl": -1437151,
-   "after_cost": -1605226,
-   "max_drawdown": -2316434,
-   "avg_ret_pct": -0.69,
+   "trades": 385,
+   "win_rate": 58.2,
+   "total_pnl": 622274,
+   "after_cost": 273722,
+   "max_drawdown": -1933538,
+   "avg_ret_pct": 0.27,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 156,
+     "win_rate": 60.9,
+     "after_cost": 682913
     },
     "2025": {
-     "trades": 93,
-     "win_rate": 52.7,
-     "after_cost": -1427083
+     "trades": 119,
+     "win_rate": 57.1,
+     "after_cost": -468931
     },
     "2026": {
-     "trades": 85,
-     "win_rate": 55.3,
-     "after_cost": -403345
+     "trades": 110,
+     "win_rate": 55.5,
+     "after_cost": 59740
     }
    }
   },
   "drop8_f4__lk25c": {
-   "trades": 202,
-   "win_rate": 53.5,
-   "total_pnl": -181444,
-   "after_cost": -366118,
-   "max_drawdown": -1415797,
-   "avg_ret_pct": 0.06,
+   "trades": 415,
+   "win_rate": 55.9,
+   "total_pnl": 1762795,
+   "after_cost": 1387459,
+   "max_drawdown": -1289024,
+   "avg_ret_pct": 0.52,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 170,
+     "win_rate": 58.2,
+     "after_cost": 891304
     },
     "2025": {
-     "trades": 105,
-     "win_rate": 51.4,
-     "after_cost": -977748
+     "trades": 126,
+     "win_rate": 54.0,
+     "after_cost": -341774
     },
     "2026": {
-     "trades": 92,
-     "win_rate": 54.3,
-     "after_cost": 386427
+     "trades": 119,
+     "win_rate": 54.6,
+     "after_cost": 837928
     }
    }
   },
   "drop8_f4__h20": {
-   "trades": 117,
-   "win_rate": 37.6,
-   "total_pnl": -2351241,
-   "after_cost": -2456787,
-   "max_drawdown": -2790203,
-   "avg_ret_pct": -2.27,
+   "trades": 202,
+   "win_rate": 50.0,
+   "total_pnl": -1016350,
+   "after_cost": -1195590,
+   "max_drawdown": -2514915,
+   "avg_ret_pct": -0.54,
    "by_year": {
     "2024": {
-     "trades": 4,
-     "win_rate": 25.0,
-     "after_cost": -143882
+     "trades": 68,
+     "win_rate": 58.8,
+     "after_cost": -467335
     },
     "2025": {
-     "trades": 65,
-     "win_rate": 38.5,
-     "after_cost": -1003898
+     "trades": 73,
+     "win_rate": 43.8,
+     "after_cost": -217164
     },
     "2026": {
-     "trades": 48,
-     "win_rate": 37.5,
-     "after_cost": -1309006
+     "trades": 61,
+     "win_rate": 47.5,
+     "after_cost": -511090
     }
    }
   },
   "drop8_shortable__m2": {
-   "trades": 386,
-   "win_rate": 56.5,
-   "total_pnl": -842282,
-   "after_cost": -1191189,
+   "trades": 611,
+   "win_rate": 56.0,
+   "total_pnl": 331290,
+   "after_cost": -217652,
    "max_drawdown": -2848767,
-   "avg_ret_pct": -0.14,
+   "avg_ret_pct": 0.13,
    "by_year": {
     "2024": {
-     "trades": 91,
-     "win_rate": 65.9,
-     "after_cost": 1050141
+     "trades": 257,
+     "win_rate": 59.9,
+     "after_cost": 1720046
     },
     "2025": {
      "trades": 185,
@@ -1047,24 +1047,24 @@
      "after_cost": -1223424
     },
     "2026": {
-     "trades": 110,
-     "win_rate": 54.5,
-     "after_cost": -1017906
+     "trades": 169,
+     "win_rate": 53.3,
+     "after_cost": -714274
     }
    }
   },
   "drop8_shortable__lk25c": {
-   "trades": 423,
-   "win_rate": 53.7,
-   "total_pnl": -5998,
-   "after_cost": -387068,
-   "max_drawdown": -2072857,
-   "avg_ret_pct": 0.12,
+   "trades": 670,
+   "win_rate": 54.0,
+   "total_pnl": 1353116,
+   "after_cost": 751463,
+   "max_drawdown": -1784848,
+   "avg_ret_pct": 0.28,
    "by_year": {
     "2024": {
-     "trades": 93,
-     "win_rate": 63.4,
-     "after_cost": 954450
+     "trades": 276,
+     "win_rate": 58.0,
+     "after_cost": 1433738
     },
     "2025": {
      "trades": 196,
@@ -1072,24 +1072,24 @@
      "after_cost": -538603
     },
     "2026": {
-     "trades": 134,
-     "win_rate": 47.8,
-     "after_cost": -802915
+     "trades": 198,
+     "win_rate": 49.5,
+     "after_cost": -143671
     }
    }
   },
   "drop8_shortable__h20": {
-   "trades": 189,
-   "win_rate": 46.0,
-   "total_pnl": -1755149,
-   "after_cost": -1925377,
-   "max_drawdown": -2479772,
-   "avg_ret_pct": -0.97,
+   "trades": 276,
+   "win_rate": 48.9,
+   "total_pnl": -869424,
+   "after_cost": -1115747,
+   "max_drawdown": -2827205,
+   "avg_ret_pct": -0.34,
    "by_year": {
     "2024": {
-     "trades": 23,
-     "win_rate": 56.5,
-     "after_cost": -460122
+     "trades": 94,
+     "win_rate": 56.4,
+     "after_cost": 520267
     },
     "2025": {
      "trades": 102,
@@ -1097,84 +1097,84 @@
      "after_cost": -774669
     },
     "2026": {
-     "trades": 64,
-     "win_rate": 45.3,
-     "after_cost": -690586
+     "trades": 80,
+     "win_rate": 46.2,
+     "after_cost": -861345
     }
    }
   },
   "drop8_f4+shortable__m2": {
-   "trades": 178,
-   "win_rate": 54.5,
-   "total_pnl": -1290927,
-   "after_cost": -1454356,
-   "max_drawdown": -2046281,
-   "avg_ret_pct": -0.61,
+   "trades": 377,
+   "win_rate": 57.8,
+   "total_pnl": 670374,
+   "after_cost": 329142,
+   "max_drawdown": -1793639,
+   "avg_ret_pct": 0.3,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 154,
+     "win_rate": 61.0,
+     "after_cost": 818392
     },
     "2025": {
-     "trades": 92,
-     "win_rate": 53.3,
-     "after_cost": -1295934
+     "trades": 118,
+     "win_rate": 57.6,
+     "after_cost": -337782
     },
     "2026": {
-     "trades": 81,
-     "win_rate": 54.3,
-     "after_cost": -383624
+     "trades": 105,
+     "win_rate": 53.3,
+     "after_cost": -151466
     }
    }
   },
   "drop8_f4+shortable__lk25c": {
-   "trades": 196,
-   "win_rate": 53.6,
-   "total_pnl": -118260,
-   "after_cost": -297384,
-   "max_drawdown": -1265226,
-   "avg_ret_pct": 0.1,
+   "trades": 406,
+   "win_rate": 55.7,
+   "total_pnl": 1590085,
+   "after_cost": 1223157,
+   "max_drawdown": -1232165,
+   "avg_ret_pct": 0.49,
    "by_year": {
     "2024": {
-     "trades": 5,
-     "win_rate": 80.0,
-     "after_cost": 225202
+     "trades": 169,
+     "win_rate": 58.6,
+     "after_cost": 928741
     },
     "2025": {
-     "trades": 104,
-     "win_rate": 52.9,
-     "after_cost": -823524
+     "trades": 125,
+     "win_rate": 55.2,
+     "after_cost": -187550
     },
     "2026": {
-     "trades": 87,
-     "win_rate": 52.9,
-     "after_cost": 300937
+     "trades": 112,
+     "win_rate": 51.8,
+     "after_cost": 481967
     }
    }
   },
   "drop8_f4+shortable__h20": {
-   "trades": 114,
-   "win_rate": 37.7,
-   "total_pnl": -1875273,
-   "after_cost": -1978046,
-   "max_drawdown": -2314235,
-   "avg_ret_pct": -1.87,
+   "trades": 196,
+   "win_rate": 50.5,
+   "total_pnl": -871283,
+   "after_cost": -1044920,
+   "max_drawdown": -2050087,
+   "avg_ret_pct": -0.46,
    "by_year": {
     "2024": {
-     "trades": 4,
-     "win_rate": 25.0,
-     "after_cost": -143882
+     "trades": 67,
+     "win_rate": 59.7,
+     "after_cost": -335075
     },
     "2025": {
-     "trades": 64,
-     "win_rate": 39.1,
-     "after_cost": -710648
+     "trades": 72,
+     "win_rate": 44.4,
+     "after_cost": 76085
     },
     "2026": {
-     "trades": 46,
-     "win_rate": 37.0,
-     "after_cost": -1123515
+     "trades": 57,
+     "win_rate": 47.4,
+     "after_cost": -785930
     }
    }
   }

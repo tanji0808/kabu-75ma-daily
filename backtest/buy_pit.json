@@ -1,53 +1,193 @@
 {
- "generated": "2026-11-22 12:19",
+ "generated": "2026-11-22 14:07",
  "window": [
-  "2025-05-16",
-  "2026-08-28"
+  "2017-05-18",
+  "2026-11-20"
  ],
  "min_rank": 6,
  "results": {
   "all": {
-   "trades": 364,
-   "win_rate": 53.3,
-   "avg_ret_pct": 2.32,
-   "pnl_yen_100man_each": 8430100,
-   "avg_excess_pct": 1.38
+   "trades": 1547,
+   "win_rate": 46.1,
+   "avg_ret_pct": 0.69,
+   "pnl_yen_100man_each": 10651200,
+   "avg_excess_pct": 0.42
   },
   "now_rank6": {
-   "trades": 159,
-   "win_rate": 57.9,
-   "avg_ret_pct": 4.21,
-   "pnl_yen_100man_each": 6695300,
-   "avg_excess_pct": 3.0
+   "trades": 693,
+   "win_rate": 49.6,
+   "avg_ret_pct": 1.51,
+   "pnl_yen_100man_each": 10481500,
+   "avg_excess_pct": 1.18
   },
   "pit_rank6": {
-   "trades": 113,
-   "win_rate": 55.8,
-   "avg_ret_pct": 2.78,
-   "pnl_yen_100man_each": 3139600,
-   "avg_excess_pct": 1.6
+   "trades": 599,
+   "win_rate": 48.6,
+   "avg_ret_pct": 1.34,
+   "pnl_yen_100man_each": 8031100,
+   "avg_excess_pct": 1.09
+  },
+  "by_year": {
+   "2021": {
+    "now_rank6": {
+     "trades": 76,
+     "win_rate": 40.8,
+     "avg_ret_pct": -0.05,
+     "pnl_yen_100man_each": -39300,
+     "avg_excess_pct": 0.22
+    },
+    "pit_rank6": {
+     "trades": 74,
+     "win_rate": 37.8,
+     "avg_ret_pct": -0.21,
+     "pnl_yen_100man_each": -157800,
+     "avg_excess_pct": -0.28
+    },
+    "all": {
+     "trades": 165,
+     "win_rate": 35.8,
+     "avg_ret_pct": -0.63,
+     "pnl_yen_100man_each": -1031400,
+     "avg_excess_pct": -0.73
+    }
+   },
+   "2022": {
+    "now_rank6": {
+     "trades": 172,
+     "win_rate": 39.5,
+     "avg_ret_pct": -0.19,
+     "pnl_yen_100man_each": -320200,
+     "avg_excess_pct": 0.7
+    },
+    "pit_rank6": {
+     "trades": 161,
+     "win_rate": 44.1,
+     "avg_ret_pct": 0.03,
+     "pnl_yen_100man_each": 40700,
+     "avg_excess_pct": 0.78
+    },
+    "all": {
+     "trades": 378,
+     "win_rate": 40.5,
+     "avg_ret_pct": -0.22,
+     "pnl_yen_100man_each": -828000,
+     "avg_excess_pct": 0.6
+    }
+   },
+   "2023": {
+    "now_rank6": {
+     "trades": 98,
+     "win_rate": 66.3,
+     "avg_ret_pct": 2.7,
+     "pnl_yen_100man_each": 2645500,
+     "avg_excess_pct": 1.41
+    },
+    "pit_rank6": {
+     "trades": 80,
+     "win_rate": 62.5,
+     "avg_ret_pct": 3.04,
+     "pnl_yen_100man_each": 2431400,
+     "avg_excess_pct": 1.65
+    },
+    "all": {
+     "trades": 217,
+     "win_rate": 59.9,
+     "avg_ret_pct": 1.68,
+     "pnl_yen_100man_each": 3636900,
+     "avg_excess_pct": 0.26
+    }
+   },
+   "2024": {
+    "now_rank6": {
+     "trades": 137,
+     "win_rate": 43.8,
+     "avg_ret_pct": 0.75,
+     "pnl_yen_100man_each": 1024100,
+     "avg_excess_pct": 0.27
+    },
+    "pit_rank6": {
+     "trades": 131,
+     "win_rate": 42.0,
+     "avg_ret_pct": 0.6,
+     "pnl_yen_100man_each": 787500,
+     "avg_excess_pct": 0.47
+    },
+    "all": {
+     "trades": 302,
+     "win_rate": 41.1,
+     "avg_ret_pct": 0.23,
+     "pnl_yen_100man_each": 681800,
+     "avg_excess_pct": 0.06
+    }
+   },
+   "2025": {
+    "now_rank6": {
+     "trades": 124,
+     "win_rate": 57.3,
+     "avg_ret_pct": 3.65,
+     "pnl_yen_100man_each": 4525300,
+     "avg_excess_pct": 2.03
+    },
+    "pit_rank6": {
+     "trades": 76,
+     "win_rate": 61.8,
+     "avg_ret_pct": 5.7,
+     "pnl_yen_100man_each": 4333300,
+     "avg_excess_pct": 3.87
+    },
+    "all": {
+     "trades": 264,
+     "win_rate": 54.5,
+     "avg_ret_pct": 2.67,
+     "pnl_yen_100man_each": 7038400,
+     "avg_excess_pct": 1.11
+    }
+   },
+   "2026": {
+    "now_rank6": {
+     "trades": 86,
+     "win_rate": 57.0,
+     "avg_ret_pct": 3.08,
+     "pnl_yen_100man_each": 2646100,
+     "avg_excess_pct": 2.91
+    },
+    "pit_rank6": {
+     "trades": 77,
+     "win_rate": 51.9,
+     "avg_ret_pct": 0.77,
+     "pnl_yen_100man_each": 596000,
+     "avg_excess_pct": 0.8
+    },
+    "all": {
+     "trades": 221,
+     "win_rate": 46.6,
+     "avg_ret_pct": 0.52,
+     "pnl_yen_100man_each": 1153500,
+     "avg_excess_pct": 0.8
+    }
+   }
   },
   "both": {
-   "trades": 69,
-   "win_rate": 59.4,
-   "avg_ret_pct": 4.27,
-   "pnl_yen_100man_each": 2946500,
-   "avg_excess_pct": 2.82
+   "trades": 332,
+   "win_rate": 51.8,
+   "avg_ret_pct": 2.09,
+   "pnl_yen_100man_each": 6950400,
+   "avg_excess_pct": 1.61
   },
   "now_only": {
-   "trades": 90,
-   "win_rate": 56.7,
-   "avg_ret_pct": 4.17,
-   "pnl_yen_100man_each": 3748800,
-   "avg_excess_pct": 3.15
+   "trades": 361,
+   "win_rate": 47.6,
+   "avg_ret_pct": 0.98,
+   "pnl_yen_100man_each": 3531100,
+   "avg_excess_pct": 0.78
   },
   "pit_only": {
-   "trades": 44,
-   "win_rate": 50.0,
-   "avg_ret_pct": 0.44,
-   "pnl_yen_100man_each": 193100,
-   "avg_excess_pct": -0.32
+   "trades": 267,
+   "win_rate": 44.6,
+   "avg_ret_pct": 0.4,
+   "pnl_yen_100man_each": 1080700,
+   "avg_excess_pct": 0.45
   },
-  "pit_rank_missing": 13
+  "pit_rank_missing": 22
  }
 }
