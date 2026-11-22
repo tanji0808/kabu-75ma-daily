@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import time
 from datetime import date, datetime, timedelta
@@ -27,6 +28,7 @@ OUT = "data/jq"
 START = os.environ.get("JQ_START", "")          # 例 2024-11-01。空なら今日から2年13週間前
 WAIT = float(os.environ.get("JQ_WAIT", "13"))   # 無料プランは1分に5回まで
 MAX_MIN = float(os.environ.get("JQ_MAX_MINUTES", "300"))
+SAVE_MIN = float(os.environ.get("JQ_SAVE_MINUTES", "20"))   # この間隔で途中経過をGitHubに保存する（0なら保存しない）
 COLS = ["DiscDate", "DiscTime", "Code", "DocType", "CurPerType", "CurPerSt", "CurPerEn", "CurFYSt", "CurFYEn",
         "Sales", "OP", "NP", "EPS", "BPS", "Eq", "TA", "DivAnn", "FDivAnn", "NxFDivAnn",
         "FSales", "FOP", "FNP", "FEPS", "NxFSales", "NxFOP", "NxFNp", "NxFEPS", "ShOutFY", "TrShFY"]
@@ -54,6 +56,26 @@ def call(path: str, **params) -> tuple[int, list, str]:
             return 200, rows, ""
 
 
+def save(old: pd.DataFrame, new: list, done: dict, fpath: str, dpath: str, push: bool) -> pd.DataFrame:
+    """取得した分をファイルに書き、push=True ならGitHubにも保存する（実行環境が途中で落ちても残るように）。"""
+    df = old
+    if new:
+        df = pd.concat([old, pd.DataFrame(new, columns=COLS).astype(str)], ignore_index=True)
+        df = df.drop_duplicates(["DiscDate", "DiscTime", "Code", "DocType"], keep="last")
+        df.to_csv(fpath, index=False, compression="gzip")
+    json.dump(dict(sorted(done.items())), open(dpath, "w"), indent=0)
+    if push and os.environ.get("GITHUB_ACTIONS"):
+        cmds = [["git", "add", OUT], ["git", "commit", "-q", "-m", f"J-Quantsの決算データ（途中経過・{len(done)}日分）"],
+                ["git", "pull", "-q", "--rebase", "origin", "main"], ["git", "push", "-q"]]
+        for c in cmds:
+            r = subprocess.run(c, capture_output=True, text=True)
+            if r.returncode and c[1] != "commit":
+                print("  保存に失敗:", " ".join(c), r.stderr[:200])
+                break
+        print(f"  途中経過を保存しました（{len(done)}日分・{len(df)}件）")
+    return df
+
+
 def main() -> None:
     if not KEY:
         sys.exit("JQUANTS_API_KEY が設定されていません")
@@ -75,27 +97,34 @@ def main() -> None:
         d += timedelta(days=1)
     print(f"取得する日数: {len(days)}（取得済み {len(done)}日）")
     new = []
+    last_save = time.time()
     for n, d in enumerate(days):
+        if SAVE_MIN and (time.time() - last_save) / 60 > SAVE_MIN:
+            old = save(old, new, done, fpath, dpath, push=True)
+            new, last_save = [], time.time()
         if (time.time() - t0) / 60 > MAX_MIN:
             print("時間の上限に達したので、続きは次回取得します")
             break
         st, rows, msg = call("/fins/summary", date=d.strftime("%Y%m%d"))
         if st != 200:
-            # 契約プランの期間外（直近12週間など）は記録せず、次回また試す
             print(f"  {d} HTTP {st} {msg}")
+            # 契約プランより古い日は取れないので記録して飛ばす。直近12週間などは記録せず、次回また試す
+            if st in (400, 403) and d < date.today() - timedelta(weeks=100):
+                done[d.isoformat()] = -1
             continue
         if d < date.today() - timedelta(weeks=13) or rows:
             done[d.isoformat()] = len(rows)   # 無料プランで見えない直近の日は、あとで見えるようになるので記録しない
         new +=[{c: x.get(c) for c in COLS} for x in rows]
         if n % 25 == 0:
             print(f"  {d} {len(rows)}件（{n + 1}/{len(days)}）")
-    if new:
-        df = pd.concat([old, pd.DataFrame(new, columns=COLS).astype(str)], ignore_index=True)
-        df = df.drop_duplicates(["DiscDate", "DiscTime", "Code", "DocType"], keep="last")
-        df.to_csv(fpath, index=False, compression="gzip")
-        print(f"決算の概要: 合計 {len(df)}件（今回 {len(new)}件）")
-    json.dump(dict(sorted(done.items())), open(dpath, "w"), indent=0)
-    print(f"かかった時間: {(time.time() - t0) / 60:.0f}分 / 更新 {datetime.now():%Y-%m-%d %H:%M}")
+    df = save(old, new, done, fpath, dpath, push=False)
+    print(f"決算の概要: 合計 {len(df)}件")
+    # まだ取れていない日（直近13週間を除く）の数。0になったら検証に進む
+    limit = date.today() - timedelta(weeks=13)
+    left = sum(1 for x in days if x.isoformat() not in done and x < limit)
+    with open(os.path.join(OUT, "remaining.txt"), "w") as f:
+        f.write(str(left))
+    print(f"まだ取れていない日: {left}日 / かかった時間: {(time.time() - t0) / 60:.0f}分 / 更新 {datetime.now():%Y-%m-%d %H:%M}")
 
 
 if __name__ == "__main__":

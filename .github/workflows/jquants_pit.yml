@@ -2,14 +2,19 @@ name: 過去の決算データ（J-Quants）で空売り・買いを検証し直
 
 on:
   workflow_dispatch:
+    inputs:
+      chain:
+        description: "自動で続きを実行した回数（手動で動かすときは0のまま）"
+        default: "0"
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   pit:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,29 +22,48 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: J-Quantsから決算の概要を取得（取得済みの日は飛ばす。無料プランは1分5回までなので初回は約2時間）
-        env:
-          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
-          JQ_MAX_MINUTES: "270"
-        run: python tools/jquants_fetch.py
-      - name: 取得したデータを保存（途中で止まっても、ここまでの分は残す）
-        if: always()
+      - name: Gitの設定（途中経過の保存用）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: J-Quantsから決算の概要を取得（取得済みの日は飛ばす。20分ごとに途中経過を保存）
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_MAX_MINUTES: "100"
+          JQ_SAVE_MINUTES: "20"
+        run: python tools/jquants_fetch.py
+      - name: 取得したデータを保存
+        if: always()
+        run: |
           git add data/jq || true
-          git commit -m "J-Quantsの決算データを更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
+          git commit -q -m "J-Quantsの決算データを更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q
-      - name: その時点の決算でランクを付け直して検証
+      - name: まだ取れていない日があれば、続きを自動で実行（最大8回）
+        id: left
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          left=$(cat data/jq/remaining.txt 2>/dev/null || echo 999)
+          echo "left=$left" >> "$GITHUB_OUTPUT"
+          echo "まだ取れていない日: $left"
+          chain=${{ inputs.chain || '0' }}
+          if [ "$left" -gt 0 ] && [ "$chain" -lt 8 ]; then
+            gh workflow run jquants_pit.yml --ref main -f chain=$((chain + 1))
+            echo "続きを実行しました（$((chain + 1))回目）"
+          fi
+      - name: その時点の決算でランクを付け直して空売りを検証
+        if: steps.left.outputs.left == '0'
         env:
           TZ: Asia/Tokyo
         run: python short_rel_pit.py
       - name: 買い（採用ルール）もその時点の決算でランクを付け直して確かめる
+        if: steps.left.outputs.left == '0'
         env:
           TZ: Asia/Tokyo
         run: python buy_pit.py
       - name: 結果を保存
+        if: steps.left.outputs.left == '0'
         run: |
           git add backtest/short_rel_pit* backtest/buy_pit*
-          git commit -m "過去の決算データでの空売り検証の結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
+          git commit -m "過去の決算データでの検証結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q
