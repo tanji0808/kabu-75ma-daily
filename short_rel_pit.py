@@ -35,6 +35,7 @@ import short_bw2_backtest as b2  # noqa: E402
 
 PERIOD = os.environ.get("BT_PERIOD", "6y")
 OUT = "backtest"
+SUF = "" if PERIOD == "6y" else f"_{PERIOD}"
 COST = 0.001
 L, G, FMAX = 10, 5, 4
 NUM = ["Sales", "OP", "NP", "EPS", "BPS", "Eq", "TA", "DivAnn", "FDivAnn", "NxFDivAnn",
@@ -142,7 +143,8 @@ def main() -> None:
     all_d = sorted({r["DiscDate"] for v in fins.values() for r in v})
     last_disc = all_d[-1]
     w0 = None
-    for d in all_d[::5]:
+    first_px = min(df.index[bw.WARMUP].strftime("%Y-%m-%d") for df in clean.values())
+    for d in [x for x in all_d if x >= first_px][::5]:
         have = sum(1 for c in clean if any(r["CurPerType"] == "FY" and r["DiscDate"] <= d for r in fins.get(c, [])))
         if have >= 0.8 * len(clean):
             w0 = d
@@ -197,7 +199,7 @@ def main() -> None:
     res = {}
     for name, tr in raw.items():
         taken = sb.portfolio(tr)
-        pd.DataFrame(taken).to_csv(os.path.join(OUT, f"short_rel_pit_trades_{name}.csv"), index=False, encoding="utf-8-sig")
+        pd.DataFrame(taken).to_csv(os.path.join(OUT, f"short_rel_pit_trades_{name}{SUF}.csv"), index=False, encoding="utf-8-sig")
         st = sb.stats(taken)
         if taken:
             d = pd.DataFrame(taken)
@@ -212,7 +214,7 @@ def main() -> None:
               f"勝率 {st.get('win_rate')}%")
     print("ランク4以下の判定の一致:", agree)
     os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, "short_rel_pit.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT, f"short_rel_pit{SUF}.json"), "w", encoding="utf-8") as f:
         json.dump({"generated": datetime.now().strftime("%Y-%m-%d %H:%M"), "window": [w0, last_disc],
                    "companies_with_fins": len(fins), "rank_agreement": agree, "results": res}, f, ensure_ascii=False, indent=1)
 

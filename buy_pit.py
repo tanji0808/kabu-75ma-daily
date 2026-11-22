@@ -28,6 +28,8 @@ import short_rel_pit as sp  # noqa: E402
 TRADES = os.environ.get("BUY_TRADES", "backtest/trades_trail_calm5_rsi60.csv")
 MIN_RANK = 6
 LOT = 1_000_000
+PERIOD = os.environ.get("BT_PERIOD", "6y")
+SUF = "" if PERIOD == "6y" else f"_{PERIOD}"
 
 
 def group(d: pd.DataFrame) -> dict:
@@ -55,7 +57,7 @@ def main() -> None:
             break
     t = t[(t["signal"] >= w0) & (t["signal"] <= last_disc)].copy()
     print(f"期間 {w0} 〜 {last_disc}：買いの取引 {len(t)}件")
-    prices = k.download_prices(codes, period="3y")
+    prices = k.download_prices(codes, period=PERIOD)
     clean = {c: sb.clean(df) for c, df in prices.items()}
     closes = pd.DataFrame({c: d["Close"] for c, d in clean.items() if len(d)})
     closes.index = pd.to_datetime(closes.index).tz_localize(None).normalize()
@@ -74,13 +76,16 @@ def main() -> None:
     t["frank_pit"] = [pit.get(s, {}).get(c) for s, c in zip(t["signal"], t["code"])]
     now6 = t["frank"].fillna(-1) >= MIN_RANK
     pit6 = t["frank_pit"].fillna(-1) >= MIN_RANK
-    res = {"all": group(t), "now_rank6": group(t[now6]), "pit_rank6": group(t[pit6]),
+    yr = t["signal"].str[:4]
+    by_year = {y: {"now_rank6": group(t[now6 & (yr == y)]), "pit_rank6": group(t[pit6 & (yr == y)]), "all": group(t[yr == y])}
+               for y in sorted(yr.unique())}
+    res = {"all": group(t), "now_rank6": group(t[now6]), "pit_rank6": group(t[pit6]), "by_year": by_year,
            "both": group(t[now6 & pit6]), "now_only": group(t[now6 & ~pit6]), "pit_only": group(t[~now6 & pit6]),
            "pit_rank_missing": int(t["frank_pit"].isna().sum())}
     for kname, v in res.items():
         print(kname, v)
-    t.to_csv("backtest/buy_pit_trades.csv", index=False, encoding="utf-8-sig")
-    with open("backtest/buy_pit.json", "w", encoding="utf-8") as f:
+    t.to_csv(f"backtest/buy_pit_trades{SUF}.csv", index=False, encoding="utf-8-sig")
+    with open(f"backtest/buy_pit{SUF}.json", "w", encoding="utf-8") as f:
         json.dump({"generated": datetime.now().strftime("%Y-%m-%d %H:%M"), "window": [w0, last_disc],
                    "min_rank": MIN_RANK, "results": res}, f, ensure_ascii=False, indent=1)
 

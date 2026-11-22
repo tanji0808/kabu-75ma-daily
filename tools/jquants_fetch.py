@@ -76,6 +76,39 @@ def save(old: pd.DataFrame, new: list, done: dict, fpath: str, dpath: str, push:
     return df
 
 
+MCOLS = ["Date", "PubDate", "Code", "IssType", "ShrtVol", "LongVol", "ShrtStdVol", "LongStdVol", "ShrtNegVol", "LongNegVol"]
+
+
+def fetch_margin(start: date, t0: float) -> None:
+    """信用取引の週末残高（/markets/margin-interest）を、週ごと（金曜。休みなら木曜）にためる。スタンダード以上のプランのみ。"""
+    mpath, mdpath = os.path.join(OUT, "margin_interest.csv.gz"), os.path.join(OUT, "margin_dates.json")
+    done = json.load(open(mdpath)) if os.path.exists(mdpath) else {}
+    old = pd.read_csv(mpath, dtype=str) if os.path.exists(mpath) else pd.DataFrame(columns=MCOLS)
+    new = []
+    d = start
+    while d <= date.today() - timedelta(days=3):
+        if d.weekday() == 4 and d.isoformat() not in done:
+            for back in range(0, 3):          # 金曜が休みなら木曜・水曜
+                x = d - timedelta(days=back)
+                st, rows, msg = call("/markets/margin-interest", date=x.strftime("%Y%m%d"))
+                if st == 403:
+                    print("  信用残はこのプランでは取れません")
+                    return
+                if st == 200 and rows:
+                    new += [{c: r.get(c) for c in MCOLS} for r in rows]
+                    break
+            done[d.isoformat()] = len(rows) if st == 200 else 0
+            if (time.time() - t0) / 60 > MAX_MIN:
+                break
+        d += timedelta(days=1)
+    if new:
+        df = pd.concat([old, pd.DataFrame(new, columns=MCOLS).astype(str)], ignore_index=True)
+        df = df.drop_duplicates(["Date", "Code"], keep="last")
+        df.to_csv(mpath, index=False, compression="gzip")
+        print(f"信用残: 合計 {len(df)}件（今回 {len(new)}件）")
+    json.dump(dict(sorted(done.items())), open(mdpath, "w"), indent=0)
+
+
 def main() -> None:
     if not KEY:
         sys.exit("JQUANTS_API_KEY が設定されていません")
@@ -126,6 +159,8 @@ def main() -> None:
     left = sum(1 for x in days if x.isoformat() not in done and x < limit)
     with open(os.path.join(OUT, "remaining.txt"), "w") as f:
         f.write(str(left))
+    if os.environ.get("JQ_MARGIN") == "1" and (time.time() - t0) / 60 < MAX_MIN:
+        fetch_margin(start, t0)
     print(f"まだ取れていない日: {left}日 / かかった時間: {(time.time() - t0) / 60:.0f}分 / 更新 {datetime.now():%Y-%m-%d %H:%M}")
 
 

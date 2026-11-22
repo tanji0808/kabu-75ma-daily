@@ -38,6 +38,7 @@ jobs:
           JQ_MAX_MINUTES: "100"
           JQ_START: ${{ inputs.start }}
           JQ_WAIT: ${{ inputs.wait || '13' }}
+          JQ_MARGIN: ${{ inputs.wait != '13' && inputs.wait != '' && '1' || '0' }}
           JQ_SAVE_MINUTES: "20"
         run: python tools/jquants_fetch.py
       - name: 取得したデータを保存
@@ -63,12 +64,16 @@ jobs:
         if: steps.left.outputs.left == '0'
         env:
           TZ: Asia/Tokyo
-        run: python short_rel_pit.py
+        run: |
+          python short_rel_pit.py
+          if [ -n "${{ inputs.start }}" ]; then BT_PERIOD=11y python short_rel_pit.py; fi
       - name: 買い（採用ルール）もその時点の決算でランクを付け直して確かめる
         if: steps.left.outputs.left == '0'
         env:
           TZ: Asia/Tokyo
-        run: python buy_pit.py
+        run: |
+          python buy_pit.py
+          if [ -n "${{ inputs.start }}" ]; then BT_PERIOD=11y python buy_pit.py; fi
       - name: 貸借銘柄だけ・決算直後の下げで空売りを検証
         if: steps.left.outputs.left == '0'
         env:
