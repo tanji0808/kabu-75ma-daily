@@ -1,0 +1,30 @@
+name: 採用候補の手法を、実際のコストとリスクを減らす工夫で検証し直す
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      TZ: Asia/Tokyo
+      K_DELISTED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python strategy_eval.py
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backtest/strategy_eval.json backtest/strategy_trades_*
+          git commit -m "採用候補の手法の検証（コスト・決算・権利日）を更新" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
