@@ -1,0 +1,45 @@
+name: J-Quantsの追加データ（空売り残高・空売り比率・日々の信用残・投資部門別・TOPIX）を取得
+
+on:
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: "自動で続きを実行した回数"
+        default: "0"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 取得（15分ごとにファイルへ保存）
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_WAIT: "0.55"
+          JQ_MAX_MINUTES: "200"
+        run: python tools/jquants_more.py
+      - name: 保存
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/jq || true
+          git commit -q -m "J-Quantsの追加データを更新" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
+      - name: 残りがあれば続きを実行（最大5回）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          left=$(cat data/jq/more_remaining.txt 2>/dev/null || echo 1)
+          chain=${{ inputs.chain || '0' }}
+          if [ "$left" != "0" ] && [ "$chain" -lt 5 ]; then gh workflow run jquants_more.yml --ref main -f chain=$((chain + 1)); fi
