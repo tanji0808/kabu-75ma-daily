@@ -87,6 +87,8 @@ def main() -> None:
         print(f"上場銘柄一覧: {len(rows)}件")
     dpath, fpath = os.path.join(OUT, "fins_dates.json"), os.path.join(OUT, "fins_summary.csv.gz")
     done = json.load(open(dpath)) if os.path.exists(dpath) else {}
+    # 前に「契約プランの期間外」で取れなかった日は、プランを変えたら取れることがあるので毎回もう一度試す
+    done = {d: n for d, n in done.items() if n != -1}
     old = pd.read_csv(fpath, dtype=str) if os.path.exists(fpath) else pd.DataFrame(columns=COLS)
     start = date.fromisoformat(START) if START else date.today() - timedelta(weeks=2 * 52 + 13)
     days = []

@@ -6,6 +6,12 @@ on:
       chain:
         description: "自動で続きを実行した回数（手動で動かすときは0のまま）"
         default: "0"
+      start:
+        description: "決算データを取り始める日（空なら2年13週間前。スタンダードなら10年前など）"
+        default: ""
+      wait:
+        description: "1回ごとに待つ秒数（無料=13、ライト・スタンダード=1.1。決算の概要は1分60回まで）"
+        default: "13"
 
 permissions:
   contents: write
@@ -30,6 +36,8 @@ jobs:
         env:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
           JQ_MAX_MINUTES: "100"
+          JQ_START: ${{ inputs.start }}
+          JQ_WAIT: ${{ inputs.wait || '13' }}
           JQ_SAVE_MINUTES: "20"
         run: python tools/jquants_fetch.py
       - name: 取得したデータを保存
@@ -48,7 +56,7 @@ jobs:
           echo "まだ取れていない日: $left"
           chain=${{ inputs.chain || '0' }}
           if [ "$left" -gt 0 ] && [ "$chain" -lt 8 ]; then
-            gh workflow run jquants_pit.yml --ref main -f chain=$((chain + 1))
+            gh workflow run jquants_pit.yml --ref main -f chain=$((chain + 1)) -f start="${{ inputs.start }}" -f wait="${{ inputs.wait || '13' }}"
             echo "続きを実行しました（$((chain + 1))回目）"
           fi
       - name: その時点の決算でランクを付け直して空売りを検証
