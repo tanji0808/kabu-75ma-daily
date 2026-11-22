@@ -1,0 +1,31 @@
+name: 上場廃止銘柄の株価をJ-Quantsから取得
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 過去の上場銘柄一覧と、上場廃止銘柄の日足を取得
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_WAIT: "0.6"
+        run: python tools/jquants_delisted.py
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/jq/master_history.csv.gz data/jq/delisted_bars.csv.gz
+          git commit -m "J-Quantsの過去の上場銘柄一覧と上場廃止銘柄の日足を追加" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
