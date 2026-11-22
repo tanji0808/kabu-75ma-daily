@@ -61,9 +61,14 @@ jobs:
         env:
           TZ: Asia/Tokyo
         run: python buy_pit.py
+      - name: 貸借銘柄だけ・決算直後の下げで空売りを検証
+        if: steps.left.outputs.left == '0'
+        env:
+          TZ: Asia/Tokyo
+        run: python short_jq_extra.py
       - name: 結果を保存
         if: steps.left.outputs.left == '0'
         run: |
-          git add backtest/short_rel_pit* backtest/buy_pit*
+          git add backtest/short_rel_pit* backtest/buy_pit* backtest/short_jq_extra.json backtest/short_earn_trades_*
           git commit -m "過去の決算データでの検証結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q
