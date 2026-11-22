@@ -20,7 +20,7 @@ permissions:
 jobs:
   pit:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +35,7 @@ jobs:
       - name: J-Quantsから決算の概要を取得（取得済みの日は飛ばす。20分ごとに途中経過を保存）
         env:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
-          JQ_MAX_MINUTES: "100"
+          JQ_MAX_MINUTES: "70"
           JQ_START: ${{ inputs.start }}
           JQ_WAIT: ${{ inputs.wait || '13' }}
           JQ_MARGIN: ${{ inputs.wait != '13' && inputs.wait != '' && '1' || '0' }}
@@ -73,7 +73,7 @@ jobs:
           TZ: Asia/Tokyo
         run: |
           python buy_pit.py
-          if [ -n "${{ inputs.start }}" ]; then BT_PERIOD=11y python buy_pit.py; fi
+          if [ -n "${{ inputs.start }}" ]; then BT_PERIOD=11y BUY_TRADES=backtest10/trades_trail_calm5_rsi60.csv python buy_pit.py; fi
       - name: 貸借銘柄だけ・決算直後の下げで空売りを検証
         if: steps.left.outputs.left == '0'
         env:
@@ -82,6 +82,6 @@ jobs:
       - name: 結果を保存
         if: steps.left.outputs.left == '0'
         run: |
-          git add backtest/short_rel_pit* backtest/buy_pit* backtest/short_jq_extra.json backtest/short_earn_trades_*
+          git add backtest/short_rel_pit* backtest/buy_pit* backtest/short_jq_extra.json data/jq backtest/short_earn_trades_*
           git commit -m "過去の決算データでの検証結果を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)" || echo "変更なし"
           git pull --rebase -q origin main && git push -q
