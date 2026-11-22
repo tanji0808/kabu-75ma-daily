@@ -2,6 +2,10 @@ name: J-Quants APIの動作確認
 
 on:
   workflow_dispatch:
+    inputs:
+      paths:
+        description: "確認するAPI（カンマ区切り）"
+        default: "/fins/summary"
 
 jobs:
   probe:
@@ -16,4 +20,5 @@ jobs:
       - name: APIキーと取れるデータを確認
         env:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          PROBE: ${{ inputs.paths }}
         run: python tools/jquants_probe.py

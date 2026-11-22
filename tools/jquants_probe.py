@@ -38,8 +38,7 @@ def get(path, **params):
     return j
 
 
-get("/fins/summary", code="7203")
-time.sleep(13)
-get("/equities/master")
-time.sleep(13)
-get("/equities/bars/daily", code="7203")
+import os as _os
+for _p in _os.environ.get("PROBE", "/fins/summary").split(","):
+    get(_p, code="7203")
+    time.sleep(13)
