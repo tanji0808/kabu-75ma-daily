@@ -48,7 +48,10 @@ def main() -> None:
         clean[code] = df
     closes = pd.DataFrame({c: d["Close"] for c, d in clean.items()}).sort_index()
     loose = os.environ.get("BUY_LOOSE") == "1"
-    buy = pd.read_csv("backtest/buy_candidates_loose_11y.csv.gz" if loose else "backtest/buy_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
+    fc_in = os.environ.get("FC_IN")          # 別の候補表（例: backtest/newhigh_candidates_11y.csv.gz）に付けるとき
+    if fc_in:
+        loose = True
+    buy = pd.read_csv(fc_in or ("backtest/buy_candidates_loose_11y.csv.gz" if loose else "backtest/buy_candidates_11y.csv.gz"), dtype={"code": str}, usecols=["code", "signal"])
     short = pd.read_csv("backtest/short_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
     if loose:
         short = short.iloc[:0]
@@ -110,7 +113,7 @@ def main() -> None:
         return pd.DataFrame(out)
 
     if loose:
-        build(buy).to_csv("backtest/fund_components_buy_loose.csv.gz", index=False, compression="gzip")
+        build(buy).to_csv(os.environ.get("FC_OUT", "backtest/fund_components_buy_loose.csv.gz"), index=False, compression="gzip")
         print("保存しました"); return
     build(buy).to_csv("backtest/fund_components_buy.csv.gz", index=False, compression="gzip")
     build(short).to_csv("backtest/fund_components_short.csv.gz", index=False, compression="gzip")
