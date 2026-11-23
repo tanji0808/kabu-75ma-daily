@@ -387,6 +387,7 @@ def ipo_list() -> pd.DataFrame:
             if m and cd:
                 rows.append({"list_date": f"{m.group(1)}-{m.group(2)}-{m.group(3)}", "code": cd.group(1), "tech": "*" in txt.split(cd.group(1))[0]})
     d = pd.DataFrame(rows).drop_duplicates("code") if rows else pd.DataFrame(columns=["list_date", "code", "tech"])
+    print(f"  JPXの新規上場のページ: {len(d)}件（テクニカル上場 {int(d['tech'].sum()) if len(d) else 0}件）")
     # J-Quants で取った過去のIPO（data/jq/ipo_list）も足す（ページから外れた分の保険）
     if os.path.exists("data/jq/ipo_bars.csv.gz"):
         b = pd.read_csv("data/jq/ipo_bars.csv.gz", dtype={"Code": str}, usecols=["Date", "Code"])
@@ -864,6 +865,7 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         import kabu_75ma_search as k
         lst = ipo_list()
         info["ipo_n"] = len(lst)
+        print(f"  IPO銘柄（直近1年）: {len(lst)}件・最新 {lst.sort_values('list_date').tail(3)[['list_date', 'code']].values.tolist()}")
         if len(lst):
             ipo_prices = k.download_prices(sorted(lst["code"].unique()), period="2y")
             ipo_prices = {c: d for c, d in ipo_prices.items() if len(d)}
