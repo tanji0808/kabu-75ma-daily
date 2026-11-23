@@ -53,10 +53,20 @@ EXITS = {"s8": dict(stop=0.08), "s8tp20": dict(stop=0.08, tp=0.20), "s8tp25": di
          "s6tp25": dict(stop=0.06, tp=0.25), "s10tp25": dict(stop=0.10, tp=0.25), "s8tp30": dict(stop=0.08, tp=0.30),
          "s8tp40": dict(stop=0.08, tp=0.40), "s5tp15": dict(stop=0.05, tp=0.15), "s8tp25h60": dict(stop=0.08, tp=0.25, hold=60),
          "s8tp25be": dict(stop=0.08, tp=0.25, be=0.10), "s8tp25c": dict(stop=0.08, tp=0.25, entry="close"),
-         "s8tp25p": dict(stop=0.08, tp=0.25, entry="pull"), "s8tp25tr": dict(stop=0.08, tp=0.25, trail=0.15)}
+         "s8tp25p": dict(stop=0.08, tp=0.25, entry="pull"), "s8tp25tr": dict(stop=0.08, tp=0.25, trail=0.15),
+         # 伸ばす売り方（−6%損切り）。lock=損切り幅ぶん上がったら損切りを買値+6%へ、そのあと mode で引き上げ
+         "s6": dict(stop=0.06), "s6lku1": dict(stop=0.06, lock=True, mode="u1"), "s6lku1h250": dict(stop=0.06, lock=True, mode="u1", hold=250),
+         "s6lkma25": dict(stop=0.06, lock=True, mode="ma25"), "s6lklow10": dict(stop=0.06, lock=True, mode="low10"),
+         "s6betr15": dict(stop=0.06, be=0.10, trail=0.15),
+         # +25%に届いたら売らずに、+15%を確保して伸ばす
+         "s6a25tr10": dict(stop=0.06, arm=0.25, armlock=0.15, armtrail=0.10), "s6a25tr10h250": dict(stop=0.06, arm=0.25, armlock=0.15, armtrail=0.10, hold=250),
+         "s6a25ma25": dict(stop=0.06, arm=0.25, armlock=0.15, mode="ma25"), "s6a25u1": dict(stop=0.06, arm=0.25, armlock=0.15, mode="u1"),
+         # 損切りを終値で判定（日中に−6%を割っても、終値で戻れば持ち続ける。終値で割ったら翌日の始値で売る）
+         "s6ctp25": dict(stop=0.06, tp=0.25, cstop=True), "s6clku1": dict(stop=0.06, lock=True, mode="u1", cstop=True),
+         "s8ctp25": dict(stop=0.08, tp=0.25, cstop=True)}
 
 
-def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box=False, hold=None, entry="open"):
+def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box=False, hold=None, entry="open", **kw):
     """entry: open=翌日の始値で買う／close=合図の日の終値で買う（翌日から判定）／pull=10日以内にピボットまで押したらそこで買う（初押し）"""
     o, h, l, c = a["o"], a["h"], a["l"], a["c"]
     n = len(c)
@@ -77,14 +87,19 @@ def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box
             return {"ret": np.nan, "exit": None, "days": None, "reason": "no_pull"} if t + 11 < n else None
     else:
         px0, start = o[e], e
-    res = _run(a, start, px0, stop, tp, ma, trail, be, box, t, mh, entry == "close")
+    res = _run(a, start, px0, stop, tp, ma, trail, be, box, t, mh, entry == "close", **kw)
     if res and entry != "open":
         res["in"] = a["dates"][start if entry == "pull" else t]
     return res
 
 
-def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first):
-    """full_first: 1日目もその日の始値から判定する（終値で買ったとき）"""
+def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=False, mode=None, arm=None, armlock=None,
+         armtrail=None, cstop=False):
+    """full_first: 1日目もその日の始値から判定する（終値で買ったとき）
+    lock : 終値が買値+損切り幅に届いたら、損切りを買値+損切り幅へ（75日線の買いと同じ）。そのあと mode で引き上げる
+    mode : u1=終値が+1σより上なら+1σまで / ma25=25日線まで / low10=直近10日の安値まで（lock か arm のあと）
+    arm  : 終値が買値+arm に届いたら、損切りを買値+armlock へ。そのあと armtrail（最高値からの下落率）か mode で引き上げる
+    cstop: 損切りを終値で判定（割ったら翌日の始値で売る）。引き上げたあとの線も終値で判定"""
     o, h, l, c = a["o"], a["h"], a["l"], a["c"]
     n = len(c)
     sl = entry * (1 - stop)
@@ -94,21 +109,41 @@ def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first):
     hc = entry
     px = xd = None
     reason = None
+    on = False                                             # 引き上げが始まったか
     for j in range(e, min(n, e + mh)):
-        if (j > e or full_first) and o[j] <= sl:
-            px, xd, reason = o[j], j, "stop"
-            break
-        if l[j] <= sl:
-            px, xd, reason = sl, j, "stop"
-            break
+        if not cstop:
+            if (j > e or full_first) and o[j] <= sl:
+                px, xd, reason = o[j], j, "stop"
+                break
+            if l[j] <= sl:
+                px, xd, reason = sl, j, "stop"
+                break
         if tp and h[j] >= entry * (1 + tp):
             px, xd, reason = max(o[j] if (j > e or full_first) else entry, entry * (1 + tp)), j, "tp"
+            break
+        if cstop and c[j] < sl:
+            if j + 1 >= n:
+                return None
+            px, xd, reason = o[j + 1], j + 1, "stop"
             break
         hc = max(hc, c[j])
         if be and c[j] >= entry * (1 + be):
             sl = max(sl, entry)
         if trail:
             sl = max(sl, hc * (1 - trail))
+        if lock and c[j] >= entry * (1 + stop):
+            sl, on = max(sl, entry * (1 + stop)), True
+        if arm and c[j] >= entry * (1 + arm):
+            sl, on = max(sl, entry * (1 + armlock)), True
+        if on:
+            if armtrail:
+                sl = max(sl, hc * (1 - armtrail))
+            if mode == "u1" and c[j] > a["u1"][j]:
+                sl = max(sl, a["u1"][j])
+            elif mode == "ma25" and a["m25"][j] == a["m25"][j]:
+                sl = max(sl, a["m25"][j])
+            elif mode == "low10":
+                sl = max(sl, l[max(e, j - 9):j + 1].min())
         if mav is not None and c[j] < mav[j]:
             if j + 1 < n:
                 px, xd, reason = o[j + 1], j + 1, "ma"
