@@ -49,16 +49,44 @@ MAX_HOLD = 120
 EXITS = {"s8": dict(stop=0.08), "s8tp20": dict(stop=0.08, tp=0.20), "s8tp25": dict(stop=0.08, tp=0.25),
          "s8ma25": dict(stop=0.08, ma=25), "s8ma50": dict(stop=0.08, ma=50), "s8tr10": dict(stop=0.08, trail=0.10),
          "s8tr15": dict(stop=0.08, trail=0.15), "s8be50": dict(stop=0.08, ma=50, be=0.10),
-         "s6ma50": dict(stop=0.06, ma=50), "s10ma50": dict(stop=0.10, ma=50), "box50": dict(stop=0.10, ma=50, box=True)}
+         "s6ma50": dict(stop=0.06, ma=50), "s10ma50": dict(stop=0.10, ma=50), "box50": dict(stop=0.10, ma=50, box=True),
+         "s6tp25": dict(stop=0.06, tp=0.25), "s10tp25": dict(stop=0.10, tp=0.25), "s8tp30": dict(stop=0.08, tp=0.30),
+         "s8tp40": dict(stop=0.08, tp=0.40), "s5tp15": dict(stop=0.05, tp=0.15), "s8tp25h60": dict(stop=0.08, tp=0.25, hold=60),
+         "s8tp25be": dict(stop=0.08, tp=0.25, be=0.10), "s8tp25c": dict(stop=0.08, tp=0.25, entry="close"),
+         "s8tp25p": dict(stop=0.08, tp=0.25, entry="pull"), "s8tp25tr": dict(stop=0.08, tp=0.25, trail=0.15)}
 
 
-def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box=False):
+def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box=False, hold=None, entry="open"):
+    """entry: open=翌日の始値で買う／close=合図の日の終値で買う（翌日から判定）／pull=10日以内にピボットまで押したらそこで買う（初押し）"""
     o, h, l, c = a["o"], a["h"], a["l"], a["c"]
     n = len(c)
+    mh = hold or MAX_HOLD
     e = t + 1
     if e >= n or not np.isfinite(o[e]) or o[e] <= 0:
         return None
-    entry = o[e]
+    if entry == "close":
+        px0, start = c[t], t + 1
+    elif entry == "pull":
+        pv = a["pivot"][t]
+        px0 = start = None
+        for j in range(t + 1, min(n, t + 11)):
+            if l[j] <= pv:
+                px0, start = min(o[j], pv), j
+                break
+        if px0 is None:
+            return {"ret": np.nan, "exit": None, "days": None, "reason": "no_pull"} if t + 11 < n else None
+    else:
+        px0, start = o[e], e
+    res = _run(a, start, px0, stop, tp, ma, trail, be, box, t, mh, entry == "close")
+    if res and entry != "open":
+        res["in"] = a["dates"][start if entry == "pull" else t]
+    return res
+
+
+def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first):
+    """full_first: 1日目もその日の始値から判定する（終値で買ったとき）"""
+    o, h, l, c = a["o"], a["h"], a["l"], a["c"]
+    n = len(c)
     sl = entry * (1 - stop)
     if box:
         sl = max(sl, a["pivot"][t] * 0.97) if a["pivot"][t] * 0.97 < entry else sl
@@ -66,15 +94,15 @@ def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box
     hc = entry
     px = xd = None
     reason = None
-    for j in range(e, min(n, e + MAX_HOLD)):
-        if j > e and o[j] <= sl:
+    for j in range(e, min(n, e + mh)):
+        if (j > e or full_first) and o[j] <= sl:
             px, xd, reason = o[j], j, "stop"
             break
         if l[j] <= sl:
             px, xd, reason = sl, j, "stop"
             break
         if tp and h[j] >= entry * (1 + tp):
-            px, xd, reason = max(o[j] if j > e else entry, entry * (1 + tp)), j, "tp"
+            px, xd, reason = max(o[j] if (j > e or full_first) else entry, entry * (1 + tp)), j, "tp"
             break
         hc = max(hc, c[j])
         if be and c[j] >= entry * (1 + be):
@@ -88,7 +116,7 @@ def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box
                 return None
             break
     if px is None:
-        last = e + MAX_HOLD - 1
+        last = e + mh - 1
         if last + 1 >= n:
             return None                                     # 検証期間の終わりで持ったまま
         px, xd, reason = o[last + 1], last + 1, "time"
