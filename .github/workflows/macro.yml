@@ -1,0 +1,27 @@
+name: 外部要因（米国株・VIX・為替など）の日足を保存
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/macro_fetch.py
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/macro.csv.gz
+          git commit -m "外部要因の日足" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
