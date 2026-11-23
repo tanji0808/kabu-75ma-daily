@@ -2,3 +2,5 @@ yfinance
 pandas
 xlrd
 openpyxl
+pdfplumber
+requests

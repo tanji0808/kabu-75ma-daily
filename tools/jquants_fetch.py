@@ -86,7 +86,7 @@ def fetch_margin(start: date, t0: float) -> None:
     old = pd.read_csv(mpath, dtype=str) if os.path.exists(mpath) else pd.DataFrame(columns=MCOLS)
     new = []
     d = start
-    while d <= date.today() - timedelta(days=3):
+    while d <= date.today() - timedelta(days=4):   # 金曜の分は翌週月曜の夕方に出るので、火曜以降に取る
         if d.weekday() == 4 and d.isoformat() not in done:
             for back in range(0, 3):          # 金曜が休みなら木曜・水曜
                 x = d - timedelta(days=back)

@@ -15,6 +15,7 @@
            金額 ＝ 点数で 0点50万・1点100万・2点150万・3点以上200万
            点数：10日でTOPIXより8%以上弱い／下方修正あり／25日線より3%以上上で割った／買い残2.5%以上／
                  直近1週間に「信用取引の注意・日々公表」に載った（4点以上も200万）
+           貸借銘柄だけ（制度信用で空売りできる銘柄。信用銘柄は除く）
            見送り：海外投資家の直近4週の差引（東証・名証）が約3,240億円以上の売り越しの時は空売りしない
            買い戻し：25日線逆指値（終値が−1σを割ったら、25日線に買い戻しの逆指値）＋終値が−2σ割れで利確／+1σ超えで損切り。
            同時10銘柄・建玉1,000万円まで（同じ日は点数の高い順）。
@@ -34,7 +35,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v3"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点（2026-11-23から）
+RULE_ID = "combo_v3"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ（2026-11-23から）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "10000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -99,10 +100,20 @@ def margin_latest() -> tuple[dict, str | None]:
                     print(f"  信用残（{d}）: {len(rows)}銘柄")
         except Exception as e:
             print(f"  信用残の取得に失敗（{e}）")
-    latest = max((v[-1][0] for v in hist.values() if v), default=None)
+    jp = "data/jpx/margin.csv.gz"                          # JPXの公開PDFから毎日ためた分（J-Quantsが無くても使える）
+    if os.path.exists(jp):
+        m = pd.read_csv(jp, dtype=str)
+        m["LongVol"] = pd.to_numeric(m["LongVol"], errors="coerce")
+        for c, g in m.groupby(m["Code"].str[:4]):
+            hist.setdefault(c, []).extend(zip(g["Date"], g["LongVol"]))
+    latest = max((max(x[0] for x in v) for v in hist.values() if v), default=None)
     out = {}
     for c, v in hist.items():
-        v = sorted(set(v))
+        wk = {}
+        for d_, lv in sorted(set(v)):                      # 週ごと（その週の最後の日）にそろえる。バックテストと同じ週次
+            if lv == lv:
+                wk[date.fromisoformat(d_[:10]).isocalendar()[:2]] = (d_, lv)
+        v = sorted(wk.values())
         if not v:
             continue
         lv = v[-1][1]
@@ -193,14 +204,19 @@ def foreign_flow() -> tuple[float | None, str | None]:
     elif st not in (0, 200):
         print(f"  投資部門別（海外投資家）を取得できませんでした（HTTP {st}）")
     it = it[it["Section"] == "TokyoNagoya"].copy()
+    jp = "data/jpx/investor.csv.gz"                       # JPXの公開Excelの分（同じ千円単位）
+    if os.path.exists(jp):
+        x = pd.read_csv(jp, dtype=str)
+        x = x[~x["EnDate"].isin(set(it.get("EnDate", [])))]
+        it = pd.concat([it, x.assign(Section="TokyoNagoya", PubDate=x["EnDate"])], ignore_index=True)
     if it.empty:
         return None, None
     it["FrgnBal"] = pd.to_numeric(it["FrgnBal"], errors="coerce")
-    it = it.drop_duplicates(["StDate", "EnDate"] if "StDate" in it else ["PubDate"], keep="last").sort_values("PubDate")
+    it = it.drop_duplicates(["EnDate"] if "EnDate" in it else ["PubDate"], keep="first").sort_values("EnDate" if "EnDate" in it else "PubDate")
     last = it.tail(4)
     if len(last) < 4:
         return None, None
-    return float(last["FrgnBal"].sum() / 1e8), str(last["PubDate"].iloc[-1])
+    return float(last["FrgnBal"].sum() / 1e8), str(last["EnDate"].iloc[-1] if "EnDate" in last else last["PubDate"].iloc[-1])
 
 
 def margin_alert_recent() -> set:
@@ -213,6 +229,27 @@ def margin_alert_recent() -> set:
             continue
         st, rows = _jq("/markets/margin-alert", date=x.strftime("%Y%m%d"))
         out |= {str(r.get("Code", ""))[:4] for r in rows}
+    p = "data/jpx/alert.csv.gz"                          # JPXの公開Excel（申込日）の分
+    if os.path.exists(p):
+        a = pd.read_csv(p, dtype=str).fillna("")
+        a = a[(a["Date"] >= (d - timedelta(days=8)).isoformat()) & (a["Code"] != "")]
+        out |= {c[:4] for c in a["Code"]}
+    out.discard("")
+    return out
+
+
+def loan_kind() -> dict:
+    """銘柄ごとの区分（貸=貸借銘柄・制=制度信用銘柄・他）。JPXの毎日のPDF → なければ J-Quants の銘柄一覧。"""
+    out = {}
+    p = "data/jq/master.csv"
+    if os.path.exists(p):
+        m = pd.read_csv(p, dtype=str)
+        out = {c[:4]: {"貸借": "貸", "信用": "制"}.get(n, "他") for c, n in zip(m["Code"], m["MrgnNm"])}
+    p = "data/jpx/margin.csv.gz"
+    if os.path.exists(p):
+        m = pd.read_csv(p, dtype=str)
+        m = m[(m["Date"] == m["Date"].max()) & m["Kind"].isin(["貸", "制", "他"])]
+        out.update({c[:4]: k for c, k in zip(m["Code"], m["Kind"])})
     return out
 
 
@@ -225,9 +262,10 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
     fins = fins_recent()
     names = dict(zip(master["コード"], master["銘柄名"]))
     val = valuation(master, prices, fins)
+    kind = loan_kind()
     frgn4, frgn_date = foreign_flow()
     alert = margin_alert_recent()
-    frgn_stale = frgn_date is None or (date.today() - date.fromisoformat(frgn_date[:10])).days > 14
+    frgn_stale = frgn_date is None or (date.today() - date.fromisoformat(frgn_date[:10])).days > 17
     info = {"frgn4": frgn4, "frgn_date": frgn_date, "frgn_ok": not frgn_stale, "alert_n": len(alert),
             "short_paused": (not frgn_stale) and frgn4 <= FRGN_LIMIT,
             "margin_date": mg_date, "fins_last": max((v[-1]["DiscDate"] for v in fins.values() if v), default=None)}
@@ -286,9 +324,12 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
         g = mg.get(code)
         lsh = g["long"] / sh * 100 if g and sh else None
         lchg = g["lchg"] if g else None
-        ok_margin = lsh is not None and lchg is not None
+        fresh = g is not None and mg_date is not None and (date.fromisoformat(mg_date[:10]) - date.fromisoformat(g["date"][:10])).days <= 10
+        ok_margin = lsh is not None and lchg is not None and fresh            # 信用残が古い銘柄は判定しない
         if ok_margin and not (lsh >= 1.0 and lchg < 0.2):
             continue
+        if kind.get(code) != "貸":
+            continue                                       # 貸借銘柄でないと制度信用で空売りできないので除く
         dev25 = (c[L] / m25.iloc[L] - 1) * 100
         pts = [("10日でTOPIXより8%以上弱い", rel10 <= -8), ("業績予想の下方修正あり", rev == -1),
                ("25日線より3%以上上で割った", dev25 >= 3), ("買い残2.5%以上", lsh is not None and lsh >= 2.5)]
@@ -418,7 +459,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
         warn += ('<p class="warn">海外投資家の売買（週ごと）のデータが古いか、取れていません（最新：' + h.escape(str(info.get("frgn_date"))) +
                  '）。判定できないため、空売りは記録しません。</p>')
     elif info.get("short_paused"):
-        warn += (f'<p class="warn">海外投資家が直近4週で大きく売り越し中（約{-f4 * 1000:,.0f}億円・{h.escape(str(info.get("frgn_date")))}公表まで）。'
+        warn += (f'<p class="warn">海外投資家が直近4週で大きく売り越し中（約{-f4 * 1000:,.0f}億円・{h.escape(str(info.get("frgn_date")))}までの週）。'
                  '下げ余地が小さい時期なので、空売りは見送ります。</p>')
     frgn_txt = "—" if f4 is None else (f"{f4 * 1000:+,.0f}億円（{'見送り中' if info.get('short_paused') else '空売りOK'}）")
     page = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -439,7 +480,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">買い・空売りの枠（各）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
 <div class="sub" style="margin-top:6px">購入金額 ＝ 点数で決まる金額 × 今の資金の規模（1回{CAP_PER / 1e4:,.0f}万円まで）。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
-<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}公表）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
+<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}</div>

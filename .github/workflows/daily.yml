@@ -57,6 +57,9 @@ jobs:
           JQ_SAVE_MINUTES: "0"
           JQ_MARGIN: "1"
         run: python tools/jquants_fetch.py
+      - name: JPXの公開ファイル（信用残・日々公表・投資部門別）をためる（失敗しても続ける）
+        continue-on-error: true
+        run: python tools/jpx_fetch.py
       - name: 東証プライムを検索
         env:
           TZ: Asia/Tokyo
@@ -69,7 +72,7 @@ jobs:
         run: python kabu_75ma_search.py
       - name: フォワードテストの記録を保存
         run: |
-          git add data/forward.json data/forward2.json data/jq 2>/dev/null || true
+          git add data/forward.json data/forward2.json data/jq data/jpx 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "フォワードテストの記録を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)"
             git pull --rebase -q origin main && git push -q
