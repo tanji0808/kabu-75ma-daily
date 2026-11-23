@@ -1,4 +1,4 @@
-name: JPXの公開ファイルの中身を確認
+name: JPXの公開ファイルの読み取りを試す（J-Quantsと照合）
 
 on:
   workflow_dispatch:
@@ -6,11 +6,14 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests pdfplumber openpyxl
-      - run: python tools/jpx_probe.py
+      - run: pip install requests pdfplumber openpyxl pandas
+      - run: python tools/jpx_fetch.py
+        env:
+          JPX_CHECK: "1"
+          JPX_DAYS: "12"
