@@ -43,3 +43,25 @@ for code, cost in pairs:
     print(f"ランク {ranks.get(code)}・PER業種比 {v.get('per_rel')}・PBR {v.get('pbr')}・配当利回り {v.get('dy')}%・ROE {v.get('roe')}・割高点数 {v.get('fs')}")
     print(f"業種の空売り比率 {sr_map.get(sec33.get(code))}・買い残 {mg.get(code)}")
     print(f"市場全体の新高値ブレイク件数 {nb}")
+# ---- 空売りの条件をひとつずつ（直近の日）
+import short_candidates as scm
+kind = f.loan_kind()
+for code, cost in pairs:
+    df = prices.get(code)
+    if df is None:
+        continue
+    c, v = df.Close.to_numpy(float), df.Volume.to_numpy(float)
+    s = pd.Series(c); m25 = s.rolling(25).mean(); sd = s.rolling(25).std(ddof=0); u1 = (m25 + sd).to_numpy()
+    t = tpx.reindex(df.index).ffill().to_numpy()
+    recs = [r for r in fins.get(code, [])]
+    sh = None
+    for r in reversed(recs):
+        if r["ShOutFY"] == r["ShOutFY"] and r["ShOutFY"]:
+            sh = r["ShOutFY"] - (r["TrShFY"] if r["TrShFY"] == r["TrShFY"] else 0); break
+    g = mg.get(code); lsh = g["long"] / sh * 100 if g and sh else None
+    print(f"===== 空売りの条件 {code} {names.get(code)}（貸借区分：{kind.get(code)}・割高点数 {val.get(code, {}).get('fs')}・買い残÷発行済 {lsh and round(lsh, 2)}%・4週の増加 {g and round(g['lchg'] * 100)}%・上方修正 {scm.rev_flag(recs, str(df.index[-1].date())) if recs else 0}）")
+    for L in range(len(c) - 15, len(c)):
+        walk = int(sum(c[j] > u1[j] for j in range(L - 10, L)))
+        brk = c[L - 1] > u1[L - 1] and c[L] < u1[L]
+        rel10 = (c[L] / c[L - 10] - 1 - (t[L] / t[L - 10] - 1)) * 100
+        print(f"  {df.index[L].date()} 終値{c[L]:,.0f} +1σ{u1[L]:,.0f} 割った:{'○' if brk else '×'} 前10日のうち+1σより上:{walk}日 TOPIXとの差10日:{rel10:+.1f}% 出来高{v[L]/1e4:,.0f}万株")
