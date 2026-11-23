@@ -537,7 +537,7 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     buys, shorts, info = candidates(master, prices, ranks)
     prev = evaluate(ledger, prices)
     eq = equity(prev)
-    buys.sort(key=lambda x: (-x["lot"], -(x.get("eg") or -9)))
+    buys.sort(key=lambda x: -(x.get("eg") if x.get("eg") is not None else -9))   # バックテストと同じ：同じ日は増益率の高い順
     shorts.sort(key=lambda x: (-x["score"], x["code"]))
     size(buys, prev, eq, "buy")
     size(shorts, prev, eq, "short")
