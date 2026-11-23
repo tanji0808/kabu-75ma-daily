@@ -23,6 +23,8 @@ res, eqs = {}, []
 for rule, g in tr.groupby("rule"):
     real = pd.Series(0.0, index=days)
     unreal = pd.Series(0.0, index=days)
+    neg = pd.Series(0.0, index=days)                      # 含み損の銘柄だけの合計
+    nopen = pd.Series(0, index=days)
     worst_one = (0.0, None)
     for r in g.itertuples():
         df = px.get(r.code)
@@ -35,6 +37,8 @@ for rule, g in tr.groupby("rule"):
         cl = df.loc[(df.index >= e) & (df.index < x), "Close"]
         u = r.amt * (cl / ep - 1)
         unreal = unreal.add(u.reindex(days).fillna(0), fill_value=0)
+        neg = neg.add(u.clip(upper=0).reindex(days).fillna(0), fill_value=0)
+        nopen = nopen.add(pd.Series(1, index=u.index).reindex(days).fillna(0).astype(int), fill_value=0)
         if len(u) and u.min() < worst_one[0]:
             worst_one = (float(u.min()), f"{r.code} {r.entry}（{u.min() / r.amt * 100:.1f}%）")
         real[real.index >= x] += r.amt * r.ret - r.amt * COST
@@ -42,8 +46,9 @@ for rule, g in tr.groupby("rule"):
     dd = eq - eq.cummax()
     i = dd.idxmin()
     res[rule] = {"確定のみの最大落ち込み": round((real - real.cummax()).min() / 1e4), "含み損込みの最大落ち込み": round(dd.min() / 1e4),
-                 "その日": str(i.date()), "その山の日": str(eq[:i].idxmax().date()), "最大の含み損合計": round(unreal.min() / 1e4),
-                 "その日の含み損": str(unreal.idxmin().date()), "1銘柄の最大含み損": round(worst_one[0] / 1e4, 1), "銘柄": worst_one[1],
+                 "落ち込みの底": str(i.date()), "その山の日": str(eq[:i].idxmax().date()), "含み損益の合計の最低": round(unreal.min() / 1e4),
+                 "含み損の銘柄だけの合計の最大": round(neg.min() / 1e4), "その日": str(neg.idxmin().date()),
+                 "その日の保有数": int(nopen[neg.idxmin()]), "その日の含み損の銘柄数": None, "1銘柄の最大含み損": round(worst_one[0] / 1e4, 1), "銘柄": worst_one[1],
                  "最終": round(real.iloc[-1] / 1e4)}
     eqs.append(pd.DataFrame({"rule": rule, "date": days.strftime("%Y-%m-%d"), "real": real.values.round(), "unreal": unreal.values.round()}))
     print(rule, res[rule])
