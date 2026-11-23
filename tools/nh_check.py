@@ -31,3 +31,14 @@ b = {x for x in b if x[0] in prices}
 print(f"直近60営業日：毎日の判定 {len(g)}件・バックテスト {len(b)}件・共通 {len(g & b)}件")
 print("毎日の判定だけ", sorted(g - b)[:15])
 print("バックテストだけ", sorted(b - g)[:15])
+# 市場の幅（新高値ブレイクの件数）を、バックテストの候補表から数えたものと比べる
+cl = {}
+for code, df in prices.items():
+    df = sb.clean(df); df.index = pd.to_datetime(df.index).tz_localize(None).normalize(); cl[code] = df
+full = pd.read_csv("backtest/newhigh_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "entry"]).dropna()
+full = full[full.code.isin(cl)]
+ent = pd.to_datetime(full.entry)
+for D in days[-40::8]:
+    T = pd.Timestamp(D)
+    bt_n = int(((ent >= T - pd.Timedelta(days=30)) & (ent <= T - pd.Timedelta(days=6))).sum())
+    print(f"件数 {D}: 毎日の計算 {f.nb_count(cl, T)} ・バックテスト {bt_n}")

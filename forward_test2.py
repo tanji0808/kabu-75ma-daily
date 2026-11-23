@@ -24,6 +24,7 @@
            PERが業種の0.95倍未満10／業種の空売り比率40.6%未満10／決算から10日以内5／買い残が発行済の0.36%以上5／52週安値から60%以上上5。
            さらに：業績予想の下方修正なし・相対的株価強度50以上・空売り残高報告の合計4%未満・信用取引の注意に載っていない。
            翌営業日の始値で買い、−6%で損切り・+25%で利確・120営業日で手じまい。金額は全銘柄同じ（新高値の枠÷12）。同じ日は点数の高い順。
+           市場全体の新高値ブレイクの件数（買った日が30〜6日前）が102件以下なら金額を半分、430件超なら見送り。
   資金の分け方 : 現物は 75日線の買い4割・新高値6割。空売りは信用の建玉で別枠。
 信用残・決算データは J-Quants（data/jq/ と API）。信用残が取れない日は空売りの判定ができないので「判定できず」と記録する。
 台帳 data/forward2.json には合図だけを保存し、損益は毎回株価から計算し直す。
@@ -53,6 +54,7 @@ ALLOC_BUY = 0.4
 ALLOC_NH = 0.6
 NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 ÷ 12）
 NH_STOP, NH_TP = 0.06, 0.25
+NB_HOT, NB_WEAK = 430, 102   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り・102件以下は弱い相場で半分
 NH_ITEMS = [("PBR1.07倍未満", 20), ("ランク6以上", 20), ("TOPIXも52週高値圏", 15), ("配当利回り2.3%以上", 10),
             ("PERが業種の0.95倍未満", 10), ("業種の空売り比率が低い", 10), ("決算から10日以内", 5),
             ("買い残が発行済の0.36%以上", 5), ("52週安値から60%以上上", 5)]
@@ -325,6 +327,27 @@ def nh_breakout(c, hi, v, L) -> tuple[bool, float, int]:
     return ok, float(piv), base_len
 
 
+def nb_count(prices: dict, today_=None) -> int:
+    """市場の幅：新高値ブレイクの件数。バックテストと同じく、買った日（合図の翌営業日）が today_ の30日前〜6日前のもの。"""
+    if today_ is None:
+        today_ = max(pd.Timestamp(df.index[-1]) for df in prices.values())
+    today_ = pd.Timestamp(today_)
+    today_ = (today_.tz_localize(None) if today_.tzinfo else today_).normalize()
+    n = 0
+    for code, df in prices.items():
+        if len(df) < 280:
+            continue
+        idx = pd.DatetimeIndex(df.index)
+        idx = (idx.tz_localize(None) if idx.tz is not None else idx).normalize()
+        cc, hh, vv = (df[x].to_numpy(float) for x in ("Close", "High", "Volume"))
+        end = int(idx.searchsorted(today_, side="right")) - 1
+        for j in range(max(260, end - 26), end):
+            ent = idx[j + 1]
+            if today_ - pd.Timedelta(days=30) <= ent <= today_ - pd.Timedelta(days=6) and nh_breakout(cc, hh, vv, j)[0]:
+                n += 1
+    return n
+
+
 def rs_table(prices: dict) -> dict:
     """相対的株価強度（3か月×2＋6・9・12か月の騰落率）の全銘柄の中での順位（0〜100）。"""
     raw = {}
@@ -362,6 +385,11 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
         jm = pd.read_csv("data/jq/master.csv", dtype=str)
         sec33 = {c_[:4]: int(x) for c_, x in zip(jm["Code"], jm["S33"]) if str(x).isdigit()}
     info.update(sr_date=sr_date, ss_date=ss_date)
+    # 市場の幅：直近の新高値ブレイクの件数（バックテストと同じ数え方：買った日＝合図の翌営業日が、今日の30日前〜6日前）
+    nb30 = nb_count(prices)
+    nb_state = "過熱（見送り）" if nb30 > NB_HOT else ("弱い（半分）" if nb30 <= NB_WEAK else "普通")
+    info.update(nb30=nb30, nb_state=nb_state)
+    nb_mult = 0.0 if nb30 > NB_HOT else (0.5 if nb30 <= NB_WEAK else 1.0)
     buys, shorts, nhs = [], [], []
     for code, df in prices.items():
         if len(df) < 260:
@@ -419,7 +447,7 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
                 score = sum(p_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_)
                 if score >= 60:
                     nhs.append({"date": sd_, "side": "newhigh", "code": code, "name": names.get(code, code), "rank": rk,
-                                "score": score, "lot": 1.0, "rs": round(rsv, 1), "reasons": [n_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_],
+                                "score": score, "lot": 1.0, "mult": nb_mult, "rs": round(rsv, 1), "reasons": [n_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_],
                                 "close": round(float(c[L]), 1), "pivot": round(float(piv), 1)})
         # ---- 空売り
         s = pd.Series(c)
@@ -633,7 +661,8 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 {warn}
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
-<p class="sub">損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%で損切り・+25%で利確（逆指値・指値を入れておく）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
+<p class="sub">市場全体の新高値ブレイクの件数（30〜6日前に買った分）：<b>{info.get('nb30', '—')}件・{h.escape(str(info.get('nb_state', '—')))}</b>
+（{NB_WEAK}件以下は弱い相場なので金額を半分、{NB_HOT}件超は過熱なので見送り）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%で損切り・+25%で利確（逆指値・指値を入れておく）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}</div>
 <div class="card"><h2 style="margin-top:0">これまでの成績（フォワードテスト）</h2><div class="stats">
 <div class="stat"><div class="k">買い：合図／決済済み</div><div class="v">{sb_['n']}／{sb_['closed']}件</div></div>
@@ -670,7 +699,7 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
         unit = lambda x: min(x["lot"] * 1e6 * ALLOC_BUY * eq / 1e7, CAP_PER)
     elif side == "newhigh":                                # 現物の6割を12等分（全銘柄同じ金額）
         cap, mx = eq * ALLOC_NH, NH_MAX
-        unit = lambda x: min(eq * ALLOC_NH / NH_MAX, CAP_PER)
+        unit = lambda x: min(eq * ALLOC_NH / NH_MAX, CAP_PER) * x.get("mult", 1.0)
     open_ = [r for r in rows if r["side"] == side and (r["status"] == "保有中" or r["status"].startswith("明日"))]
     used = sum(r.get("amount") or r["lot"] * 1e6 for r in open_)
     held = {r["code"] for r in open_}
@@ -681,6 +710,8 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
         x["shares"], x["amount"], x["cap"] = sh, round(sh * x["close"]) if sh else 0, cap
         if x.get("paused"):
             x["slot"] = "見送り（海外投資家が売り越し中）"
+        elif x.get("mult") == 0:
+            x["slot"] = "見送り（新高値が多すぎる過熱相場）"
         elif not sh:
             x["slot"] = "100株に届かない"
         elif x["code"] in held:
