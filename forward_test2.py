@@ -317,6 +317,14 @@ def short_report_sum() -> tuple[dict, str | None]:
     return (r.groupby(r["Code"].astype(str).str[:4])["ShrtPosToSO"].sum() * 100).to_dict(), str(r["DiscDate"].max())
 
 
+def nh_breakout(c, hi, v, L) -> tuple[bool, float, int]:
+    """新高値ブレイクの合図：終値が52週高値（前日までの250営業日）を初めて上に抜け、その高値は5営業日以上前、20日平均の売買代金3,000万円以上。"""
+    piv = hi[L - 250:L].max()
+    base_len = L - (L - 250 + int(np.argmax(hi[L - 250:L])))
+    ok = bool(c[L] > piv and c[L - 1] <= hi[L - 251:L - 1].max() and np.mean(c[L - 19:L + 1] * v[L - 19:L + 1]) >= 3e7 and base_len >= 5)
+    return ok, float(piv), base_len
+
+
 def rs_table(prices: dict) -> dict:
     """相対的株価強度（3か月×2＋6・9・12か月の騰落率）の全銘柄の中での順位（0〜100）。"""
     raw = {}
@@ -385,14 +393,13 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
             buys.append({"date": sd_, "side": "buy", "code": code, "name": names.get(code, code), "rank": int(rk),
                          "score": score, "lot": lot, "reasons": [n for n, ok in pts if ok], "eg": eg, "close": round(float(c[L]), 1)})
         # ---- 新高値ブレイク
-        piv = hi[L - 250:L].max()
-        if c[L] > piv and c[L - 1] <= hi[L - 251:L - 1].max() and np.mean(c[L - 19:L + 1] * v[L - 19:L + 1]) >= 3e7:
-            base_len = L - (L - 250 + int(np.argmax(hi[L - 250:L])))
+        brk, piv, base_len = nh_breakout(c, hi, v, L)
+        if brk:
             vv = val.get(code) or {}
             rev = sc.rev_flag(recs, sd_) if recs else 0
             rsv = rs.get(code)
             ssv = ss_map.get(code, 0.0)
-            if base_len >= 5 and rev != -1 and rsv is not None and rsv >= 50 and ssv < 4 and code not in alert:
+            if rev != -1 and rsv is not None and rsv >= 50 and ssv < 4 and code not in alert:
                 stm = [r for r in recs if "FinancialStatements" in str(r["DocType"])]
                 dsince = (df.index[L] - pd.Timestamp(stm[-1]["DiscDate"])).days if stm else None
                 sh = None
