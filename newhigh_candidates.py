@@ -63,7 +63,14 @@ EXITS = {"s8": dict(stop=0.08), "s8tp20": dict(stop=0.08, tp=0.20), "s8tp25": di
          "s6a25ma25": dict(stop=0.06, arm=0.25, armlock=0.15, mode="ma25"), "s6a25u1": dict(stop=0.06, arm=0.25, armlock=0.15, mode="u1"),
          # 損切りを終値で判定（日中に−6%を割っても、終値で戻れば持ち続ける。終値で割ったら翌日の始値で売る）
          "s6ctp25": dict(stop=0.06, tp=0.25, cstop=True), "s6clku1": dict(stop=0.06, lock=True, mode="u1", cstop=True),
-         "s8ctp25": dict(stop=0.08, tp=0.25, cstop=True)}
+         "s8ctp25": dict(stop=0.08, tp=0.25, cstop=True),
+         # 勝率を上げる工夫
+         "s6tp25cf": dict(stop=0.06, tp=0.25, entry="confirm"),          # 翌日も終値でピボットより上なら、その次の日の始値で買う
+         "s6tp25ts10": dict(stop=0.06, tp=0.25, ts=(10, 0.05)),          # 10日たっても+5%に届かなければ売る
+         "s6tp25ts5": dict(stop=0.06, tp=0.25, ts=(5, 0.03)),            # 5日たっても+3%に届かなければ売る
+         "s6h10tp25": dict(stop=0.06, tp=0.25, half=0.10),               # +10%で半分売る
+         "s6h10be": dict(stop=0.06, tp=0.25, half=0.10, hbe=True),       # +10%で半分売り、残りの損切りを買値へ
+         "s8h10be": dict(stop=0.08, tp=0.25, half=0.10, hbe=True)}
 
 
 def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box=False, hold=None, entry="open", **kw):
@@ -76,6 +83,12 @@ def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box
         return None
     if entry == "close":
         px0, start = c[t], t + 1
+    elif entry == "confirm":
+        if t + 2 >= n:
+            return None
+        if not c[t + 1] > a["pivot"][t]:
+            return {"ret": np.nan, "exit": None, "days": None, "reason": "no_confirm"}
+        px0, start = o[t + 2], t + 2
     elif entry == "pull":
         pv = a["pivot"][t]
         px0 = start = None
@@ -89,12 +102,12 @@ def sim(a: dict, t: int, stop: float, tp=None, ma=None, trail=None, be=None, box
         px0, start = o[e], e
     res = _run(a, start, px0, stop, tp, ma, trail, be, box, t, mh, entry == "close", **kw)
     if res and entry != "open":
-        res["in"] = a["dates"][start if entry == "pull" else t]
+        res["in"] = a["dates"][start if entry in ("pull", "confirm") else t]
     return res
 
 
 def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=False, mode=None, arm=None, armlock=None,
-         armtrail=None, cstop=False):
+         armtrail=None, cstop=False, ts=None, half=None, hbe=False):
     """full_first: 1日目もその日の始値から判定する（終値で買ったとき）
     lock : 終値が買値+損切り幅に届いたら、損切りを買値+損切り幅へ（75日線の買いと同じ）。そのあと mode で引き上げる
     mode : u1=終値が+1σより上なら+1σまで / ma25=25日線まで / low10=直近10日の安値まで（lock か arm のあと）
@@ -110,6 +123,7 @@ def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=Fals
     px = xd = None
     reason = None
     on = False                                             # 引き上げが始まったか
+    hpx = None                                             # 半分を売った値段
     for j in range(e, min(n, e + mh)):
         if not cstop:
             if (j > e or full_first) and o[j] <= sl:
@@ -118,6 +132,10 @@ def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=Fals
             if l[j] <= sl:
                 px, xd, reason = sl, j, "stop"
                 break
+        if half and hpx is None and h[j] >= entry * (1 + half):
+            hpx = max(o[j] if (j > e or full_first) else entry, entry * (1 + half))
+            if hbe:
+                sl = max(sl, entry)
         if tp and h[j] >= entry * (1 + tp):
             px, xd, reason = max(o[j] if (j > e or full_first) else entry, entry * (1 + tp)), j, "tp"
             break
@@ -127,6 +145,11 @@ def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=Fals
             px, xd, reason = o[j + 1], j + 1, "stop"
             break
         hc = max(hc, c[j])
+        if ts and j - e + 1 >= ts[0] and hc < entry * (1 + ts[1]):
+            if j + 1 >= n:
+                return None
+            px, xd, reason = o[j + 1], j + 1, "time_stop"
+            break
         if be and c[j] >= entry * (1 + be):
             sl = max(sl, entry)
         if trail:
@@ -155,6 +178,8 @@ def _run(a, e, entry, stop, tp, ma, trail, be, box, t, mh, full_first, lock=Fals
         if last + 1 >= n:
             return None                                     # 検証期間の終わりで持ったまま
         px, xd, reason = o[last + 1], last + 1, "time"
+    if hpx is not None:
+        px = (hpx + px) / 2
     return {"ret": round((px / entry - 1) * 100, 2), "exit": a["dates"][xd], "days": int(xd - e), "reason": reason}
 
 
@@ -225,7 +250,9 @@ def main() -> None:
                    "wk30up": bool(ma[150][t] > ma[150][t - 5]), "above_low": (c[t] / lo250[t] - 1) * 100,
                    "dev25": (c[t] / ma[25][t] - 1) * 100, "rsi": rsi[t], "rs_pct": rsv[t],
                    "tpx_ma200": bool(tp_[t] > t200v[t]), "tpx20": (tp_[t] / tp_[t - 20] - 1) * 100,
-                   "tpx_new": bool(tp_[t] >= thv[t] * 0.97)}
+                   "tpx_new": bool(tp_[t] >= thv[t] * 0.97),
+                   "gap_next": (o[t + 1] / c[t] - 1) * 100, "clv": (c[t] - l[t]) / (h[t] - l[t]) if h[t] > l[t] else np.nan,
+                   "wick": (h[t] - c[t]) / c[t] * 100}
             for L in (20, 60):
                 if tp_[t - L] == tp_[t - L]:
                     row[f"rel{L}"] = (c[t] / c[t - L] - 1 - (tp_[t] / tp_[t - L] - 1)) * 100
