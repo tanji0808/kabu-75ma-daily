@@ -42,6 +42,10 @@ import short_candidates as sc  # noqa: E402
 import short_rel_pit as sp  # noqa: E402
 
 PERIOD = os.environ["BT_PERIOD"]
+LOOSE = os.environ.get("BUY_LOOSE") == "1"   # 「約3か月の下落」の縛りを外して全部出し、期間ごとの下落の材料を付ける
+LB = (20, 40, 60, 90, 120, 180, 250)
+if LOOSE:
+    k.MA_DECLINE_MIN, k.BELOW_RATIO_MIN = -9.0, 0.0
 EXITS = {"cur": (None, False, "u1"), "t5": (5, False, "u1"), "t10": (10, False, "u1"), "half": (None, True, "u1"),
          "ma25": (None, False, "ma25"), "low10": (None, False, "low10"), "t10half": (10, True, "u1")}
 
@@ -139,6 +143,12 @@ def main() -> None:
                    "drop": (1 - l[max(0, t - 120):t + 1].min() / h[max(0, t - 120):t + 1].max()) * 100,
                    "tpx_ma75": bool(b75[t]), "tpx_ma200": bool(b200[t]),
                    "tpx20": (tpv[t] / tpv[t - 20] - 1) * 100 if tpv[t - 20] == tpv[t - 20] else np.nan}
+            if LOOSE:
+                below = c < ma75
+                for dd in LB:
+                    if t - dd >= 74:
+                        row[f"dec{dd}"] = (ma75[t - dd] / ma75[t] - 1) * 100
+                        row[f"below{dd}"] = float(below[t - dd:t - 5].mean())
             for L in (10, 20):
                 if tpv[t - L] == tpv[t - L]:
                     row[f"rel{L}"] = (c[t] / c[t - L] - 1 - (tpv[t] / tpv[t - L] - 1)) * 100
@@ -204,7 +214,7 @@ def main() -> None:
                     r[f"{name}_{x}"] = val
     out = pd.DataFrame(cand).drop(columns=["t"])
     os.makedirs("backtest", exist_ok=True)
-    out.to_csv("backtest/buy_candidates_11y.csv.gz", index=False, compression="gzip")
+    out.to_csv("backtest/buy_candidates_loose_11y.csv.gz" if LOOSE else "backtest/buy_candidates_11y.csv.gz", index=False, compression="gzip")
     print(f"保存しました: {len(out)}件")
 
 

@@ -47,8 +47,11 @@ def main() -> None:
         df.index = pd.to_datetime(df.index).tz_localize(None).normalize()
         clean[code] = df
     closes = pd.DataFrame({c: d["Close"] for c, d in clean.items()}).sort_index()
-    buy = pd.read_csv("backtest/buy_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
+    loose = os.environ.get("BUY_LOOSE") == "1"
+    buy = pd.read_csv("backtest/buy_candidates_loose_11y.csv.gz" if loose else "backtest/buy_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
     short = pd.read_csv("backtest/short_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
+    if loose:
+        short = short.iloc[:0]
     need = sorted(set(buy["signal"]) | set(short["signal"]))
     need = [d for d in need if d >= "2017-01-01"]
     pit_cache: dict = {}
@@ -106,6 +109,9 @@ def main() -> None:
                         "rg": m["rg"], "eg": m["eg"], "fg": fg, "dy": m["dy"], "eqr": m["eqr"]})
         return pd.DataFrame(out)
 
+    if loose:
+        build(buy).to_csv("backtest/fund_components_buy_loose.csv.gz", index=False, compression="gzip")
+        print("保存しました"); return
     build(buy).to_csv("backtest/fund_components_buy.csv.gz", index=False, compression="gzip")
     build(short).to_csv("backtest/fund_components_short.csv.gz", index=False, compression="gzip")
     print("保存しました")
