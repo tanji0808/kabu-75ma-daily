@@ -13,7 +13,9 @@
            割高点数：PERが業種の中央値の1.39倍以上で+1・2.57倍以上でさらに+1／PBR2.08倍以上で+1／配当利回り0.91%未満で+1／
                      PERが業種の0.87倍未満（黒字）で−1／配当利回り1.93%以上で−1
            金額 ＝ 点数で 0点50万・1点100万・2点150万・3点以上200万
-           点数：10日でTOPIXより8%以上弱い／下方修正あり／25日線より3%以上上で割った／買い残2.5%以上
+           点数：10日でTOPIXより8%以上弱い／下方修正あり／25日線より3%以上上で割った／買い残2.5%以上／
+                 直近1週間に「信用取引の注意・日々公表」に載った（4点以上も200万）
+           見送り：海外投資家の直近4週の差引（東証・名証）が約3,240億円以上の売り越しの時は空売りしない
            買い戻し：25日線逆指値（終値が−1σを割ったら、25日線に買い戻しの逆指値）＋終値が−2σ割れで利確／+1σ超えで損切り。
            同時10銘柄・建玉1,000万円まで（同じ日は点数の高い順）。
 信用残・決算データは J-Quants（data/jq/ と API）。信用残が取れない日は空売りの判定ができないので「判定できず」と記録する。
@@ -32,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v2"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く（2026-11-23から）
+RULE_ID = "combo_v3"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点（2026-11-23から）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "10000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -152,6 +154,68 @@ def valuation(master: pd.DataFrame, prices: dict, fins: dict) -> dict:
 
 
 # ------------------------------------------------------------------ 今日の候補
+def _jq(path: str, **params) -> tuple[int, list]:
+    """J-Quants API（ページ送りあり）。キーが無い・失敗したら (0, [])。"""
+    key = os.environ.get("JQUANTS_API_KEY", "").strip()
+    if not key:
+        return 0, []
+    try:
+        import requests
+        rows, pk = [], None
+        while True:
+            p = dict(params)
+            if pk:
+                p["pagination_key"] = pk
+            r = requests.get("https://api.jquants.com/v2" + path, headers={"x-api-key": key}, params=p, timeout=60)
+            if r.status_code != 200:
+                return r.status_code, rows
+            j = r.json()
+            rows += j.get("data", [])
+            pk = j.get("pagination_key")
+            if not pk:
+                return 200, rows
+    except Exception as e:
+        print(f"  J-Quants {path} の取得に失敗（{e}）")
+        return 0, []
+
+
+FRGN_LIMIT = -3.24   # 海外投資家の直近4週の差引（億円単位の内部値。約3,240億円の売り越し）以下なら空売りを見送る
+
+
+def foreign_flow() -> tuple[float | None, str | None]:
+    """海外投資家の直近4週の差引の合計（東証・名証合計）と、その最新の公表日。"""
+    p = "data/jq/investor_types.csv.gz"
+    it = pd.read_csv(p) if os.path.exists(p) else pd.DataFrame(columns=["PubDate", "Section", "FrgnBal"])
+    st, rows = _jq("/equities/investor-types", **{"from": (date.today() - timedelta(days=70)).strftime("%Y%m%d"),
+                                                  "to": date.today().strftime("%Y%m%d")})
+    if rows:
+        it = pd.concat([it, pd.DataFrame(rows)], ignore_index=True)
+    elif st not in (0, 200):
+        print(f"  投資部門別（海外投資家）を取得できませんでした（HTTP {st}）")
+    it = it[it["Section"] == "TokyoNagoya"].copy()
+    if it.empty:
+        return None, None
+    it["FrgnBal"] = pd.to_numeric(it["FrgnBal"], errors="coerce")
+    it = it.drop_duplicates(["StDate", "EnDate"] if "StDate" in it else ["PubDate"], keep="last").sort_values("PubDate")
+    last = it.tail(4)
+    if len(last) < 4:
+        return None, None
+    return float(last["FrgnBal"].sum() / 1e8), str(last["PubDate"].iloc[-1])
+
+
+def margin_alert_recent() -> set:
+    """直近1週間に「信用取引の注意・日々公表」（J-Quants margin-alert）に載った銘柄。"""
+    out = set()
+    d = date.today()
+    for i in range(8):
+        x = d - timedelta(days=i)
+        if x.weekday() >= 5:
+            continue
+        st, rows = _jq("/markets/margin-alert", date=x.strftime("%Y%m%d"))
+        out |= {str(r.get("Code", ""))[:4] for r in rows}
+    return out
+
+
 def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[dict], list[dict], dict]:
     import backtest as bt
     import short_candidates as sc
@@ -161,7 +225,12 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
     fins = fins_recent()
     names = dict(zip(master["コード"], master["銘柄名"]))
     val = valuation(master, prices, fins)
-    info = {"margin_date": mg_date, "fins_last": max((v[-1]["DiscDate"] for v in fins.values() if v), default=None)}
+    frgn4, frgn_date = foreign_flow()
+    alert = margin_alert_recent()
+    frgn_stale = frgn_date is None or (date.today() - date.fromisoformat(frgn_date[:10])).days > 14
+    info = {"frgn4": frgn4, "frgn_date": frgn_date, "frgn_ok": not frgn_stale, "alert_n": len(alert),
+            "short_paused": (not frgn_stale) and frgn4 <= FRGN_LIMIT,
+            "margin_date": mg_date, "fins_last": max((v[-1]["DiscDate"] for v in fins.values() if v), default=None)}
     buys, shorts = [], []
     for code, df in prices.items():
         if len(df) < 260:
@@ -223,11 +292,12 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
         dev25 = (c[L] / m25.iloc[L] - 1) * 100
         pts = [("10日でTOPIXより8%以上弱い", rel10 <= -8), ("業績予想の下方修正あり", rev == -1),
                ("25日線より3%以上上で割った", dev25 >= 3), ("買い残2.5%以上", lsh is not None and lsh >= 2.5)]
+        pts.append(("信用取引の注意・日々公表に載った", code in alert))
         score = sum(ok for _, ok in pts)
         shorts.append({"date": sd_, "side": "short", "code": code, "name": names.get(code, code), "rank": rk, "fs": vv["fs"],
                        "score": score, "lot": W_SHORT[min(score, 4)], "reasons": [n for n, ok in pts if ok], "close": round(float(c[L]), 1),
                        "lsh": None if lsh is None else round(lsh, 2), "lchg": None if lchg is None else round(lchg, 3),
-                       "margin_ok": ok_margin})
+                       "margin_ok": ok_margin and info["frgn_ok"], "paused": info["short_paused"]})
     return buys, shorts, info
 
 
@@ -343,6 +413,14 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
     if not info.get("margin_date") or (datetime.now() - pd.Timestamp(info["margin_date"])).days > 14:
         warn = ('<p class="warn">信用残のデータが古いか、取れていません（最新：' + h.escape(str(info.get("margin_date"))) +
                 '）。空売りの「買い残」の条件が判定できないため、空売りの候補は参考です。</p>')
+    f4 = info.get("frgn4")
+    if not info.get("frgn_ok"):
+        warn += ('<p class="warn">海外投資家の売買（週ごと）のデータが古いか、取れていません（最新：' + h.escape(str(info.get("frgn_date"))) +
+                 '）。判定できないため、空売りは記録しません。</p>')
+    elif info.get("short_paused"):
+        warn += (f'<p class="warn">海外投資家が直近4週で大きく売り越し中（約{-f4 * 1000:,.0f}億円・{h.escape(str(info.get("frgn_date")))}公表まで）。'
+                 '下げ余地が小さい時期なので、空売りは見送ります。</p>')
+    frgn_txt = "—" if f4 is None else (f"{f4 * 1000:+,.0f}億円（{'見送り中' if info.get('short_paused') else '空売りOK'}）")
     page = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>今日の売買（買い＋空売り）</title><style>
 body{{font-family:'Noto Sans JP',system-ui,sans-serif;margin:0;background:#f5f4f0;color:#1d1d1b;font-size:14px;line-height:1.55}}
@@ -361,7 +439,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">買い・空売りの枠（各）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
 <div class="sub" style="margin-top:6px">購入金額 ＝ 点数で決まる金額 × 今の資金の規模（1回{CAP_PER / 1e4:,.0f}万円まで）。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
-<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
+<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}公表）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}</div>
@@ -398,7 +476,9 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
         want = min(x["lot"] * 1e6 * f, CAP_PER)
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
         x["shares"], x["amount"], x["cap"] = sh, round(sh * x["close"]) if sh else 0, cap
-        if not sh:
+        if x.get("paused"):
+            x["slot"] = "見送り（海外投資家が売り越し中）"
+        elif not sh:
             x["slot"] = "100株に届かない"
         elif x["code"] in held:
             x["slot"] = "すでに保有中"
@@ -423,8 +503,8 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     info["equity"] = eq
     have = {(s["date"], s["side"], s["code"]) for s in ledger["signals"]}
     for s in buys + shorts:
-        if s["side"] == "short" and not s.get("margin_ok"):
-            continue                                       # 信用残が判定できない空売りは台帳に入れない
+        if s["side"] == "short" and (not s.get("margin_ok") or s.get("paused")):
+            continue                                       # 海外投資家が大きく売り越し中は空売りを見送る                                       # 信用残が判定できない空売りは台帳に入れない
         if s.get("slot") != "枠あり":
             continue                                       # 実際に売買しないもの（枠いっぱい・100株に届かない）は記録しない
         if (s["date"], s["side"], s["code"]) not in have:
