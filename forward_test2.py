@@ -34,6 +34,10 @@ import pandas as pd
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
 RULE_ID = "combo_v2"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く（2026-11-23から）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
+CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "10000000"))   # 最初の資金
+BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
+CAP_PER = 3_000_000    # 1回の金額の上限
+COST = 0.002           # 往復の売買コスト（値段のずれ・手数料）
 W_SHORT = [0.5, 1, 1.5, 2, 2]
 
 
@@ -187,7 +191,7 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
             score = sum(ok for _, ok in pts)
             lot = LOT_BUY.get(int(rk), 2.0) * [1, 1.5, 2][min(score, 2)]
             buys.append({"date": sd_, "side": "buy", "code": code, "name": names.get(code, code), "rank": int(rk),
-                         "score": score, "lot": lot, "reasons": [n for n, ok in pts if ok], "eg": eg})
+                         "score": score, "lot": lot, "reasons": [n for n, ok in pts if ok], "eg": eg, "close": round(float(c[L]), 1)})
         # ---- 空売り
         s = pd.Series(c)
         m25 = s.rolling(25).mean()
@@ -221,7 +225,7 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
                ("25日線より3%以上上で割った", dev25 >= 3), ("買い残2.5%以上", lsh is not None and lsh >= 2.5)]
         score = sum(ok for _, ok in pts)
         shorts.append({"date": sd_, "side": "short", "code": code, "name": names.get(code, code), "rank": rk, "fs": vv["fs"],
-                       "score": score, "lot": W_SHORT[min(score, 4)], "reasons": [n for n, ok in pts if ok],
+                       "score": score, "lot": W_SHORT[min(score, 4)], "reasons": [n for n, ok in pts if ok], "close": round(float(c[L]), 1),
                        "lsh": None if lsh is None else round(lsh, 2), "lchg": None if lchg is None else round(lchg, 3),
                        "margin_ok": ok_margin})
     return buys, shorts, info
@@ -273,13 +277,15 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             else:
                 r.update(status="決済済み", entry=round(entry, 1), ret=x["ret"], exit_date=x["exit"], entry_date=x["entry"],
                          why=x["reason"])
-            r["pnl"] = round(1e4 * r["ret"] * s["lot"])
+            amt = s.get("amount") or s["lot"] * 1e6
+            r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
         else:
             x = b2.simulate(s["code"], df, i, "lk25c", {})
             closed = not x["why"].startswith("保有中")
             r.update(status="決済済み" if closed else "保有中", entry=x["entry"], ret=x["ret_pct"], entry_date=x["entry_date"],
                      exit_date=x["exit_date"] if closed else None, why=x["why"])
-            r["pnl"] = round(x["pnl"] * s["lot"] * 1e6 / max(x["notional"], 1))
+            amt = s.get("amount") or s["lot"] * 1e6
+            r["pnl"] = round(amt * x["pnl"] / max(x["notional"], 1) - amt * COST)
         out.append(r)
     # 同時10銘柄・1,000万円まで（買いは増益率の高い順、空売りは点数の高い順）
     for side in ("buy", "short"):
@@ -288,7 +294,8 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
         open_ = []
         for r in rows:
             open_ = [x for x in open_ if (x.get("exit_date") or "9999") > r["entry_date"]]
-            if len(open_) >= 10 or sum(x["lot"] for x in open_) + r["lot"] > 10 or any(x["code"] == r["code"] for x in open_):
+            amt = lambda x: x.get("amount") or x["lot"] * 1e6
+            if len(open_) >= 10 or sum(amt(x) for x in open_) + amt(r) > r.get("cap", 1e7) or any(x["code"] == r["code"] for x in open_):
                 r["status"] = "見送り（枠がいっぱい）"
                 continue
             open_.append(r)
@@ -318,14 +325,18 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
         return f'<div class="tw"><table><tr>{head}</tr>{body}</table></div>'
 
     link = lambda x: f'<a href="https://finance.yahoo.co.jp/quote/{x["code"]}.T/chart" target="_blank" rel="noopener">{x["code"]} {h.escape(x["name"])}</a>'
-    today_cols = [("銘柄", link), ("ランク", lambda x: "—" if x.get("rank") is None else x["rank"]), ("点数", lambda x: x["score"]), ("金額の目安", lambda x: lot(x["lot"])),
+    man = lambda v: f"{v / 1e4:,.1f}万円"
+    today_cols = [("銘柄", link), ("終値", lambda x: f'{x.get("close", 0):,.1f}円'), ("購入金額", lambda x: man(x.get("amount", 0))),
+                  ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
+                  ("ランク", lambda x: "—" if x.get("rank") is None else x["rank"]), ("点数", lambda x: x["score"]),
                   ("点数の理由", lambda x: h.escape("・".join(x["reasons"]) or "—"))]
     sh_cols = today_cols + [("割高点数", lambda x: x.get("fs", "—")),
                             ("買い残", lambda x: "—" if x.get("lsh") is None else f'{x["lsh"]}%（4週{x["lchg"] * 100:+.0f}%）')]
     hold = [r for r in rows if r["status"] == "保有中"]
     closed = sorted([r for r in rows if r["status"] == "決済済み"], key=lambda r: r.get("exit_date") or "", reverse=True)
     pos_cols = [("売買", lambda x: "買い" if x["side"] == "buy" else "空売り"), ("銘柄", link), ("合図", lambda x: x["date"]),
-                ("金額", lambda x: lot(x["lot"])), ("建値", lambda x: x.get("entry")), ("損益", lambda x: f'{x["ret"]:+.2f}%（{yen(x["pnl"])}）')]
+                ("金額", lambda x: man(x["amount"]) if x.get("amount") else lot(x["lot"])), ("株数", lambda x: f'{x["shares"]:,}株' if x.get("shares") else "—"),
+                ("建値", lambda x: x.get("entry")), ("損益", lambda x: f'{x["ret"]:+.2f}%（{yen(x["pnl"])}）')]
     cl_cols = pos_cols + [("決済", lambda x: x.get("exit_date") or ""), ("理由", lambda x: h.escape(x.get("why") or ""))]
     sb_, ss_ = stats(rows, "buy"), stats(rows, "short")
     warn = ""
@@ -343,6 +354,13 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
 <a href="./" class="sub">← スクリーナーに戻る</a>
 <h1>今日の売買（買い＋空売り・点数で金額を変える）</h1>
+<div class="card"><div class="stats">
+<div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
+<div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
+<div class="stat"><div class="k">1回の上限</div><div class="v">{CAP_PER / 1e4:,.0f}万円</div></div>
+<div class="stat"><div class="k">買い・空売りの枠（各）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
+<div class="sub" style="margin-top:6px">購入金額 ＝ 点数で決まる金額 × 今の資金の規模（1回{CAP_PER / 1e4:,.0f}万円まで）。株数は購入金額 ÷ 終値を100株単位で切り捨て。
+明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
@@ -363,20 +381,58 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
         f.write(page)
 
 
+def equity(rows: list[dict]) -> float:
+    """今の資金 ＝ 最初の資金 ＋ 決済済みの損益（費用を引いた額）。"""
+    return CAPITAL + sum(r["pnl"] for r in rows if r["status"] == "決済済み")
+
+
+def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
+    """今の資金に合わせて、購入金額・株数・枠の空きを付ける（点数の高い順に枠を使う）。"""
+    f = eq / BASE
+    cap = 10_000_000 * f
+    open_ = [r for r in rows if r["side"] == side and (r["status"] == "保有中" or r["status"].startswith("明日"))]
+    used = sum(r.get("amount") or r["lot"] * 1e6 for r in open_)
+    held = {r["code"] for r in open_}
+    n = len(open_)
+    for x in cands:
+        want = min(x["lot"] * 1e6 * f, CAP_PER)
+        sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
+        x["shares"], x["amount"], x["cap"] = sh, round(sh * x["close"]) if sh else 0, cap
+        if not sh:
+            x["slot"] = "100株に届かない"
+        elif x["code"] in held:
+            x["slot"] = "すでに保有中"
+        elif n >= 10 or used + x["amount"] > cap:
+            x["slot"] = "枠がいっぱい（見送り）"
+        else:
+            x["slot"] = "枠あり"
+            n += 1
+            used += x["amount"]
+            held.add(x["code"])
+
+
 def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     ledger = load_ledger()
     buys, shorts, info = candidates(master, prices, ranks)
+    prev = evaluate(ledger, prices)
+    eq = equity(prev)
+    buys.sort(key=lambda x: (-x["lot"], -(x.get("eg") or -9)))
+    shorts.sort(key=lambda x: (-x["score"], x["code"]))
+    size(buys, prev, eq, "buy")
+    size(shorts, prev, eq, "short")
+    info["equity"] = eq
     have = {(s["date"], s["side"], s["code"]) for s in ledger["signals"]}
     for s in buys + shorts:
         if s["side"] == "short" and not s.get("margin_ok"):
             continue                                       # 信用残が判定できない空売りは台帳に入れない
+        if s.get("slot") != "枠あり":
+            continue                                       # 実際に売買しないもの（枠いっぱい・100株に届かない）は記録しない
         if (s["date"], s["side"], s["code"]) not in have:
-            ledger["signals"].append({k: v for k, v in s.items() if k != "eg"} | {"eg": s.get("eg")})
+            ledger["signals"].append({k: v for k, v in s.items() if k not in ("eg", "slot")} | {"eg": s.get("eg")})
     os.makedirs(os.path.dirname(LEDGER) or ".", exist_ok=True)
-    json.dump(ledger, open(LEDGER, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(ledger, open(LEDGER, "w", encoding="utf-8"), ensure_ascii=False, indent=1,
+              default=lambda o: o.item() if hasattr(o, "item") else str(o))
     rows = evaluate(ledger, prices)
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
-    buys.sort(key=lambda x: (-x["lot"], -(x.get("eg") or -9)))
-    shorts.sort(key=lambda x: (-x["score"], x["code"]))
     build_page(ledger, rows, buys, shorts, info, data_date, os.path.join(out_dir, "forward2.html"))
     print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
