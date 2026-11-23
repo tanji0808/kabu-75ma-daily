@@ -682,6 +682,59 @@ def stats(rows: list[dict], side: str) -> dict:
 
 
 # ------------------------------------------------------------------ ページ
+def my_holdings(hold: list[dict]) -> str:
+    """「自分の保有」：システムの保有中の記録から、買わなかったものを外し、買値を直せる欄（スマホのブラウザに保存）。"""
+    import json as _j
+    SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "short": "空売り"}
+    items = []
+    for r in hold:
+        e = float(r.get("entry") or 0)
+        ret = float(r.get("ret") or 0)
+        now = e * (1 + ret / 100) if r["side"] != "short" else e * (1 - ret / 100)
+        stop, tp = {"newhigh": (NH_STOP, NH_TP), "ipo": (IPO_STOP, IPO_TP)}.get(r["side"], (None, None))
+        items.append({"id": f'{r["date"]}|{r["side"]}|{r["code"]}', "side": r["side"], "label": SIDE.get(r["side"], r["side"]),
+                      "code": r["code"], "name": r.get("name", ""), "shares": int(r.get("shares") or 0), "entry": round(e, 1),
+                      "now": round(now, 1), "entry_date": r.get("entry_date") or "", "stop": stop, "tp": tp})
+    data = _j.dumps(items, ensure_ascii=False)
+    return """<div class="card"><h2 style="margin-top:0">自分の保有</h2>
+<p class="sub">システムの「保有中」から、<b>買わなかったものは「買わなかった」</b>に切り替え、買値が違うときは直してください（このスマホのブラウザに保存されます）。
+損切り・利確は直した買値から計算します。75日線の買いと空売りは、毎日このページの判定（保有中の表）に従ってください。</p>
+<div id="mysum" class="stats"></div><div class="tw"><table id="mytab"></table></div>
+<p class="sub" id="mynote"></p></div>
+<script>
+(function(){
+var D=""" + data + """;
+var KEY='kabu_mypos_v1', st={};
+try{st=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){st={};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+function yen(v){return (v>=0?'+':'')+Math.round(v).toLocaleString('ja-JP')+'円';}
+function addBiz(d,n){var x=new Date(d+'T00:00:00');var k=0;while(k<n){x.setDate(x.getDate()+1);var w=x.getDay();if(w!==0&&w!==6)k++;}return x.toISOString().slice(0,10);}
+function draw(){
+  var tb=document.getElementById('mytab'); var h='<tr><th>買った？</th><th>売買</th><th>銘柄</th><th>株数</th><th>買値</th><th>今</th><th>損益</th><th>損切り／利確</th><th>手じまい予定</th></tr>';
+  var tot=0,pl=0,n=0;
+  D.forEach(function(r){
+    var s=st[r.id]||{}; var skip=!!s.skip; var px=(s.px>0)?s.px:r.entry;
+    var sign=r.side==='short'?-1:1; var p=(r.now/px-1)*sign; var v=p*px*r.shares;
+    if(!skip){tot+=px*r.shares; pl+=v; n++;}
+    var sl=r.stop?Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':'ページの判定に従う';
+    var end=r.entry_date?addBiz(r.entry_date,120):'';
+    h+='<tr style="'+(skip?'opacity:.45':'')+'"><td><button data-id="'+r.id+'" class="tg" style="padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:'+(skip?'#fff':'#e8f0fb')+'">'+(skip?'買わなかった':'買った')+'</button></td>'
+      +'<td>'+r.label+'</td><td>'+r.code+' '+r.name+'</td><td>'+r.shares.toLocaleString('ja-JP')+'株</td>'
+      +'<td><input data-id="'+r.id+'" class="px" type="number" inputmode="decimal" value="'+px+'" style="width:84px"></td>'
+      +'<td>'+r.now.toLocaleString('ja-JP')+'</td><td>'+(p*100).toFixed(2)+'%（'+yen(v)+'）</td><td>'+sl+'</td><td>'+end+'</td></tr>';
+  });
+  tb.innerHTML=D.length?h:'<tr><td class="none">保有中の記録はまだありません</td></tr>';
+  document.getElementById('mysum').innerHTML='<div class="stat"><div class="k">実際に持っている銘柄</div><div class="v">'+n+'銘柄</div></div>'
+    +'<div class="stat"><div class="k">買った金額の合計</div><div class="v">'+Math.round(tot).toLocaleString('ja-JP')+'円</div></div>'
+    +'<div class="stat"><div class="k">含み損益</div><div class="v">'+yen(pl)+'</div></div>';
+  Array.prototype.forEach.call(document.querySelectorAll('#mytab .tg'),function(b){b.onclick=function(){var id=b.dataset.id;st[id]=st[id]||{};st[id].skip=!st[id].skip;save();draw();};});
+  Array.prototype.forEach.call(document.querySelectorAll('#mytab .px'),function(i){i.onchange=function(){var id=i.dataset.id;var v=parseFloat(i.value);st[id]=st[id]||{};if(v>0)st[id].px=v;else delete st[id].px;save();draw();};});
+}
+draw();
+})();
+</script>"""
+
+
 def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: list, info: dict, data_date: str, path: str,
                today_nh: list | None = None, today_ipo: list | None = None) -> None:
     today_nh = today_nh or []
@@ -780,7 +833,8 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">空売り：合図／決済済み</div><div class="v">{ss_['n']}／{ss_['closed']}件</div></div>
 <div class="stat"><div class="k">空売り：決済済みの損益（勝率）</div><div class="v">{yen(ss_['pnl_closed'])}（{ss_['win'] if ss_['win'] is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">空売り：保有中の含み損益</div><div class="v">{yen(ss_['pnl_open'])}</div></div></div></div>
-<div class="card"><h2 style="margin-top:0">保有中（{len(hold)}件）</h2>{table(hold, hold_cols)}</div>
+{my_holdings(hold)}
+<div class="card"><h2 style="margin-top:0">保有中（システムの記録・{len(hold)}件）</h2>{table(hold, hold_cols)}</div>
 <div class="card"><h2 style="margin-top:0">決済済み（{len(closed)}件）</h2>{table(closed, cl_cols)}</div>
 <p class="sub">ルール：{h.escape(__doc__.split('採用ルール')[1].split('信用残・決算データ')[0].strip()).replace(chr(10), '<br>')}</p>
 <p class="sub">条件に機械的に当てはまる銘柄を表示するもので、売買のおすすめではありません。空売りは損失に上限がなく、逆日歩・貸株料・配当相当額がかかることがあります。</p>
