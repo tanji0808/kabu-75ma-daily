@@ -46,6 +46,8 @@ LOOSE = os.environ.get("BUY_LOOSE") == "1"   # 「約3か月の下落」の縛�
 LB = (20, 40, 60, 90, 120, 180, 250)
 if LOOSE:
     k.MA_DECLINE_MIN, k.BELOW_RATIO_MIN = -9.0, 0.0
+if os.environ.get("BUY_MINVOL"):   # 出来高の下限を変えて試すとき（例: 250000）
+    bt.MIN_VOLUME = k.MIN_VOLUME = int(os.environ["BUY_MINVOL"])
 EXITS = {"cur": (None, False, "u1"), "t5": (5, False, "u1"), "t10": (10, False, "u1"), "half": (None, True, "u1"),
          "ma25": (None, False, "ma25"), "low10": (None, False, "low10"), "t10half": (10, True, "u1")}
 
@@ -230,7 +232,7 @@ def main() -> None:
         m25v = m25.to_numpy()
         for t in sigs:
             row = {"code": code, "t": int(t), "signal": df.index[t].strftime("%Y-%m-%d"),
-                   "up5": (c[t] / c[t - 5] - 1) * 100, "rsi": rsi[t], "vratio": v[t] / vavg[t] if vavg[t] > 0 else np.nan,
+                   "up5": (c[t] / c[t - 5] - 1) * 100, "rsi": rsi[t], "vol": v[t], "vratio": v[t] / vavg[t] if vavg[t] > 0 else np.nan,
                    "ma25up": bool(m25v[t] > m25v[t - 5]), "gap75": (c[t] / ma75[t] - 1) * 100,
                    "drop": (1 - l[max(0, t - 120):t + 1].min() / h[max(0, t - 120):t + 1].max()) * 100,
                    "tpx_ma75": bool(b75[t]), "tpx_ma200": bool(b200[t]),
@@ -311,7 +313,7 @@ def main() -> None:
                     r[f"{name}_{x}"] = val
     out = pd.DataFrame(cand).drop(columns=["t"])
     os.makedirs("backtest", exist_ok=True)
-    out.to_csv("backtest/buy_candidates_loose_11y.csv.gz" if LOOSE else "backtest/buy_candidates_11y.csv.gz", index=False, compression="gzip")
+    out.to_csv(os.environ.get("BUY_OUT") or ("backtest/buy_candidates_loose_11y.csv.gz" if LOOSE else "backtest/buy_candidates_11y.csv.gz"), index=False, compression="gzip")
     print(f"保存しました: {len(out)}件")
 
 

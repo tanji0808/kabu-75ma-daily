@@ -1,0 +1,38 @@
+name: 75日線の買い 出来高の下限を25万株にした候補表
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      TZ: Asia/Tokyo
+      K_DELISTED: "1"
+      BT_PERIOD: 11y
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python buy_candidates.py
+        env:
+          BUY_MINVOL: "250000"
+          BUY_OUT: backtest/buy_candidates_v25_11y.csv.gz
+      - run: python fund_components.py
+        env:
+          FC_IN: backtest/buy_candidates_v25_11y.csv.gz
+          FC_OUT: backtest/fund_components_buy_v25.csv.gz
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backtest/buy_candidates_v25_11y.csv.gz backtest/fund_components_buy_v25.csv.gz
+          git commit -m "出来高25万株以上の買い候補表" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
