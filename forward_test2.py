@@ -17,7 +17,7 @@
                  直近1週間に「信用取引の注意・日々公表」に載った（4点以上も200万）
            貸借銘柄だけ（制度信用で空売りできる銘柄。信用銘柄は除く）
            見送り：海外投資家の直近4週の差引（東証・名証）が約3,240億円以上の売り越しの時は空売りしない
-           買い戻し：25日線逆指値（終値が−1σを割ったら、25日線に買い戻しの逆指値）＋終値が−2σ割れで利確／+1σ超えで損切り。
+           買い戻し（2026-11-24 変更）：終値が−1σを割ったら、毎日「25日線に買い戻しの逆指値」と「−2σに買い戻しの指値」を入れる／それまでは終値が+1σ超えで翌朝損切り。
            同時10銘柄・建玉1,000万円まで（同じ日は点数の高い順）。
   新高値ブレイク（2026-11-23 採用）: 終値が52週高値を初めて上に抜けた日（その高値は5営業日以上前・20日平均の売買代金3,000万円以上）。
            100点満点の点数60点以上：PBR1.07倍未満20／ランク6以上20／TOPIXも52週高値圏15／配当利回り2.3%以上10／
@@ -642,10 +642,17 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             amt = s.get("amount") or s["lot"] * 1e6
             r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
         else:
-            x = b2.simulate(s["code"], df, i, "lk25c", {})
+            x = b2.simulate(s["code"], df, i, "lk25", {})
             closed = not x["why"].startswith("保有中")
             r.update(status="決済済み" if closed else "保有中", entry=x["entry"], ret=x["ret_pct"], entry_date=x["entry_date"],
                      exit_date=x["exit_date"] if closed else None, why=x["why"])
+            if not closed:   # 明日の注文（今日の終値で計算）
+                cs = pd.Series(df["Close"].to_numpy(float)); m25, sd = cs.rolling(25).mean(), cs.rolling(25).std(ddof=0)
+                armed = bool((cs.iloc[i + 1:] < (m25 - sd).iloc[i + 1:]).any())
+                if armed:
+                    r["order"] = f'逆指値 {m25.iloc[-1]:,.0f}円（25日線）／指値 {(m25 - 2 * sd).iloc[-1]:,.0f}円（−2σ）で買い戻し'
+                else:
+                    r["order"] = f'終値が{(m25 + sd).iloc[-1]:,.0f}円（+1σ）を超えたら翌朝買い戻し'
             amt = s.get("amount") or s["lot"] * 1e6
             r["pnl"] = round(amt * x["pnl"] / max(x["notional"], 1) - amt * COST)
         out.append(r)
@@ -774,7 +781,8 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
     pos_cols = [("売買", lambda x: SIDE.get(x["side"], x["side"])), ("銘柄", link), ("合図", lambda x: x["date"]),
                 ("金額", lambda x: man(x["amount"]) if x.get("amount") else lot(x["lot"])), ("株数", lambda x: f'{x["shares"]:,}株' if x.get("shares") else "—"),
                 ("建値", lambda x: x.get("entry")), ("損益", lambda x: f'{x["ret"]:+.2f}%（{yen(x["pnl"])}）')]
-    hold_cols = pos_cols + [("損切り／利確（新高値・IPO）", lambda x: f'{x["stop_px"]:,.0f}円／{x["tp_px"]:,.0f}円' if x.get("stop_px") else "—")]
+    hold_cols = pos_cols + [("明日の注文（損切り／利確）", lambda x: f'損切り {x["stop_px"]:,.0f}円／利確 {x["tp_px"]:,.0f}円' if x.get("stop_px")
+                             else h.escape(x.get("order") or "毎日の判定に従う"))]
     cl_cols = pos_cols + [("決済", lambda x: x.get("exit_date") or ""), ("理由", lambda x: h.escape(x.get("why") or ""))]
     sb_, ss_, sn_, si_ = stats(rows, "buy"), stats(rows, "short"), stats(rows, "newhigh"), stats(rows, "ipo")
     warn = ""
@@ -819,7 +827,8 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IPOセカンダリー（{len(today_ipo)}件）</h2>{table(today_ipo, ipo_cols)}
 <p class="sub">直近1年のIPO {info.get('ipo_n', '—')}銘柄から判定。上場来高値を初めて抜け、20日平均の売買代金1.43億円以上、4つの条件のうち2つ以上、信用取引の注意なし、60日の上昇58%未満。
 明日の始値（買値）の−10%で損切り・+30%で利確（OCO注文）。120営業日で手じまい。</p></div>
-<div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}</div>
+<div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}
+<p class="sub">買い戻し：終値が+1σを超えたら翌朝買い戻し（損切り）。終値が−1σを割ったら、その後は毎日「25日線に逆指値」と「−2σに指値」の買い戻し注文を入れる（値段は下の保有中の表に毎日出ます）。60営業日で手じまい。</p></div>
 <div class="card"><h2 style="margin-top:0">これまでの成績（フォワードテスト）</h2><div class="stats">
 <div class="stat"><div class="k">買い：合図／決済済み</div><div class="v">{sb_['n']}／{sb_['closed']}件</div></div>
 <div class="stat"><div class="k">買い：決済済みの損益（勝率）</div><div class="v">{yen(sb_['pnl_closed'])}（{sb_['win'] if sb_['win'] is not None else '—'}%）</div></div>
