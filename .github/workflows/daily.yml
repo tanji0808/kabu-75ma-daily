@@ -80,7 +80,7 @@ jobs:
       - name: 画面を用意
         run: |
           cp web/index.html web/manifest.json web/*.png _site/
-          [ -f web/backtest.html ] && cp web/backtest.html _site/ || true
+          cp web/backtest.html web/backtest75.html _site/
           cp web/docs.html _site/ && cp -r web/pdf _site/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3

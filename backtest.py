@@ -547,8 +547,8 @@ def main() -> None:
                   f"平均利益{s['avg_win']}% 平均損失{s['avg_loss']}% TOPIX比{s['excess_avg']}%")
     if OUT == "backtest":
         from backtest_page import build
-        build(result, "web/backtest.html")
-    print("結果ページ: web/backtest.html")
+        build(result, "web/backtest75.html")
+    print("結果ページ: web/backtest75.html")
 
 
 if __name__ == "__main__":
