@@ -2,7 +2,17 @@
  "start": "2026-11-20",
  "rule_id": "trail_calm5_rsi60_rank6",
  "rule": "75日線ブレイク＋急騰除外（5日+3%以下・RSI60以下）＋ランク6以上 → 引き上げ式ロスカット",
- "signals": [],
+ "signals": [
+  {
+   "code": "6586",
+   "name": "マキタ",
+   "sector": "機械",
+   "signal": "2026-11-24",
+   "close": 5341.0,
+   "frank": 5,
+   "recorded": "2026-11-24 17:15"
+  }
+ ],
  "previous": [
   {
    "start": "2026-11-19",
