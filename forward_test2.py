@@ -24,7 +24,7 @@
            PERが業種の0.95倍未満10／業種の空売り比率40.6%未満10／決算から10日以内5／買い残が発行済の0.36%以上5／52週安値から60%以上上5。
            さらに：業績予想の下方修正なし・相対的株価強度50以上・空売り残高報告の合計4%未満・信用取引の注意に載っていない。
            翌営業日の始値で買い、−6%で損切り・+25%で利確・120営業日で手じまい。金額は全銘柄同じ（新高値の枠÷12）。同じ日は点数の高い順。
-           市場全体の新高値ブレイクの件数（買った日が30〜6日前）が102件以下なら金額を半分、430件超なら見送り。
+           市場全体の新高値ブレイクの件数（買った日が30〜6日前）が430件超なら見送り（2026-11-25：102件以下で半分のルールは廃止）。
   IPOセカンダリー（2026-11-23 採用）: 上場から250営業日以内に、終値が上場来高値を初めて上に抜けた日（上場から10営業日以上・その高値は5営業日以上前）。
            20日平均の売買代金1.43億円以上。4つのうち2つ以上：上場来高値からの下げが44%以内／決算から21日以内／上場来高値から21営業日以上／TOPIXが52週高値圏でない。
            さらに：信用取引の注意に載っていない・直近60日の上昇58%未満。翌営業日の始値で買い、−10%で損切り・+30%で利確・120営業日で手じまい。
@@ -61,7 +61,7 @@ LONG_ORDER = {"ipo": 0, "newhigh": 1, "buy": 2}    # 同じ日に枠が足りな
 IPO_STOP, IPO_TP = 0.10, 0.30
 NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 ÷ 12）
 NH_STOP, NH_TP = 0.06, 0.25
-NB_HOT, NB_WEAK = 430, 102   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り・102件以下は弱い相場で半分
+NB_HOT = 430   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り（102件以下で半分は 2026-11-25 に廃止：4つで枠を共有すると逆効果）
 NH_ITEMS = [("PBR1.07倍未満", 20), ("ランク6以上", 20), ("TOPIXも52週高値圏", 15), ("配当利回り2.3%以上", 10),
             ("PERが業種の0.95倍未満", 10), ("業種の空売り比率が低い", 10), ("決算から10日以内", 5),
             ("買い残が発行済の0.36%以上", 5), ("52週安値から60%以上上", 5)]
@@ -471,9 +471,9 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
     info.update(sr_date=sr_date, ss_date=ss_date)
     # 市場の幅：直近の新高値ブレイクの件数（バックテストと同じ数え方：買った日＝合図の翌営業日が、今日の30日前〜6日前）
     nb30 = nb_count(prices)
-    nb_state = "過熱（見送り）" if nb30 > NB_HOT else ("弱い（半分）" if nb30 <= NB_WEAK else "普通")
+    nb_state = "過熱（見送り）" if nb30 > NB_HOT else "普通"
     info.update(nb30=nb30, nb_state=nb_state)
-    nb_mult = 0.0 if nb30 > NB_HOT else (0.5 if nb30 <= NB_WEAK else 1.0)
+    nb_mult = 0.0 if nb30 > NB_HOT else 1.0
     buys, shorts, nhs = [], [], []
     for code, df in prices.items():
         if len(df) < 260:
@@ -816,14 +816,14 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * UNIT_IPO / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
 <div class="sub" style="margin-top:6px">現物の3つ（75日線の買い・新高値・IPO）は1つの枠を共有し、同じ日に枠が足りないときはIPO→新高値→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10銘柄まで。
-75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%（相場が弱い時は半分）。IPO ＝ 資金の5%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
+75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%（新高値が多すぎる過熱相場では見送り）。IPO ＝ 資金の5%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
 <p class="sub">市場全体の新高値ブレイクの件数（30〜6日前に買った分）：<b>{info.get('nb30', '—')}件・{h.escape(str(info.get('nb_state', '—')))}</b>
-（{NB_WEAK}件以下は弱い相場なので金額を半分、{NB_HOT}件超は過熱なので見送り）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%で損切り・+25%で利確（逆指値・指値を入れておく）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
+（{NB_HOT}件超は過熱なので見送り）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%で損切り・+25%で利確（逆指値・指値を入れておく）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IPOセカンダリー（{len(today_ipo)}件）</h2>{table(today_ipo, ipo_cols)}
 <p class="sub">直近1年のIPO {info.get('ipo_n', '—')}銘柄から判定。上場来高値を初めて抜け、20日平均の売買代金1.43億円以上、4つの条件のうち2つ以上、信用取引の注意なし、60日の上昇58%未満。
 明日の始値（買値）の−10%で損切り・+30%で利確（OCO注文）。120営業日で手じまい。</p></div>
