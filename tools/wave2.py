@@ -15,6 +15,29 @@ import buy_candidates as bc  # noqa: E402
 LOOK, TRIG = 120, 20
 
 
+def find25(a, t, conf_k, tol, trig, up):
+    c, m25, m75 = a["c"], a["m25"], a["m75"]; cl = a[conf_k]
+    n = len(c); conf = touch = None
+    for j in range(t + 1, min(n - 1, t + LOOK)):
+        if conf is None:
+            if c[j] > cl[j]:
+                conf = j
+            continue
+        if touch is None:
+            if c[j] < m75[j] * 0.98:
+                return None
+            if c[j] <= m25[j] * tol and c[j] > m75[j]:
+                touch = j
+            continue
+        if j - touch > trig or c[j] < m75[j] * 0.97:
+            return None
+        if c[j] > m25[j] * tol and c[j - 1] <= m25[j - 1] * tol and c[j] > m25[j]:
+            if up and not m75[j] > m75[j - 5]:
+                return None
+            return j, j - t, j - touch
+    return None
+
+
 def find(a, t, kind):
     c, l, u2, m25, m75, m5 = (a[x] for x in ("c", "l", "u2", "m25", "m75", "m5"))
     n = len(c); conf = touch = None
@@ -63,6 +86,15 @@ def main():
             t = pos.get(sig)
             if t is None:
                 continue
+            for conf_k in ("u2", "u15"):
+                for tol in (0.99, 1.0, 1.02):
+                    for trig in (10, 20, 30):
+                        f = find25(a, t, conf_k, tol, trig, False)
+                        if f:
+                            j = f[0]; r = bc.sim(a75, j, None, False, "u1")
+                            if r:
+                                out.append({"code": code, "signal": sig, "kind": f"G_{conf_k}_{tol}_{trig}", "exn": "m75", "rsig": a["dates"][j],
+                                            "since": f[1], "wait": f[2], "entry": r["entry"], "exit": r["exit"], "ret": r["ret"], "days": r["days"]})
             for kind in ("P25", "P25u", "P75", "P75u"):
                 f = find(a, t, kind)
                 if not f:
