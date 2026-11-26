@@ -126,10 +126,18 @@ def main():
                     ev[f"o{N}"] = c[rr + N - 1] / o[rr] - 1
                 if rr + N < n:
                     ev[f"n{N}"] = c[rr + N] / o[rr + 1] - 1
-            for nm, hd in (("s8h20", 20), ("s8h60", 60)):
-                x = nh.sim(a, rr, 0.08, hold=hd)
+            ev["nentry"] = dates[rr + 1]
+            for N in (20, 40, 60):
+                if rr + N < n:
+                    ev[f"n{N}x"] = dates[rr + N]
+            for nm, prm in (("s8h20", dict(stop=0.08, hold=20)), ("s8h60", dict(stop=0.08, hold=60)),
+                            ("s6tr", dict(stop=0.06, arm=0.25, armlock=0.0, armtrail=0.15)),
+                            ("s8tr", dict(stop=0.08, arm=0.25, armlock=0.0, armtrail=0.15)),
+                            ("s8tr60", dict(stop=0.08, arm=0.20, armlock=0.0, armtrail=0.15, hold=60)),
+                            ("s10tp30", dict(stop=0.10, tp=0.30))):
+                x = nh.sim(a, rr, **prm)
                 if x:
-                    ev[nm] = x["ret"] / 100
+                    ev[nm] = x["ret"] / 100; ev[nm + "x"] = x["exit"]
             out.append(ev)
     pd.DataFrame(out).to_csv("backtest/ir_events.csv.gz", index=False, compression="gzip")
     print("保存しました", len(out))
