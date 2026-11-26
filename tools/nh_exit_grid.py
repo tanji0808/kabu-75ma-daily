@@ -15,6 +15,21 @@ for st in (0.04, 0.05, 0.06, 0.07, 0.08, 0.10):
         GRID[f"g{int(st*100)}_25_h{hd}"] = dict(stop=st, tp=0.25, hold=hd)
 
 
+if os.environ.get("NH_GRID") == "arm":   # 途中で損切りラインを引き上げる形
+    GRID = {}
+    for st in (0.05, 0.06, 0.07):
+        for tp in (0.40, 0.60, None):
+            for arm in (0.20, 0.25, 0.30):
+                for lk in sorted({arm, arm - 0.05, arm - 0.10, 0.10, 0.0}):
+                    if lk < 0 or (st != 0.06 and tp != 0.60):
+                        continue
+                    GRID[f"a{int(st*100)}_{int(tp*100) if tp else 'x'}_{int(arm*100)}_{int(round(lk*100))}"] = dict(stop=st, tp=tp, arm=arm, armlock=lk)
+                for tr in (0.10, 0.15, 0.20):
+                    if st == 0.06:
+                        GRID[f"a{int(st*100)}_{int(tp*100) if tp else 'x'}_{int(arm*100)}_t{int(tr*100)}"] = dict(stop=st, tp=tp, arm=arm, armlock=0.0, armtrail=tr)
+OUT = "backtest/nh_exit_arm.csv.gz" if os.environ.get("NH_GRID") == "arm" else "backtest/nh_exit_grid.csv.gz"
+
+
 def main():
     cand = pd.read_csv("backtest/newhigh_candidates_11y.csv.gz", dtype={"code": str}, usecols=["code", "signal"])
     master = k.load_prime_list()
@@ -42,7 +57,7 @@ def main():
                 if r:
                     row[nm + "_ret"], row[nm + "_exit"] = r["ret"], r["exit"]
             out.append(row)
-    pd.DataFrame(out).to_csv("backtest/nh_exit_grid.csv.gz", index=False, compression="gzip")
+    pd.DataFrame(out).to_csv(OUT, index=False, compression="gzip")
     print("保存しました", len(out))
 
 
