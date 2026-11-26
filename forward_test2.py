@@ -761,6 +761,26 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
 
     link = lambda x: f'<a href="https://finance.yahoo.co.jp/quote/{x["code"]}.T/chart" target="_blank" rel="noopener">{x["code"]} {h.escape(x["name"])}</a>'
     man = lambda v: f"{v / 1e4:,.1f}万円"
+    # 補欠：条件はすべて満たしたが、金額・枠・相場の都合でルールでは見送ったもの（すでに保有中は除く）
+    subs = []
+    for side_, xs in (("buy", today_buy), ("newhigh", today_nh), ("ipo", today_ipo), ("short", today_short)):
+        for x in xs:
+            if x.get("slot") not in (None, "枠あり", "すでに保有中"):
+                subs.append(dict(x, side_=side_))
+    def sub_exit(x):
+        if x["side_"] == "newhigh":
+            return f'損切り {x["close"] * (1 - NH_STOP):,.0f}円／利確 {x["close"] * (1 + NH_TP):,.0f}円（終値で計算・買値で計算し直す）'
+        if x["side_"] == "ipo":
+            return f'損切り {x["close"] * (1 - IPO_STOP):,.0f}円／利確 {x["close"] * (1 + IPO_TP):,.0f}円（終値で計算・買値で計算し直す）'
+        return "毎日の判定どおり（終値で−1σ割れなど）" if x["side_"] == "buy" else "毎日の判定どおり（+1σ超えで買い戻しなど）"
+    sub_cols = [("手法", lambda x: SIDE_NAME[x["side_"]]), ("銘柄", link), ("終値", lambda x: f'{x.get("close", 0):,.1f}円'),
+                ("100株の金額", lambda x: man(x.get("close", 0) * 100)), ("ルールの1回の金額", lambda x: man(x.get("want", 0))),
+                ("補欠になった理由", lambda x: h.escape(x.get("slot", "") + "：" + x.get("why", ""))),
+                ("点数", lambda x: x.get("score", "—")), ("買うなら", lambda x: h.escape(sub_exit(x)))]
+    sub_card = (f'''<div class="card"><h2 style="margin-top:0">補欠（条件は満たしたが、ルールでは見送り）（{len(subs)}件）</h2>{table(subs, sub_cols)}
+<p class="sub">売買の条件はすべて満たしていて、金額・枠・相場の都合だけで見送った銘柄です。システムの記録（フォワードテスト）には入りません。
+自分で買う場合は100株で、損切り・利確の注文を自分で入れてください。10年の検証では「100株に届かなくても資金の7%以内なら100株買う」を足しても成績はほぼ同じでした。</p></div>'''
+                if subs else "")
     today_cols = [("銘柄", link), ("終値", lambda x: f'{x.get("close", 0):,.1f}円'), ("購入金額", lambda x: man(x.get("amount", 0))),
                   ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
                   ("ランク", lambda x: "—" if x.get("rank") is None else x["rank"]), ("点数", lambda x: x["score"]),
@@ -829,6 +849,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 明日の始値（買値）の−10%で損切り・+30%で利確（OCO注文）。120営業日で手じまい。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}
 <p class="sub">買い戻し：終値が+1σを超えたら翌朝買い戻し（損切り）。終値が−1σを割ったら、その後は毎日「25日線に逆指値」と「−2σに指値」の買い戻し注文を入れる（値段は下の保有中の表に毎日出ます）。60営業日で手じまい。</p></div>
+{sub_card}
 <div class="card"><h2 style="margin-top:0">これまでの成績（フォワードテスト）</h2><div class="stats">
 <div class="stat"><div class="k">買い：合図／決済済み</div><div class="v">{sb_['n']}／{sb_['closed']}件</div></div>
 <div class="stat"><div class="k">買い：決済済みの損益（勝率）</div><div class="v">{yen(sb_['pnl_closed'])}（{sb_['win'] if sb_['win'] is not None else '—'}%）</div></div>
@@ -870,22 +891,29 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
     for x in cands:
         want = unit(x)
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
-        x["shares"], x["amount"], x["cap"] = sh, round(sh * x["close"]) if sh else 0, cap
+        x["shares"], x["amount"], x["cap"], x["want"] = sh, round(sh * x["close"]) if sh else 0, cap, want
         if x.get("paused"):
             x["slot"] = "見送り（海外投資家が売り越し中）"
+            x["why"] = "海外投資家の直近4週の売り越しが大きく、空売りを止める期間"
         elif x.get("mult") == 0:
             x["slot"] = "見送り（新高値が多すぎる過熱相場）"
         elif not sh:
             x["slot"] = "100株に届かない"
+            x["why"] = f'1回の上限 {want / 1e4:,.1f}万円に対して、100株で {x["close"] * 100 / 1e4:,.1f}万円かかる'
         elif x["code"] in held:
             x["slot"] = "すでに保有中"
         elif n >= mx or used + x["amount"] > cap:
             x["slot"] = "枠がいっぱい（見送り）"
+            x["why"] = (f"空売りの同時保有の上限（{mx}銘柄）に達している" if n >= mx
+                        else f"空売りの建玉の枠（{cap / 1e4:,.0f}万円）の残り {max(cap - used, 0) / 1e4:,.1f}万円では足りない")
         else:
             x["slot"] = "枠あり"
             n += 1
             used += x["amount"]
             held.add(x["code"])
+
+
+SIDE_NAME = {"buy": "75日線の買い", "newhigh": "新高値", "ipo": "IPO", "short": "空売り"}
 
 
 def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
@@ -903,15 +931,19 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
             want = eq * UNIT_IPO
         want = min(want, CAP_PER)
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
-        x["shares"], x["amount"], x["cap"] = sh, round(sh * x["close"]) if sh else 0, eq
+        x["shares"], x["amount"], x["cap"], x["want"] = sh, round(sh * x["close"]) if sh else 0, eq, want
         if x.get("mult") == 0:
             x["slot"] = "見送り（新高値が多すぎる過熱相場）"
+            x["why"] = f"市場全体の新高値ブレイクが多すぎる（{NB_HOT}件超）過熱相場なので、新高値は買わない"
         elif not sh:
             x["slot"] = "100株に届かない"
+            x["why"] = f'1回の上限 {want / 1e4:,.1f}万円に対して、100株で {x["close"] * 100 / 1e4:,.1f}万円かかる'
         elif x["code"] in held:
             x["slot"] = "すでに保有中"
         elif n[x["side"]] >= MAX_N[x["side"]] or used + x["amount"] > eq:
             x["slot"] = "枠がいっぱい（見送り）"
+            x["why"] = (f'{SIDE_NAME[x["side"]]}の同時保有の上限（{MAX_N[x["side"]]}銘柄）に達している' if n[x["side"]] >= MAX_N[x["side"]]
+                        else f"資金の枠の残り {max(eq - used, 0) / 1e4:,.1f}万円では、{x['amount'] / 1e4:,.1f}万円が足りない")
         else:
             x["slot"] = "枠あり"
             n[x["side"]] += 1
