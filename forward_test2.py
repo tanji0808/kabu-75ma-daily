@@ -964,3 +964,6 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
     build_page(ledger, rows, buys, shorts, info, data_date, os.path.join(out_dir, "forward2.html"), nhs, ipos)
     print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・新高値 {len(nhs)}件・IPO {len(ipos)}件・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
+    for lab, xs in (("75日線", buys), ("新高値", nhs), ("IPO", ipos), ("空売り", shorts)):
+        for x in xs:   # 候補の中身をログにも残す（ページを見られない時の確認用）
+            print("  候補", lab, {kk: x.get(kk) for kk in ("code", "name", "signal", "close", "score", "slot", "shares", "yen", "amount", "lot") if kk in x})
