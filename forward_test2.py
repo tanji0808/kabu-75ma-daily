@@ -58,7 +58,7 @@ W_SHORT = [0.5, 1, 1.5, 2, 2]
 UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR = 0.3, 0.04, 0.05, 0.05
 MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20}
 LONG_ORDER = {"ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
-IR_HOLD = 60          # IRトレード：反応の日から60営業日目の引けで売る（損切り・利確なし）    # 同じ日に枠が足りないときの順番（バックテストと同じ）
+IR_HOLD, IR_STOP = 60, 0.10   # IRトレード：買値−10%に損切りの逆指値（2026-11-27 追加）。当たらなければ反応の日から60営業日目の引けで売る。利確なし    # 同じ日に枠が足りないときの順番（バックテストと同じ）
 IPO_STOP, IPO_TP = 0.10, 0.30
 NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 ÷ 12）
 NH_STOP, NH_TP = 0.06, None          # 新高値：−6%損切り・利確なし
@@ -704,10 +704,20 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             amt = s.get("amount") or 0
             r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
         elif s["side"] == "ir":
-            cc_ = df["Close"].to_numpy(float)
-            entry = float(df["Open"].iloc[i + 1])
+            cc_, oo_, ll_ = (df[x_].to_numpy(float) for x_ in ("Close", "Open", "Low"))
+            entry = float(oo_[i + 1]); sl = entry * (1 - IR_STOP)
             left = IR_HOLD - (len(dates) - 1 - i)
-            if left <= 0:
+            hit = None
+            for j in range(i + 1, min(len(dates), i + IR_HOLD + 1)):
+                if j > i + 1 and oo_[j] <= sl:
+                    hit = (j, oo_[j]); break
+                if ll_[j] <= sl:
+                    hit = (j, sl); break
+            r["stop_px"] = round(sl, 1)
+            if hit:
+                r.update(status="決済済み", entry=round(entry, 1), entry_date=dates[i + 1], exit_date=dates[hit[0]],
+                         ret=round((hit[1] / entry - 1) * 100, 2), why=f"損切り（−{IR_STOP * 100:.0f}%）")
+            elif left <= 0:
                 xi = i + IR_HOLD
                 r.update(status="決済済み", entry=round(entry, 1), entry_date=dates[i + 1], exit_date=dates[xi],
                          ret=round((cc_[xi] / entry - 1) * 100, 2), why=f"{IR_HOLD}営業日目の引けで売り")
@@ -715,7 +725,7 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
                 plan = np.busday_offset(np.datetime64(dates[-1]), left, roll="forward")
                 r.update(status="保有中", entry=round(entry, 1), entry_date=dates[i + 1], now=round(cc_[-1], 1),
                          ret=round((cc_[-1] / entry - 1) * 100, 2),
-                         order=f"あと{left}営業日・{str(plan)}ごろの引けで売る（損切り・利確なし）")
+                         order=f"損切り {sl:,.0f}円（逆指値）。あと{left}営業日・{str(plan)}ごろの引けで売る")
             amt = s.get("amount") or 0
             r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
         elif s["side"] == "buy":
@@ -791,7 +801,7 @@ def my_holdings(hold: list[dict]) -> str:
         e = float(r.get("entry") or 0)
         ret = float(r.get("ret") or 0)
         now = e * (1 + ret / 100) if r["side"] != "short" else e * (1 - ret / 100)
-        stop, tp = {"newhigh": (NH_STOP, NH_TP), "ipo": (IPO_STOP, IPO_TP)}.get(r["side"], (None, None))
+        stop, tp = {"newhigh": (NH_STOP, NH_TP), "ipo": (IPO_STOP, IPO_TP), "ir": (IR_STOP, None)}.get(r["side"], (None, None))
         items.append({"id": f'{r["date"]}|{r["side"]}|{r["code"]}', "side": r["side"], "label": SIDE.get(r["side"], r["side"]),
                       "code": r["code"], "name": r.get("name", ""), "shares": int(r.get("shares") or 0), "entry": round(e, 1),
                       "now": round(now, 1), "entry_date": r.get("entry_date") or "", "stop": stop, "tp": tp})
@@ -816,7 +826,7 @@ function draw(){
     var s=st[r.id]||{}; var skip=!!s.skip; var px=(s.px>0)?s.px:r.entry;
     var sign=r.side==='short'?-1:1; var p=(r.now/px-1)*sign; var v=p*px*r.shares;
     if(!skip){tot+=px*r.shares; pl+=v; n++;}
-    var sl=r.stop?(Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+(r.tp?Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':'利確なし（+25%から追いかけ・保有中の表を見る）')):'ページの判定に従う';
+    var sl=r.stop?(Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+(r.tp?Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':(r.side=='ir'?'利確なし（60営業日目の引けで売る）':'利確なし（+25%から追いかけ・保有中の表を見る）'))):'ページの判定に従う';
     var end=r.entry_date?addBiz(r.entry_date,120):'';
     h+='<tr style="'+(skip?'opacity:.45':'')+'"><td><button data-id="'+r.id+'" class="tg" style="padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:'+(skip?'#fff':'#e8f0fb')+'">'+(skip?'買わなかった':'買った')+'</button></td>'
       +'<td>'+r.label+'</td><td>'+r.code+' '+r.name+'</td><td>'+r.shares.toLocaleString('ja-JP')+'株</td>'
@@ -865,7 +875,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
         if x["side_"] == "newhigh":
             return f'損切り {x["close"] * (1 - NH_STOP):,.0f}円（買値−6%）。利確なし：終値で+25%に届いたら最高値−15%で追いかける'
         if x["side_"] == "ir":
-            return f"損切り・利確なし。{IR_HOLD}営業日目の引けで売る"
+            return f'損切り {x["close"] * (1 - IR_STOP):,.0f}円（買値−10%・買値で計算し直す）。利確なし。{IR_HOLD}営業日目の引けで売る'
         if x["side_"] == "ipo":
             return f'損切り {x["close"] * (1 - IPO_STOP):,.0f}円／利確 {x["close"] * (1 + IPO_TP):,.0f}円（終値で計算・買値で計算し直す）'
         return "毎日の判定どおり（終値で−1σ割れなど）" if x["side_"] == "buy" else "毎日の判定どおり（+1σ超えで買い戻しなど）"
@@ -895,14 +905,14 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
                ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
                ("良いニュース", lambda x: h.escape(x.get("news", ""))), ("その日の上げ", lambda x: f'{x.get("day", 0):+.1f}%'),
                ("時価総額", lambda x: f'{x["mcap"]:,}億円' if x.get("mcap") else "—"), ("営業利益率", lambda x: f'{x["om"]}%' if x.get("om") is not None else "—"),
-               ("売り", lambda x: f"{IR_HOLD}営業日目の引け（損切り・利確なし）")]
+               ("損切り目安", lambda x: f'{x["close"] * (1 - IR_STOP):,.0f}円'), ("売り", lambda x: f"利確なし・{IR_HOLD}営業日目の引け")]
     hold = [r for r in rows if r["status"] == "保有中"]
     closed = sorted([r for r in rows if r["status"] == "決済済み"], key=lambda r: r.get("exit_date") or "", reverse=True)
     SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "short": "空売り"}
     pos_cols = [("売買", lambda x: SIDE.get(x["side"], x["side"])), ("銘柄", link), ("合図", lambda x: x["date"]),
                 ("金額", lambda x: man(x["amount"]) if x.get("amount") else lot(x["lot"])), ("株数", lambda x: f'{x["shares"]:,}株' if x.get("shares") else "—"),
                 ("建値", lambda x: x.get("entry")), ("損益", lambda x: f'{x["ret"]:+.2f}%（{yen(x["pnl"])}）')]
-    hold_cols = pos_cols + [("明日の注文（損切り／利確）", lambda x: (f'{"追いかけ" if x.get("trailing") else "損切り"} {x["stop_px"]:,.0f}円' + (f'／利確 {x["tp_px"]:,.0f}円' if x.get("tp_px") else "（利確なし）")) if x.get("stop_px")
+    hold_cols = pos_cols + [("明日の注文（損切り／利確）", lambda x: (f'{"追いかけ" if x.get("trailing") else "損切り"} {x["stop_px"]:,.0f}円' + (f'／利確 {x["tp_px"]:,.0f}円' if x.get("tp_px") else "（利確なし）")) if x.get("stop_px") and x["side"] != "ir"
                              else h.escape(x.get("order") or "毎日の判定に従う"))]
     cl_cols = pos_cols + [("決済", lambda x: x.get("exit_date") or ""), ("理由", lambda x: h.escape(x.get("why") or ""))]
     sb_, ss_, sn_, si_ = stats(rows, "buy"), stats(rows, "short"), stats(rows, "newhigh"), stats(rows, "ipo")
@@ -952,7 +962,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IRトレード（{len(today_ir)}件）</h2>{table(today_ir, ir_cols)}
 <p class="sub">今日が「発表を受けた最初の日」の決算・業績予想の修正のうち、良いニュース（上方修正+15%以上／決算で今期予想を+5%以上引き上げ／本決算の来期予想が前期実績の+20%以上）で、
 今日+5%以上上がって高値近くで引けたもの。TOPIXが50日線より上・発表前20日の上昇30%以下・時価総額700億円以下・営業利益率3%以上・売買代金3,000万円以上・同じ銘柄は90日に1回。
-明日の寄りで買い、{IR_HOLD}営業日目の引けで売る（損切り・利確なし）。1回は資金の5%、同時に20銘柄まで。</p></div>
+明日の寄りで買い、買値の−10%に損切りの逆指値を入れる。当たらなければ{IR_HOLD}営業日目の引けで売る（利確はしない）。1回は資金の5%、同時に20銘柄まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで空売りする候補（{len(today_short)}件）</h2>{table(today_short, sh_cols)}
 <p class="sub">買い戻し：終値が+1σを超えたら翌朝買い戻し（損切り）。終値が−1σを割ったら、その後は毎日「25日線に逆指値」と「−2σに指値」の買い戻し注文を入れる（値段は下の保有中の表に毎日出ます）。60営業日で手じまい。</p></div>
 {sub_card}
