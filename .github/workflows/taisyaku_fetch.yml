@@ -1,0 +1,27 @@
+name: 日証金の貸借残・品貸料をためる
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q pandas requests
+      - name: 取得
+        env:
+          TS_WAIT: "3"
+          TS_MAX_MINUTES: "100"
+        run: python tools/taisyaku_fetch.py
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/taisyaku
+          git commit -qm "日証金の貸借残・品貸料をためた" || exit 0
+          git pull --rebase -q origin main && git push -q
