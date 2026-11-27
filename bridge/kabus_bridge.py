@@ -18,6 +18,10 @@
   close    14:45 時間で手じまう日の銘柄を、損切りの注文を取り消して引成で売る
 
 安全装置
+  - 注文ファイルの署名を確かめる（環境変数 KABUS_SIGN_KEY ＝ GitHub の Secrets の AUTO_SIGN_KEY と同じ鍵）。
+    署名が合わないファイルは使わない。verify / live では鍵の設定が必須。
+  - おかしな注文ははじく：銘柄コードの形・売買代金（20日平均）3,000万円未満・前日の値段から大きく離れた指値・1日の買いの件数の上限
+  - 売りは、実際に持っている株数までしか出さない（verify / live）
   - 1回の注文の上限金額（auto_orders.json の limits.max_order_yen）を超える注文は出さない
   - 1日の買いの合計が資金を超える注文は出さない
   - 注文ファイルの日付（for_date）が今日でなければ何もしない
@@ -115,6 +119,50 @@ def load_orders():
         return json.loads(r.read().decode())
 
 
+def verify_sig(od: dict, mode: str) -> bool:
+    import hashlib, hmac
+    key = os.environ.get("KABUS_SIGN_KEY", "")
+    if not key:
+        if mode == "dry":
+            log("  （署名の鍵がないので確かめていない：練習モードなので続ける）"); return True
+        log("署名の鍵（KABUS_SIGN_KEY）がない。verify / live では動かない"); return False
+    sig = od.get("sig")
+    body = {k: v for k, v in od.items() if k != "sig"}
+    calc = hmac.new(key.encode(), json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
+    if not sig or not hmac.compare_digest(sig, calc):
+        log("注文ファイルの署名が合わない。書き換えられた可能性があるので何もしない"); return False
+    return True
+
+
+def sane(o: dict, limits: dict) -> str | None:
+    """おかしな注文なら理由を返す。"""
+    import re
+    code = str(o.get("code", ""))
+    if not re.fullmatch(r"[0-9][0-9A-Z]{3}", code):
+        return f"銘柄コードの形がおかしい（{code}）"
+    if o.get("side") == "kenri":
+        return None if code == "1306" else "権利取り前はTOPIX連動ETF（1306）だけ"
+    tv = o.get("tv20")
+    if tv is None or tv < limits.get("min_tv20", 3e7):
+        return f"売買代金が小さい（20日平均 {0 if tv is None else tv / 1e4:,.0f}万円）"
+    ref = o.get("est") or o.get("prev_close")
+    px = o.get("price") or o.get("limit")
+    if px and ref and not (0.6 * ref <= px <= 1.1 * ref):
+        return f"指値 {px:,.0f}円 が前日の値段 {ref:,.0f}円 から離れすぎ"
+    if int(o.get("qty", 0)) <= 0 or int(o.get("qty", 0)) % 100 != 0:
+        return f"株数がおかしい（{o.get('qty')}）"
+    return None
+
+
+def held_qty(api) -> dict:
+    if api.mode == "dry":
+        return {}
+    out = {}
+    for p in api.positions() or []:
+        out[p.get("Symbol")] = out.get(p.get("Symbol"), 0) + int(p.get("LeavesQty") or 0)
+    return out
+
+
 def state():
     try:
         s = json.load(open(STATE, encoding="utf-8"))
@@ -139,6 +187,8 @@ def guard(o, limits, spent, price):
 
 def job_morning(api, od, st):
     limits = od["limits"]; spent = st.get("spent", 0)
+    held = held_qty(api)
+    nbuy = sum(1 for k in st["sent"] if k.startswith("buy-") or k.startswith("gd-"))
     for o in od["orders"]:
         key = f"{o['action']}-{o['code']}-{o.get('kind', 'stop')}"
         if key in st["sent"]:
@@ -146,6 +196,12 @@ def job_morning(api, od, st):
         if o["action"] == "buy":
             if o["kind"] == "引成" and o.get("date") and o["date"] != dt.date.today().isoformat():
                 continue
+            bad = sane(o, limits)
+            if bad:
+                log(f"  見送り（{bad}）：{o['code']}"); continue
+            if nbuy >= limits.get("max_buy_orders", 15):
+                log(f"  見送り（1日の買いの件数の上限 {limits.get('max_buy_orders', 15)}件）：{o['code']}"); continue
+            nbuy += 1
             px = o.get("price") or 0
             est = px or o.get("est") or 0                               # 寄成は前日終値で金額を見積もる
             if not est or not guard(o, limits, spent, est * 1.1):       # 寄りで1割上がっても上限内か
@@ -157,7 +213,10 @@ def job_morning(api, od, st):
         elif o["action"] == "hold" and o.get("stop"):
             if o.get("sell_close_on") == dt.date.today().isoformat():
                 continue                                       # 今日が手じまいの日：close の仕事で引成
-            r = api.send(SIDE_SELL, o["code"], o["qty"], "逆指値", trigger=o["stop"], note=f"損切り（{o['side']}）")
+            q = o["qty"] if api.mode == "dry" else min(o["qty"], held.get(o["code"], 0))
+            if q <= 0:
+                log(f"  損切りを出さない（持っていない）：{o['code']}"); continue
+            r = api.send(SIDE_SELL, o["code"], q, "逆指値", trigger=o["stop"], note=f"損切り（{o['side']}）")
             st["sent"][key] = r.get("OrderId") if r else None
     st["spent"] = spent
 
@@ -183,6 +242,10 @@ def job_gapdown(api, od, st):
         key = f"gd-{w['code']}"
         if key in st["sent"] or not w["qty"]:
             continue
+        w2 = dict(w, side="gapdown", price=w["limit"], est=w["prev_close"])
+        bad = sane(w2, od["limits"])
+        if bad or w["limit"] > w["prev_close"] * (1 - gd["gap"]) + 0.5 or w["limit"] * w["qty"] > od["limits"]["max_order_yen"]:
+            log(f"  見送り（{bad or '指値か金額が条件の外'}）：{w['code']}"); continue
         r = api.send(SIDE_BUY, w["code"], w["qty"], "寄指", price=w["limit"], note=f"窓あけ下げ（気配 {g * 100:+.1f}%）")
         st["sent"][key] = r.get("OrderId") if r else None
 
@@ -221,7 +284,10 @@ def job_watch(api, od, st):
                 oid = st["sent"].get(f"hold-{code}-stop")
                 if oid:
                     api.cancel(oid)
-                r = api.send(SIDE_SELL, code, o["qty"], "成行", note=f"利確（{o['tp']:,.0f}円に届いた）")
+                q = min(o["qty"], held_qty(api).get(code, 0))
+                if q <= 0:
+                    continue
+                r = api.send(SIDE_SELL, code, q, "成行", note=f"利確（{o['tp']:,.0f}円に届いた）")
                 st["sent"][f"tp-{code}"] = r.get("OrderId") if r else None; save(st)
             time.sleep(0.2)
         time.sleep(30)
@@ -234,7 +300,10 @@ def job_close(api, od, st):
             oid = st["sent"].get(f"hold-{o['code']}-stop")
             if oid:
                 api.cancel(oid)
-            r = api.send(SIDE_SELL, o["code"], o["qty"], "引成", note="時間で手じまい")
+            q = o["qty"] if api.mode == "dry" else min(o["qty"], held_qty(api).get(o["code"], 0))
+            if q <= 0:
+                continue
+            r = api.send(SIDE_SELL, o["code"], q, "引成", note="時間で手じまい")
             st["sent"][f"close-{o['code']}"] = r.get("OrderId") if r else None
 
 
@@ -249,6 +318,8 @@ def main():
     today = dt.date.today().isoformat()
     if od.get("for_date") != today:
         log(f"注文ファイルの日付が今日ではない（{od.get('for_date')}）。何もしない"); return
+    if not verify_sig(od, a.mode):
+        return
     api = Kabus(a.mode); api.login()
     st = state()
     log(f"== {a.job}（{a.mode}）資金 {od['capital']:,.0f}円・注文 {len(od['orders'])}件")

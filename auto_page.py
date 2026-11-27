@@ -42,6 +42,23 @@ def _shares(want, px, side):
     return sh
 
 
+def _tv20(df):
+    if df is None or len(df) < 21:
+        return None
+    c, v = df["Close"].to_numpy(float), df["Volume"].to_numpy(float)
+    return float(np.mean(c[-20:] * v[-20:]))
+
+
+def sign(payload: dict) -> str | None:
+    """注文ファイルの署名（HMAC-SHA256）。鍵は GitHub の Secrets の AUTO_SIGN_KEY。パソコン側は同じ鍵で確かめる。"""
+    import hashlib, hmac
+    key = os.environ.get("AUTO_SIGN_KEY", "")
+    if not key:
+        return None
+    body = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
+    return hmac.new(key.encode(), body.encode(), hashlib.sha256).hexdigest()
+
+
 def _sell_date(r, df):
     """時間で手じまう日（その日の引けで売る）。"""
     import forward_test2 as ft
@@ -109,11 +126,11 @@ def run_auto(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             continue
         if st.startswith("明日"):
             if r["side"] == "rebound":
-                orders.append(dict(action="buy", kind="指値", code=r["code"], qty=r["shares"], price=r.get("limit"), side=r["side"], note="前日終値−3%の指値。当日だけ有効"))
+                orders.append(dict(action="buy", kind="指値", code=r["code"], qty=r["shares"], price=r.get("limit"), est=r.get("last_close"), tv20=_tv20(prices.get(r["code"])), side=r["side"], note="前日終値−3%の指値。当日だけ有効"))
             elif r["side"] == "kenri":
                 orders.append(dict(action="buy", kind="引成", code="1306", qty=r["shares"], est=r.get("close"), side=r["side"], date=r.get("buy_date"), note="権利取り前：この日の引けで買う"))
             else:
-                orders.append(dict(action="buy", kind="寄成", code=r["code"], qty=r["shares"], est=r.get("close"), side=r["side"], note="寄りで成行。約定したら損切りの逆指値を入れる"))
+                orders.append(dict(action="buy", kind="寄成", code=r["code"], qty=r["shares"], est=r.get("close"), tv20=_tv20(prices.get(r["code"])), side=r["side"], note="寄りで成行。約定したら損切りの逆指値を入れる"))
         elif st == "保有中":
             df = prices.get(r["code"])
             sd = _sell_date(r, df) if df is not None else None
@@ -125,12 +142,13 @@ def run_auto(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
     if gi.get("active_tomorrow"):
         unit_ = min(eq * ft.UNIT_GD, ft.CAP_PER)
         gd = dict(active=True, max_n=ft.MAX_N["gapdown"], unit=unit_, gap=ft.GD_GAP, tp=ft.GD_TP, stop=ft.GD_STOP,
-                  watch=[dict(code=w["code"], name=w.get("name", ""), prev_close=w["close"], limit=round(w["close"] * (1 - ft.GD_GAP), 1),
+                  watch=[dict(code=w["code"], name=w.get("name", ""), prev_close=w["close"], limit=round(w["close"] * (1 - ft.GD_GAP), 1), tv20=w.get("tv20"),
                               qty=_shares(unit_, w["close"] * (1 - ft.GD_GAP), "gapdown")) for w in gi.get("tomorrow") or []])
     nxt = str(np.busday_offset(np.datetime64(data_date), 1, roll="forward"))
     out = dict(made=pd.Timestamp.now(tz="Asia/Tokyo").strftime("%Y-%m-%d %H:%M"), data_date=data_date, for_date=nxt, rule_id=ft.RULE_ID,
                capital=eq, orders=orders, gapdown=gd,
-               limits=dict(max_order_yen=int(min(eq * 0.05 * OVER, ft.CAP_PER * OVER)), max_day_buy_yen=int(eq)))
+               limits=dict(max_order_yen=int(min(eq * 0.05 * OVER, ft.CAP_PER * OVER)), max_day_buy_yen=int(eq), max_buy_orders=15, min_tv20=3e7))
+    out["sig"] = sign(out)
     json.dump(out, open(ORDERS, "w", encoding="utf-8"), ensure_ascii=False, indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     page(rows, todays, out, eq, data_date, led["start"], os.path.join(out_dir, "auto.html"))
     print(f"自動売買版：明日の買い {sum(1 for o in orders if o['action'] == 'buy')}件・保有 {sum(1 for o in orders if o['action'] == 'hold')}件・"

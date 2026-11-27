@@ -69,6 +69,7 @@ jobs:
           KABU_FORWARD: "1"
           KABU_FORWARD2: "1"
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          AUTO_SIGN_KEY: ${{ secrets.AUTO_SIGN_KEY }}
         run: python kabu_75ma_search.py
       - name: フォワードテストの記録を保存
         run: |

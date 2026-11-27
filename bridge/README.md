@@ -18,6 +18,9 @@
 3. 環境変数を設定する（Windowsの「環境変数を編集」）
    - `KABUS_API_PASSWORD` … 手順1で決めたAPIのパスワード
    - `KABUS_TRADE_PASSWORD` … 取引パスワード（verify / live のときだけ使う）
+   - `KABUS_SIGN_KEY` … 注文ファイルの署名の鍵。長いでたらめな文字列（例：パスワード管理アプリで40文字以上を作る）を、
+     **GitHub の Settings → Secrets and variables → Actions に `AUTO_SIGN_KEY` として同じものを登録**する。
+     チャットやメールには書かない。verify / live ではこれがないと動きません。
 
 ## 3. 動かす時刻（タスク スケジューラ・平日）
 | 時刻 | コマンド | すること |
