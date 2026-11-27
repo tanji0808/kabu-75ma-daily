@@ -122,7 +122,9 @@ def run_mini(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             want = x0.get("lot", 1.0) * 1e6 * ft.UNIT_BUY * eq / 1e7 if side == "buy" else eq * UNIT[side]
             sh = int(want // px) if px else 0
             x.update(want=want, shares=sh, amount=round(sh * px))
-            if x0.get("mult") == 0:
+            if side == "buy" and ft.UNIT_BUY == 0:
+                x["slot"], x["why"] = "見送り（75日線の買いは休止中）", ""
+            elif x0.get("mult") == 0:
                 x["slot"], x["why"] = "見送り（相場の条件）", x0.get("why_mkt", "")
             elif not sh:
                 x["slot"], x["why"] = "1株に届かない", ""
@@ -177,7 +179,7 @@ def page(rows, todays, info, eq, data_date, start, path):
     win = round(sum(r.get("pnl", 0) > 0 for r in closed) / len(closed) * 100) if closed else None
     gi = info.get("gd") or {}
     gd_txt = ("<p class='warn'>窓あけ下げの対象期間です。明日の朝、大きく下げて始まりそうなら、個人の「今日の売買」の窓あけ下げの一覧から、"
-              "気配が−5%以下の銘柄を下げの大きい順に寄りで買う（1銘柄 資金の5%）。売りは終値で判定して翌朝の寄り。</p>") if gi.get("active_tomorrow") else ""
+              "気配が−5%以下の銘柄を下げの大きい順に寄りで買う（1銘柄 資金の7%）。売りは終値で判定して翌朝の寄り。</p>") if gi.get("active_tomorrow") else ""
     html = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ミニ株の売買（寄り付きだけ版）</title><style>
 body{{font-family:'Noto Sans JP',system-ui,sans-serif;margin:0;background:#f5f4f0;color:#1d1d1b;font-size:14px;line-height:1.55}}

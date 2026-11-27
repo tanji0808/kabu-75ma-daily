@@ -32,7 +32,7 @@
            20日平均の売買代金1.43億円以上。4つのうち2つ以上：上場来高値からの下げが44%以内／決算から21日以内／上場来高値から21営業日以上／TOPIXが52週高値圏でない。
            さらに：信用取引の注意に載っていない・直近60日の上昇58%未満。翌営業日の始値で買い、−10%で損切り・+30%で利確・120営業日で手じまい。
   資金の分け方 : 現物の7つは1つの枠（今の資金）を共有し、同じ日は窓あけ下げ→権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順（2026-11-27 時点）。
-           1回：75日線の買い＝上の金額×0.3×資金の規模／新高値＝資金の4%／IPO＝資金の5%。同時に持てる数は10・12・10銘柄。空売りは信用の建玉で別枠。
+           1回（資金＝今の資金×1.3・信用）：新高値＝資金の4%／IR・IPO・窓あけ下げ＝7%／リバウンド＝9%／75日線の買いは休止。同時に持てる数は10・12・10銘柄。空売りは信用の建玉で別枠。
 信用残・決算データは J-Quants（data/jq/ と API）。信用残が取れない日は空売りの判定ができないので「判定できず」と記録する。
 台帳 data/forward2.json には合図だけを保存し、損益は毎回株価から計算し直す。
 """
@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v14"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り
+RULE_ID = "combo_v15"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -57,15 +57,16 @@ CAP_PER = 3_000_000    # 1回の金額の上限
 COST = 0.002           # 往復の売買コスト（値段のずれ・手数料）
 W_SHORT = [0.5, 1, 1.5, 2, 2]
 # 資金の分け方（2026-11-23 採用）：現物の3つ（75日線の買い・新高値・IPO）は1つの枠（今の資金）を共有して早い者勝ち。
-# 1回の金額：75日線の買い＝ランクで決まる金額×0.3×（資金÷1,000万円）／新高値＝資金の4%／IPO＝資金の5%。空売りは信用の建玉で別枠
-UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR, UNIT_RB, UNIT_KR = 0.3, 0.04, 0.05, 0.05, 0.05, 0.20
+# 1回の金額（資金＝今の資金×LEVERAGE）：新高値＝4%／IR・IPO・窓あけ下げ＝7%／リバウンド＝9%／75日線の買い＝休止。空売りは信用の建玉で別枠
+UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR, UNIT_RB, UNIT_KR = 0.0, 0.04, 0.07, 0.07, 0.09, 0.20   # 2026-11-28：IR・IPO 7%、リバウンド 9%、75日線の買いは休止（0）
+LEVERAGE = float(os.environ.get("FORWARD2_LEVERAGE", "1.3"))   # 信用取引で今の資金の1.3倍まで使う（2026-11-28 採用）
 MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "kenri": 1, "gapdown": 10}
 LONG_ORDER = {"gapdown": -3, "kenri": -2, "rebound": -1, "ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
 RB_TP_DEV = -0.10   # リバウンドの利確：合図の日の25日線の−10%の値段（2026-11-27 追加）
 RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 3   # リバウンド（2026-11-27 追加）：前日終値−3%に指値、買値−10%で損切り、買った日を1日目として3日目の引けで売る
 YE_CAP, YE_N, YE_YTD, YE_TV = 10_000_000, 20, -0.40, 3e7   # 年末の反発（2026-11-27 追加・別枠1,000万円）：その年に40%以上下げた銘柄（売買代金3,000万円以上）を下げの大きい順に20銘柄
 YE_BUY, YE_SELL = 5, 5   # 大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る
-UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.05, 0.05, 0.05, 1e8, 0.10, 0.10   # 窓あけ下げ（2026-11-27 追加）
+UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.07, 0.05, 0.05, 1e8, 0.10, 0.10   # 窓あけ下げ（2026-11-27 追加）
 GD_CRASH, GD_WIN = 20, 5   # 監視リストのうち20銘柄以上が−5%以下で始まった朝＝「急落の朝」。そのあと5営業日のあいだ買う（11/27変更）
 KR_DAYS = 10                                   # 権利取り前（2026-11-27 追加）：3月・9月の権利付き最終日の10営業日前の引けでTOPIX連動ETF（1306）を資金の20%買い、権利付き最終日の引けで売る
 IR_HOLD, IR_STOP = 60, 0.10   # IRトレード：買値−10%に損切りの逆指値（2026-11-27 追加）。当たらなければ反応の日から60営業日目の引けで売る。利確なし    # 同じ日に枠が足りないときの順番（バックテストと同じ）
@@ -1267,7 +1268,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
                    f'注文の時に返済予約で「利確 +{GD_TP * 100:.0f}%の円幅・損切り −{GD_STOP * 100:.0f}%の円幅」を付ける。届かなければ翌日の引けで売る。'
                    f'対象期間中は毎朝この形（その朝が急落でなくても、−5%以下で始まった銘柄があれば買う）。</p>')
         tw = sorted(gi.get("tomorrow") or [], key=lambda z: -z["tv20"])[:60]
-        unit_ = info.get("equity", CAPITAL) * UNIT_GD
+        unit_ = info.get("equity", CAPITAL) * LEVERAGE * UNIT_GD
         gd_cols = [("銘柄", link), ("今日の終値", lambda x: f'{x["close"]:,.1f}円'), ("寄りがこれ以下なら買う", lambda x: f'{x["close"] * (1 - GD_GAP):,.0f}円'),
                    ("25日線から", lambda x: f'{x["dev"]:+.0f}%'), ("株数の目安", lambda x: f'{int(unit_ // (x["close"] * (1 - GD_GAP)) // 100 * 100):,}株'),
                    ("利確の円幅", lambda x: f'+{x["close"] * (1 - GD_GAP) * GD_TP:,.0f}円'), ("損切りの円幅", lambda x: f'−{x["close"] * (1 - GD_GAP) * GD_STOP:,.0f}円')]
@@ -1313,11 +1314,11 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
 <div class="stat"><div class="k">1回の上限</div><div class="v">{CAP_PER / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">現物の枠（7つで共有）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.0f}万円まで</div></div>
-<div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * UNIT_IPO / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
+<div class="stat"><div class="k">現物の枠（信用で今の資金の{LEVERAGE:g}倍）</div><div class="v">{info.get('equity', CAPITAL) * LEVERAGE / 1e4:,.0f}万円まで</div></div>
+<div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * LEVERAGE * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * LEVERAGE * UNIT_IPO / 1e4:,.0f}万円</div></div>
+<div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) * LEVERAGE / BASE * 1000:,.0f}万円まで</div></div></div>
 <div class="sub" style="margin-top:6px">現物の7つは1つの枠を共有し、同じ日に枠が足りないときは窓あけ下げ→権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10・IR20・リバウンド10・窓あけ下げ10銘柄まで。年末の反発は別枠（1,000万円）。
-75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%。IPO・IR・リバウンド・窓あけ下げ ＝ 資金の5%。権利取り前 ＝ 資金の20%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
+「資金」は今の資金×{LEVERAGE:g}（信用取引）。新高値 ＝ 資金の4%。IR・IPO・窓あけ下げ ＝ 資金の7%。リバウンド ＝ 資金の9%。権利取り前 ＝ 資金の20%。75日線の買いは休止中。空売り ＝ 点数で決まる金額 × 資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
@@ -1383,7 +1384,7 @@ def equity(rows: list[dict]) -> float:
 
 def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
     """今の資金に合わせて、購入金額・株数・枠の空きを付ける（点数の高い順に枠を使う）。"""
-    f = eq / BASE
+    f = eq * LEVERAGE / BASE
     cap = 10_000_000 * f
     mx = 10
     unit = lambda x: min(x["lot"] * 1e6 * f, CAP_PER)
@@ -1425,6 +1426,7 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
     used = sum(r.get("amount") or 0 for r in open_)
     held = {r["code"] for r in open_}
     n = {k: sum(1 for r in open_ if r["side"] == k) for k in MAX_N}
+    eq = eq * LEVERAGE                                   # 信用取引で今の資金の LEVERAGE 倍までを枠にする
     for x in cands:
         if x["side"] == "buy":
             want = x["lot"] * 1e6 * UNIT_BUY * eq / 1e7
@@ -1443,7 +1445,10 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
         want = min(want, CAP_PER)
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
         x["shares"], x["amount"], x["cap"], x["want"] = sh, round(sh * x["close"]) if sh else 0, eq, want
-        if x.get("mult") == 0:
+        if x["side"] == "buy" and UNIT_BUY == 0:
+            x["slot"] = "見送り（75日線の買いは休止中）"
+            x["why"] = "2026-11-28から、資金を他の手法に回すため休止（10年の検証で全体の利益が増えた）"
+        elif x.get("mult") == 0:
             x["slot"] = "見送り（相場の条件）"
             x["why"] = x.get("why_mkt", "") or "相場の条件を満たさない"
         elif not sh:
