@@ -3,6 +3,7 @@
 
 採用ルール（10年のバックテスト・その時点の決算・上場廃止銘柄を含めた検証で選んだもの）
   買い   : 75日線ブレイク（本日突破）＋5日+3%以下＋RSI60以下＋ファンダメンタルランク6以上＋ROE4%以上。翌営業日の始値で買う。
+           市場全体の信用倍率（週次）が3.67倍未満の時期は見送り（2026-11-27 追加）。
            金額 ＝ ランク（6:50万・7:100万・8:150万・9〜10:200万）×点数の倍率（0点×1・1点×1.5・2点以上×2）
            点数：20日でTOPIXより8%以上強い／半年高値から45%以上下落／決算から10日以内／TOPIXが20日で3%以上下落／
                  直近の決算の増益率が−30%以下
@@ -25,6 +26,7 @@
            さらに：業績予想の下方修正なし・相対的株価強度50以上・空売り残高報告の合計4%未満・信用取引の注意に載っていない。
            翌営業日の始値で買い、−6%で損切り。終値で+25%に届いたら、そこからは終値の最高値の−15%（最低でも買値）で追いかけ、利確はしない（2026-11-27 変更）。120営業日で手じまい。金額は全銘柄同じ（新高値の枠÷12）。同じ日は点数の高い順。
            市場全体の新高値ブレイクの件数（買った日が30〜6日前）が430件超なら見送り（2026-11-25：102件以下で半分のルールは廃止）。
+           米S&P500の前日終値が200日線より下の時も見送り（2026-11-27 追加）。
   IPOセカンダリー（2026-11-23 採用）: 上場から250営業日以内に、終値が上場来高値を初めて上に抜けた日（上場から10営業日以上・その高値は5営業日以上前）。
            20日平均の売買代金1.43億円以上。4つのうち2つ以上：上場来高値からの下げが44%以内／決算から21日以内／上場来高値から21営業日以上／TOPIXが52週高値圏でない。
            さらに：信用取引の注意に載っていない・直近60日の上昇58%未満。翌営業日の始値で買い、−10%で損切り・+30%で利確・120営業日で手じまい。
@@ -46,7 +48,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v7"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）
+RULE_ID = "combo_v8"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -65,6 +67,8 @@ IPO_STOP, IPO_TP = 0.10, 0.30
 NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 ÷ 12）
 NH_STOP, NH_TP = 0.06, None          # 新高値：−6%損切り・利確なし
 NH_ARM, NH_TRAIL = 0.25, 0.15        # 終値で+25%に届いたら、終値の最高値−15%（最低でも買値）で追いかける
+IR_OM_MIN = 0.046   # IR：営業利益率（直近の通期）4.6%未満は買わない（2026-11-27 外部要因の再チェックで追加）
+MKT_MRATIO_MIN = 3.67   # 75日線の買い：市場全体の信用倍率（週次）3.67倍未満の時期は買わない（同上）
 NB_HOT = 430   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り（102件以下で半分は 2026-11-25 に廃止：4つで枠を共有すると逆効果）
 NH_ITEMS = [("PBR1.07倍未満", 20), ("ランク6以上", 20), ("TOPIXも52週高値圏", 15), ("配当利回り2.3%以上", 10),
             ("PERが業種の0.95倍未満", 10), ("業種の空売り比率が低い", 10), ("決算から10日以内", 5),
@@ -516,7 +520,7 @@ def ir_candidates(master: pd.DataFrame, prices: dict, fins: dict, ledger: dict) 
             if pre20 > 0.30: ng.append(f"発表前20日で {pre20 * 100:+.0f}% 上がっていた")
             if tv20 < 3e7: ng.append("売買代金が少ない")
             if cap is not None and cap > 700: ng.append(f"時価総額 {cap:,.0f}億円（700億円以下が条件）")
-            if om is not None and om < 0.03: ng.append(f"営業利益率 {om * 100:.1f}%（3%以上が条件）")
+            if om is not None and om < IR_OM_MIN: ng.append(f"営業利益率 {om * 100:.1f}%（{IR_OM_MIN * 100:.1f}%以上が条件）")
             if up50 is False: ng.append("TOPIXが50日線より下")
             if code in recent and (pd.Timestamp(today_) - pd.Timestamp(recent[code])).days < 90:
                 ng.append("90日以内に同じ銘柄でIRの合図あり")
@@ -603,6 +607,41 @@ def rb_candidates(master: pd.DataFrame, prices: dict, tpx, info: dict) -> list[d
     return out
 
 
+def spx_above200() -> tuple[bool | None, str | None]:
+    """米S&P500の前日終値が200日線より上か（日本の引け時点で分かっている分。バックテストと同じ）。"""
+    s = None
+    try:
+        import yfinance as yf
+        d = yf.download("^GSPC", period="2y", progress=False, auto_adjust=False)
+        if d is not None and len(d):
+            s = d["Close"].squeeze().dropna()
+    except Exception as e:
+        print(f"  S&P500の取得に失敗（{e}）")
+    if (s is None or len(s) < 210) and os.path.exists("data/macro.csv.gz"):
+        s = pd.read_csv("data/macro.csv.gz", index_col=0, parse_dates=True)["spx"].dropna()
+    if s is None or len(s) < 210:
+        return None, None
+    s.index = pd.to_datetime(s.index).tz_localize(None).normalize()
+    ma = s.rolling(200).mean()
+    s, ma = s[s.index < pd.Timestamp(date.today())], ma[ma.index < pd.Timestamp(date.today())]
+    return bool(s.iloc[-1] > ma.iloc[-1]), f"{s.index[-1]:%Y-%m-%d} 終値 {s.iloc[-1]:,.0f}／200日線 {ma.iloc[-1]:,.0f}"
+
+
+def mkt_margin_ratio() -> tuple[float | None, str | None]:
+    """市場全体の信用倍率（買い残÷売り残の合計、週次）。バックテストと同じく、週の日付の5日後から使う。"""
+    p = "data/jq/margin_interest.csv.gz"
+    if not os.path.exists(p):
+        return None, None
+    m = pd.read_csv(p, dtype=str, usecols=["Date", "LongVol", "ShrtVol"])
+    for k in ("LongVol", "ShrtVol"):
+        m[k] = pd.to_numeric(m[k], errors="coerce")
+    w = m.groupby("Date")[["LongVol", "ShrtVol"]].sum()
+    w = w[[pd.Timestamp(d) + pd.Timedelta(days=5) <= pd.Timestamp(date.today()) for d in w.index]]
+    if not len(w) or not w.ShrtVol.iloc[-1]:
+        return None, None
+    return float(w.LongVol.iloc[-1] / w.ShrtVol.iloc[-1]), w.index[-1]
+
+
 def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[dict], list[dict], list[dict], dict]:
     import backtest as bt
     import short_candidates as sc
@@ -632,6 +671,14 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
     nb_state = "過熱（見送り）" if nb30 > NB_HOT else "普通"
     info.update(nb30=nb30, nb_state=nb_state)
     nb_mult = 0.0 if nb30 > NB_HOT else 1.0
+    spx_up, spx_info = spx_above200()
+    mratio, mratio_date = mkt_margin_ratio()
+    info.update(spx_up=spx_up, spx_info=spx_info, mratio=mratio, mratio_date=mratio_date)
+    nh_why = []
+    if nb30 > NB_HOT: nh_why.append(f"市場全体の新高値ブレイクが多すぎる（{NB_HOT}件超）過熱相場")
+    if spx_up is False: nh_why.append(f"米S&P500が200日線より下（{spx_info}）")
+    if nh_why: nb_mult = 0.0
+    buy_why = f"市場全体の信用倍率 {mratio:.2f}倍（{MKT_MRATIO_MIN}倍以上が条件・{mratio_date}週）" if mratio is not None and mratio < MKT_MRATIO_MIN else ""
     buys, shorts, nhs = [], [], []
     for code, df in prices.items():
         if len(df) < 260:
@@ -662,6 +709,8 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
             lot = LOT_BUY.get(int(rk), 2.0) * [1, 1.5, 2][min(score, 2)]
             buys.append({"date": sd_, "side": "buy", "code": code, "name": names.get(code, code), "rank": int(rk),
                          "score": score, "lot": lot, "reasons": [n for n, ok in pts if ok], "eg": eg, "close": round(float(c[L]), 1)})
+            if buy_why:
+                buys[-1].update(mult=0, why_mkt=buy_why)
         # ---- 新高値ブレイク
         brk, piv, base_len = nh_breakout(c, hi, v, L)
         if brk:
@@ -689,7 +738,7 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
                 score = sum(p_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_)
                 if score >= 60:
                     nhs.append({"date": sd_, "side": "newhigh", "code": code, "name": names.get(code, code), "rank": rk,
-                                "score": score, "lot": 1.0, "mult": nb_mult, "rs": round(rsv, 1), "reasons": [n_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_],
+                                "score": score, "lot": 1.0, "mult": nb_mult, "why_mkt": "・".join(nh_why), "rs": round(rsv, 1), "reasons": [n_ for (n_, p_), o_ in zip(NH_ITEMS, ok) if o_],
                                 "close": round(float(c[L]), 1), "pivot": round(float(piv), 1)})
         # ---- 空売り
         s = pd.Series(c)
@@ -1090,29 +1139,30 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 .stats{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}}.stat{{background:#faf9f6;border:1px solid #efede7;border-radius:8px;padding:8px 10px}}
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
 <a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>
-<h1>今日の売買（75日線の買い＋新高値ブレイク＋IPO＋空売り）</h1>
+<h1>今日の売買（7つの手法：75日線の買い・新高値・IPO・IR・リバウンド・権利取り前・空売り）</h1>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
 <div class="stat"><div class="k">1回の上限</div><div class="v">{CAP_PER / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">現物の枠（3つで共有）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.0f}万円まで</div></div>
+<div class="stat"><div class="k">現物の枠（6つで共有）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.0f}万円まで</div></div>
 <div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * UNIT_IPO / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
-<div class="sub" style="margin-top:6px">現物の3つ（75日線の買い・新高値・IPO）は1つの枠を共有し、同じ日に枠が足りないときはIPO→新高値→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10銘柄まで。
-75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%（新高値が多すぎる過熱相場では見送り）。IPO ＝ 資金の5%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
+<div class="sub" style="margin-top:6px">現物の6つは1つの枠を共有し、同じ日に枠が足りないときは権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10・IR20・リバウンド10銘柄まで。
+75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%。IPO・IR・リバウンド ＝ 資金の5%。権利取り前 ＝ 資金の20%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
-<div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}</div>
+<div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}
+<p class="sub">市場全体の信用倍率：<b>{"—" if info.get("mratio") is None else f"{info['mratio']:.2f}倍"}</b>（{h.escape(str(info.get("mratio_date") or "—"))}週）。{MKT_MRATIO_MIN}倍未満の時期は75日線の買いを見送り。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
 <p class="sub">市場全体の新高値ブレイクの件数（30〜6日前に買った分）：<b>{info.get('nb30', '—')}件・{h.escape(str(info.get('nb_state', '—')))}</b>
-（{NB_HOT}件超は過熱なので見送り）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%に損切りの逆指値。利確はしない：終値で+25%に届いたら、毎日「終値の最高値の−15%（最低でも買値）」まで逆指値を引き上げる（値段は保有中の表）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
+（{NB_HOT}件超は過熱なので見送り）。米S&P500と200日線：<b>{h.escape(str(info.get('spx_info') or '—'))}・{'上（買える）' if info.get('spx_up') else ('下（見送り）' if info.get('spx_up') is False else '—')}</b>（200日線より下の時は新高値を買わない）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%に損切りの逆指値。利確はしない：終値で+25%に届いたら、毎日「終値の最高値の−15%（最低でも買値）」まで逆指値を引き上げる（値段は保有中の表）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IPOセカンダリー（{len(today_ipo)}件）</h2>{table(today_ipo, ipo_cols)}
 <p class="sub">直近1年のIPO {info.get('ipo_n', '—')}銘柄から判定。上場来高値を初めて抜け、20日平均の売買代金1.43億円以上、4つの条件のうち2つ以上、信用取引の注意なし、60日の上昇58%未満。
 明日の始値（買値）の−10%で損切り・+30%で利確（OCO注文）。120営業日で手じまい。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IRトレード（{len(today_ir)}件）</h2>{table(today_ir, ir_cols)}
 <p class="sub">今日が「発表を受けた最初の日」の決算・業績予想の修正のうち、良いニュース（上方修正+15%以上／決算で今期予想を+5%以上引き上げ／本決算の来期予想が前期実績の+20%以上）で、
-今日+5%以上上がって高値近くで引けたもの。TOPIXが50日線より上・発表前20日の上昇30%以下・時価総額700億円以下・営業利益率3%以上・売買代金3,000万円以上・同じ銘柄は90日に1回。
+今日+5%以上上がって高値近くで引けたもの。TOPIXが50日線より上・発表前20日の上昇30%以下・時価総額700億円以下・営業利益率（直近の通期）4.6%以上・売買代金3,000万円以上・同じ銘柄は90日に1回。
 明日の寄りで買い、買値の−10%に損切りの逆指値を入れる。当たらなければ{IR_HOLD}営業日目の引けで売る（利確はしない）。1回は資金の5%、同時に20銘柄まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の朝に指値で買う候補・リバウンド（{len(today_rb)}件）</h2>{table(today_rb, rb_cols)}
 <p class="sub">25日線から−20%以上下・5日で−20%以上の急落・安値近くで引けた銘柄（売買代金1億円以上）。直近5日に新高値ブレイクが2件以上あり、その日のTOPIXが−1%以上の時だけ
@@ -1214,12 +1264,9 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
         want = min(want, CAP_PER)
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
         x["shares"], x["amount"], x["cap"], x["want"] = sh, round(sh * x["close"]) if sh else 0, eq, want
-        if x.get("mult") == 0 and x["side"] == "rebound":
+        if x.get("mult") == 0:
             x["slot"] = "見送り（相場の条件）"
-            x["why"] = x.get("why_mkt", "")
-        elif x.get("mult") == 0:
-            x["slot"] = "見送り（新高値が多すぎる過熱相場）"
-            x["why"] = f"市場全体の新高値ブレイクが多すぎる（{NB_HOT}件超）過熱相場なので、新高値は買わない"
+            x["why"] = x.get("why_mkt", "") or "相場の条件を満たさない"
         elif not sh:
             x["slot"] = "100株に届かない"
             x["why"] = f'1回の上限 {want / 1e4:,.1f}万円に対して、100株で {x["close"] * 100 / 1e4:,.1f}万円かかる'
