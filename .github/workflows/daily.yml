@@ -72,7 +72,7 @@ jobs:
         run: python kabu_75ma_search.py
       - name: フォワードテストの記録を保存
         run: |
-          git add data/forward.json data/forward2.json data/forward_corp.json data/jq data/jpx 2>/dev/null || true
+          git add data/forward.json data/forward2.json data/forward_corp.json data/forward_mini.json data/jq data/jpx 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "フォワードテストの記録を更新 $(TZ=Asia/Tokyo date +%Y-%m-%d)"
             git pull --rebase -q origin main && git push -q

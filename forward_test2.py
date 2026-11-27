@@ -1280,7 +1280,7 @@ main{{max-width:1100px;margin:0 auto;padding:16px}}h1{{font-size:18px;margin:4px
 th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{background:#fff8ec;border:1px solid #f0d9b0;color:#b26b00;padding:8px 10px;border-radius:6px;font-size:12.5px}}
 .stats{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}}.stat{{background:#faf9f6;border:1px solid #efede7;border-radius:8px;padding:8px 10px}}
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
-<a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>　<a href="houjin.html" class="sub">🏢 法人の売買</a>
+<a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>　<a href="houjin.html" class="sub">🏢 法人の売買</a>　<a href="mini.html" class="sub">🪙 ミニ株の売買</a>
 <h1>今日の売買（8つの手法：75日線の買い・新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・空売り＋別枠の年末の反発）</h1>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
@@ -1550,6 +1550,11 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         corp_page.run_corp(allp, {"ir": irs, "ipo": ipos, "newhigh": nhs, "kenri": krs, "yearend": yes}, info, data_date, out_dir)
     except Exception as e:
         print(f"  法人ページの作成に失敗（{e}）")
+    try:                                                   # ミニ株版のページ（注文は寄り付きだけ：逆指値なし・空売りなし）
+        import mini_page
+        mini_page.run_mini(allp, {"buy": buys, "newhigh": nhs, "ipo": ipos, "ir": irs, "rebound": rbs, "gapdown": gds, "kenri": krs}, info, data_date, out_dir)
+    except Exception as e:
+        print(f"  ミニ株ページの作成に失敗（{e}）")
     print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・新高値 {len(nhs)}件・IPO {len(ipos)}件・IR {len(irs)}件・リバウンド {len(rbs)}件・権利取り {len(krs)}件・年末の反発 {len(yes)}件（予定 {len(ye_plan)}件）・窓あけ下げ {len(gds)}件（急落の朝の数 {info.get("gd", {}).get("counts")}）・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
     for lab, xs in (("75日線", buys), ("新高値", nhs), ("IPO", ipos), ("IR", irs), ("リバウンド", rbs), ("権利取り", krs), ("年末の反発", ye_plan), ("窓あけ下げ", gds), ("空売り", shorts)):
         for x in xs:   # 候補の中身をログにも残す（ページを見られない時の確認用）
