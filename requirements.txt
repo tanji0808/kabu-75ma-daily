@@ -4,3 +4,4 @@ xlrd
 openpyxl
 pdfplumber
 requests
+jpholiday
