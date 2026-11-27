@@ -1,5 +1,12 @@
 {
  "start": "2026-11-27",
- "capital": 100000000,
- "signals": []
+ "capital": 50000000,
+ "signals": [],
+ "capital_history": [
+  {
+   "date": "2026-11-27",
+   "from": 100000000,
+   "to": 50000000
+  }
+ ]
 }
