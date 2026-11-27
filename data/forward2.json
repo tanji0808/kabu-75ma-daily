@@ -1,5 +1,28 @@
 {
- "start": "2026-11-23",
- "rule_id": "combo_v5",
- "signals": []
+ "start": "2026-11-27",
+ "rule_id": "combo_v6",
+ "signals": [
+  {
+   "date": "2026-11-26",
+   "side": "ipo",
+   "code": "558A",
+   "name": "ＳＱＵＥＥＺＥ",
+   "rank": null,
+   "score": 3,
+   "lot": 1.0,
+   "reasons": [
+    "決算から21日以内",
+    "上場来高値から21営業日以上",
+    "TOPIXが高値圏でない"
+   ],
+   "close": 6850.0,
+   "list_date": "2026-04-22",
+   "days": 144,
+   "shares": 100,
+   "amount": 685000,
+   "cap": 15000000.0,
+   "want": 750000.0,
+   "eg": null
+  }
+ ]
 }
