@@ -12,7 +12,5 @@ def search(ymd, code=""):
     csv=sorted(set(re.findall(r'href=["\']([^"\']*csv[^"\']*)',r.text,re.I)))
     msg=re.findall(r'(該当[^<]{0,40}|件数[^<]{0,40}|\d+\s*件)',t)[:5]
     print("==",ymd,code,r.status_code,len(r.text),"行",len(rows),msg,csv[:5]); [print("   ",c) for c in cells]
-search("2026 / 11 / 26","7203")
-search("2026 / 11 / 26","")
-search("2021 / 01 / 05","7203")
-search("2017 / 01 / 05","7203")
+for d in ["2026 / 11 / 02","2026 / 09 / 01","2026 / 06 / 01","2026 / 01 / 05","2025 / 06 / 02","2024 / 06 / 03"]:
+    search(d,"7203")
