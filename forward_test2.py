@@ -48,7 +48,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v9"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加
+RULE_ID = "combo_v10"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -58,11 +58,13 @@ W_SHORT = [0.5, 1, 1.5, 2, 2]
 # 資金の分け方（2026-11-23 採用）：現物の3つ（75日線の買い・新高値・IPO）は1つの枠（今の資金）を共有して早い者勝ち。
 # 1回の金額：75日線の買い＝ランクで決まる金額×0.3×（資金÷1,000万円）／新高値＝資金の4%／IPO＝資金の5%。空売りは信用の建玉で別枠
 UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR, UNIT_RB, UNIT_KR = 0.3, 0.04, 0.05, 0.05, 0.05, 0.20
-MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "kenri": 1}
-LONG_ORDER = {"kenri": -2, "rebound": -1, "ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
+MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "kenri": 1, "gapdown": 10}
+LONG_ORDER = {"gapdown": -3, "kenri": -2, "rebound": -1, "ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
 RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 3   # リバウンド（2026-11-27 追加）：前日終値−3%に指値、買値−10%で損切り、買った日を1日目として3日目の引けで売る
 YE_CAP, YE_N, YE_YTD, YE_TV = 10_000_000, 20, -0.40, 3e7   # 年末の反発（2026-11-27 追加・別枠1,000万円）：その年に40%以上下げた銘柄（売買代金3,000万円以上）を下げの大きい順に20銘柄
 YE_BUY, YE_SELL = 5, 5   # 大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る
+UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.05, 0.05, 0.05, 1e8, 0.05, 0.10   # 窓あけ下げ（2026-11-27 追加）
+GD_CRASH, GD_WIN = 20, 5   # 監視リストのうち20銘柄以上が−5%以下で始まった朝＝「急落の朝」。直前5営業日にも急落の朝があった時（2日目以降）だけ買う
 KR_DAYS = 10                                   # 権利取り前（2026-11-27 追加）：3月・9月の権利付き最終日の10営業日前の引けでTOPIX連動ETF（1306）を資金の20%買い、権利付き最終日の引けで売る
 IR_HOLD, IR_STOP = 60, 0.10   # IRトレード：買値−10%に損切りの逆指値（2026-11-27 追加）。当たらなければ反応の日から60営業日目の引けで売る。利確なし    # 同じ日に枠が足りないときの順番（バックテストと同じ）
 IPO_STOP, IPO_TP = 0.10, 0.30
@@ -561,6 +563,43 @@ def kenri_window(today_: str) -> tuple[str, str] | None:
     return None
 
 
+def gd_watch(prices: dict, fins: dict, upto: int = 0) -> tuple[list[dict], dict]:
+    """窓あけ下げの監視リスト（前日の終値で判定）と、直近6営業日それぞれの「−5%以下で始まった数」。
+    監視リスト：前日終値が25日線の−5%以下・直前20日の売買代金平均1億円以上・決算発表から3日以内でない。"""
+    stm = {}
+    for c_, recs in fins.items():
+        stm[c_] = sorted(str(r["DiscDate"])[:10] for r in recs if "FinancialStatements" in str(r.get("DocType")))
+    counts, today_hits, tomorrow = {}, [], []
+    for code, df in prices.items():
+        if len(df) < 60:
+            continue
+        idx = pd.to_datetime(df.index).tz_localize(None).normalize()
+        dates = [d.strftime("%Y-%m-%d") for d in idx]
+        o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
+        m25 = pd.Series(c).rolling(25).mean().to_numpy()
+        tv = pd.Series(c * v).rolling(20).mean().to_numpy()
+        ds = stm.get(code, [])
+        n = len(c)
+        def ok(t):   # t の日の朝に監視リストに入っていたか（t-1 の終値で判定）
+            if t < 26 or not (c[t - 1] / m25[t - 1] - 1 <= -GD_DEV and tv[t - 1] >= GD_TV):
+                return False
+            j = bisect.bisect_left(ds, dates[t]) if t < n else len(ds)
+            return not (j and (pd.Timestamp(dates[t] if t < n else date.today().isoformat()) - pd.Timestamp(ds[j - 1])).days < 3)
+        for t in range(max(26, n - 6), n):
+            if ok(t) and o[t] / c[t - 1] - 1 <= -GD_GAP:
+                counts[dates[t]] = counts.get(dates[t], 0) + 1
+                if t == n - 1:
+                    today_hits.append({"code": code, "gap": o[t] / c[t - 1] - 1, "open": float(o[t]), "prev": float(c[t - 1])})
+        # 明日の監視リスト（今日の終値で判定。決算は今日までの発表で判定）
+        dev = c[-1] / m25[-1] - 1
+        if dev <= -GD_DEV and tv[-1] >= GD_TV:
+            j = len(ds)
+            nxt = (pd.Timestamp(dates[-1]) + pd.offsets.BDay(1))
+            if not (j and (nxt - pd.Timestamp(ds[j - 1])).days < 3):
+                tomorrow.append({"code": code, "close": float(c[-1]), "dev": round(dev * 100, 1), "tv20": float(tv[-1])})
+    return today_hits, {"counts": counts, "tomorrow": tomorrow}
+
+
 def ye_window(today_: str) -> tuple[str, str] | None:
     """今日以降で一番近い年末の反発の (買う日, 売る日)。買う日＝大納会の5営業日前（12月の営業日の後ろから5番目）、売る日＝1月の5営業日目。"""
     y = int(today_[:4])
@@ -846,6 +885,31 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             r["status"] = "株価なし"
             out.append(r)
             continue
+        if s["side"] == "gapdown":
+            oo_, hh_, ll_, cc_ = (df[x_].to_numpy(float) for x_ in ("Open", "High", "Low", "Close"))
+            entry = float(oo_[i]); tp = entry * (1 + GD_TP); sl = entry * (1 - GD_STOP)
+            hit = None
+            for j in range(i, min(len(dates), i + 2)):
+                if j > i and oo_[j] <= sl:
+                    hit = (j, oo_[j], f"損切り（−{GD_STOP * 100:.0f}%）"); break
+                if ll_[j] <= sl:
+                    hit = (j, sl, f"損切り（−{GD_STOP * 100:.0f}%）"); break
+                if j > i and oo_[j] >= tp:
+                    hit = (j, oo_[j], f"利確（+{GD_TP * 100:.0f}%）"); break
+                if hh_[j] >= tp:
+                    hit = (j, tp, f"利確（+{GD_TP * 100:.0f}%）"); break
+                if j == i + 1:
+                    hit = (j, cc_[j], "翌日の引けで売り"); break
+            r["stop_px"], r["tp_px"] = round(sl, 1), round(tp, 1)
+            if hit:
+                r.update(status="決済済み", entry=round(entry, 1), entry_date=dates[i], exit_date=dates[hit[0]], ret=round((hit[1] / entry - 1) * 100, 2), why=hit[2])
+            else:
+                r.update(status="保有中", entry=round(entry, 1), entry_date=dates[i], now=round(cc_[-1], 1), ret=round((cc_[-1] / entry - 1) * 100, 2),
+                         order=f"利確 {tp:,.0f}円・損切り {sl:,.0f}円（返済予約）。届かなければ明日の引けで売る")
+            amt = s.get("amount") or 0
+            r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
+            out.append(r)
+            continue
         if i + 1 >= len(dates):
             r["status"] = {"rebound": f"明日の朝に指値 {s.get('limit', 0):,.0f}円で買い", "kenri": f"明日（{s.get('buy_date', '')}）の引けで買い", "yearend": f"明日（{s.get('buy_date', '')}）の引けで買い"}.get(
                 s["side"], "明日の寄りで" + ("空売り" if s["side"] == "short" else "買い"))
@@ -991,7 +1055,7 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             continue
         open_.append(r)
     # 現物の3つ：1つの枠を共有（手法ごとの銘柄数の上限＋金額の合計が資金まで。同じ銘柄は1つだけ）
-    rows = [r for r in out if r["side"] in ("buy", "newhigh", "ipo", "ir", "rebound", "kenri") and r.get("entry_date") and r["status"] != "約定せず"]
+    rows = [r for r in out if r["side"] in ("buy", "newhigh", "ipo", "ir", "rebound", "kenri", "gapdown") and r.get("entry_date") and r["status"] != "約定せず"]
     rows.sort(key=lambda r: (r["entry_date"], LONG_ORDER.get(r["side"], 9), -(r.get("eg") or -9) if r["side"] == "buy" else -r["score"]))
     open_ = []
     for r in rows:
@@ -1015,7 +1079,7 @@ def stats(rows: list[dict], side: str) -> dict:
 def my_holdings(hold: list[dict]) -> str:
     """「自分の保有」：システムの保有中の記録から、買わなかったものを外し、買値を直せる欄（スマホのブラウザに保存）。"""
     import json as _j
-    SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "rebound": "買い（リバウンド）", "kenri": "買い（権利取り）", "yearend": "買い（年末の反発・別枠）", "short": "空売り"}
+    SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "rebound": "買い（リバウンド）", "kenri": "買い（権利取り）", "yearend": "買い（年末の反発・別枠）", "gapdown": "買い（窓あけ下げ）", "short": "空売り"}
     items = []
     for r in hold:
         e = float(r.get("entry") or 0)
@@ -1151,9 +1215,25 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
                ("金額", lambda x: man(int(YE_CAP / YE_N // x["close"] // 100 * 100) * x["close"]) if x.get("close") else "—")]
     ye_tbl = table(ye_plan, ye_cols) if ye_plan else '<p class="sub">候補は12月に入ると毎日ここに出ます（買う日の前日の候補で確定）。</p>'
     sy_ = stats(rows, "yearend")
+    gi = info.get("gd") or {}
+    cnt_txt = "・".join(f"{d_[5:]} {n_}銘柄" for d_, n_ in (gi.get("counts") or {}).items()) or "—"
+    if gi.get("active_tomorrow"):
+        gd_head = (f'<p class="warn">直近5営業日に「急落の朝」がありました（{"・".join(gi.get("crash", []))}）。<b>明日の朝も大きく下げて始まりそうなら、窓あけ下げを実行</b>：'
+                   f'8:55ごろ気配を見て、下の一覧のうち「寄りの気配が−5%の値段以下」の銘柄を、下げの大きい順に10銘柄まで寄りで買う（成行）。'
+                   f'注文の時に返済予約で「利確 +{GD_TP * 100:.0f}%の円幅・損切り −{GD_STOP * 100:.0f}%の円幅」を付ける。届かなければ翌日の引けで売る。'
+                   f'一覧のうち−5%以下で始まる銘柄が{GD_CRASH}より少なそうな朝（急落でない朝）は見送り。</p>')
+        tw = sorted(gi.get("tomorrow") or [], key=lambda z: -z["tv20"])[:60]
+        unit_ = info.get("equity", CAPITAL) * UNIT_GD
+        gd_cols = [("銘柄", link), ("今日の終値", lambda x: f'{x["close"]:,.1f}円'), ("寄りがこれ以下なら買う", lambda x: f'{x["close"] * (1 - GD_GAP):,.0f}円'),
+                   ("25日線から", lambda x: f'{x["dev"]:+.0f}%'), ("株数の目安", lambda x: f'{int(unit_ // (x["close"] * (1 - GD_GAP)) // 100 * 100):,}株'),
+                   ("利確の円幅", lambda x: f'+{x["close"] * (1 - GD_GAP) * GD_TP:,.0f}円'), ("損切りの円幅", lambda x: f'−{x["close"] * (1 - GD_GAP) * GD_STOP:,.0f}円')]
+        gd_tbl = table([dict(x, name=x.get("name", x["code"])) for x in tw], gd_cols) + (f'<p class="sub">売買代金の多い順に60銘柄まで表示（全部で{len(gi.get("tomorrow") or [])}銘柄）。円幅は「−5%の値段」で買えた場合の目安。</p>')
+    else:
+        gd_head = '<p>今は見送り（直近5営業日に「急落の朝」がない）。急落の朝が来ると、その翌日から5営業日だけ、ここに明日の監視リストが出ます。</p>'
+        gd_tbl = ""
     hold = [r for r in rows if r["status"] == "保有中"]
     closed = sorted([r for r in rows if r["status"] == "決済済み"], key=lambda r: r.get("exit_date") or "", reverse=True)
-    SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "rebound": "買い（リバウンド）", "kenri": "買い（権利取り）", "yearend": "買い（年末の反発・別枠）", "short": "空売り"}
+    SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "rebound": "買い（リバウンド）", "kenri": "買い（権利取り）", "yearend": "買い（年末の反発・別枠）", "gapdown": "買い（窓あけ下げ）", "short": "空売り"}
     pos_cols = [("売買", lambda x: SIDE.get(x["side"], x["side"])), ("銘柄", link), ("合図", lambda x: x["date"]),
                 ("金額", lambda x: man(x["amount"]) if x.get("amount") else lot(x["lot"])), ("株数", lambda x: f'{x["shares"]:,}株' if x.get("shares") else "—"),
                 ("建値", lambda x: x.get("entry")), ("損益", lambda x: f'{x["ret"]:+.2f}%（{yen(x["pnl"])}）')]
@@ -1215,6 +1295,10 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値、買った日を1日目として3日目の引けで売る。1回は資金の5%、同時に10銘柄まで。</p></div>
 <div class="card"><h2 style="margin-top:0">権利取り前（3月・9月）</h2><p>{kr_line}</p>
 <p class="sub">3月・9月の権利付き最終日の前は、配当目当ての買いで市場全体が上がりやすい（10年で20回中15回プラス）。資金の20%で、年2回・約2週間だけ持つ。</p></div>
+<div class="card"><h2 style="margin-top:0">窓あけ下げ（急落の2日目から・寄りで買う）</h2>{gd_head}{gd_tbl}
+<p class="sub">監視リスト：前日終値が25日線の−5%以下・売買代金1億円以上・決算発表から3日以内でない銘柄。この中で−5%以下で始まった数（直近）：{h.escape(cnt_txt)}。
+{GD_CRASH}銘柄以上の朝が「急落の朝」。暴落の初日は負けやすいので、直前5営業日にも急落の朝があった時（2日目以降）だけ買う。1回は資金の{UNIT_GD * 100:.0f}%、10銘柄まで。
+10年で15日・112回・勝率91%・+247万円（1,000万円の場合）。</p></div>
 <div class="card"><h2 style="margin-top:0">年末の反発（別枠1,000万円・12月〜1月）</h2><p>{ye_line}</p>{ye_tbl}
 <p class="sub">その年に40%以上下げた銘柄（直前20日の売買代金の平均3,000万円以上）を、下げの大きい順に20銘柄・1銘柄50万円ずつ。年末の節税売りが終わったあとの反発をねらう。
 損切り・利確なしで、決まった日の引けで売るだけ。10年（10回）で+415万円・負けた年1回（1銘柄ごとの勝率 約8割）。この枠の損益は、上の「今の資金」には入れない。
@@ -1288,12 +1372,12 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
             held.add(x["code"])
 
 
-SIDE_NAME = {"buy": "75日線の買い", "newhigh": "新高値", "ipo": "IPO", "ir": "IRトレード", "rebound": "リバウンド", "kenri": "権利取り前", "yearend": "年末の反発", "short": "空売り"}
+SIDE_NAME = {"buy": "75日線の買い", "newhigh": "新高値", "ipo": "IPO", "ir": "IRトレード", "rebound": "リバウンド", "kenri": "権利取り前", "yearend": "年末の反発", "gapdown": "窓あけ下げ", "short": "空売り"}
 
 
 def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
     """現物の3つ（買い・新高値・IPO）を1つの枠（今の資金）で共有。cands はすでに枠を使う順に並んでいること。"""
-    open_ = [r for r in rows if r["side"] in ("buy", "newhigh", "ipo", "ir", "rebound", "kenri") and (r["status"] == "保有中" or r["status"].startswith("明日"))]
+    open_ = [r for r in rows if r["side"] in ("buy", "newhigh", "ipo", "ir", "rebound", "kenri", "gapdown") and (r["status"] == "保有中" or r["status"].startswith("明日"))]
     used = sum(r.get("amount") or 0 for r in open_)
     held = {r["code"] for r in open_}
     n = {k: sum(1 for r in open_ if r["side"] == k) for k in MAX_N}
@@ -1308,6 +1392,8 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
             want = eq * UNIT_RB
         elif x["side"] == "kenri":
             want = eq * UNIT_KR
+        elif x["side"] == "gapdown":
+            want = eq * UNIT_GD
         else:
             want = eq * UNIT_IPO
         want = min(want, CAP_PER)
@@ -1379,6 +1465,26 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
                 allp["1306"] = et
     except Exception as e:
         print(f"  権利取り前の判定に失敗（{e}）")
+    gds = []
+    try:
+        hits, gw = gd_watch(prices, fins_recent())
+        cnt = gw["counts"]
+        nm_ = dict(zip(master["コード"], master["銘柄名"]))
+        for x in gw["tomorrow"]:
+            x["name"] = nm_.get(x["code"], x["code"])
+        last6 = [d_ for d_ in sorted({x.strftime("%Y-%m-%d") for d_ in prices.values() for x in pd.to_datetime(d_.index[-6:])})][-6:]
+        crash = [d_ for d_ in last6 if cnt.get(d_, 0) >= GD_CRASH]
+        today_crash = cnt.get(data_date, 0) >= GD_CRASH
+        prev_crash = [d_ for d_ in last6[:-1] if cnt.get(d_, 0) >= GD_CRASH]
+        info["gd"] = {"counts": {d_: cnt.get(d_, 0) for d_ in last6}, "crash": crash, "today": today_crash,
+                      "active_tomorrow": bool([d_ for d_ in last6[-5:] if cnt.get(d_, 0) >= GD_CRASH]), "tomorrow": gw["tomorrow"]}
+        if today_crash and prev_crash:                                     # 今朝が急落の2日目以降：寄りで買ったことにして記録
+            names_ = dict(zip(master["コード"], master["銘柄名"]))
+            for x in sorted(hits, key=lambda z: z["gap"]):
+                gds.append({"date": data_date, "side": "gapdown", "code": x["code"], "name": names_.get(x["code"], x["code"]), "close": x["open"],
+                            "gap": round(x["gap"] * 100, 1), "score": round(-x["gap"] * 100, 1), "lot": 1.0, "reasons": [f"寄り {x['gap'] * 100:+.1f}%"]})
+    except Exception as e:
+        print(f"  窓あけ下げの判定に失敗（{e}）")
     yes, ye_plan = [], []
     try:
         yw = ye_window(data_date)
@@ -1405,10 +1511,10 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     ipos.sort(key=lambda x: -x["score"])
     irs.sort(key=lambda x: -x["score"])                                  # バックテストと同じ：その日の上げが大きい順
     rbs.sort(key=lambda x: -x["score"])                                  # バックテストと同じ：25日線から離れている順
-    size_long(krs + rbs + ipos + nhs + irs + buys, prev, eq)            # 枠を使う順：権利取り→リバウンド→IPO→新高値→IR→75日線の買い
+    size_long(gds + krs + rbs + ipos + nhs + irs + buys, prev, eq)            # 枠を使う順：権利取り→リバウンド→IPO→新高値→IR→75日線の買い
     info["equity"] = eq
     have = {(s["date"], s["side"], s["code"]) for s in ledger["signals"]}
-    for s in buys + shorts + nhs + ipos + irs + rbs + krs + yes:
+    for s in buys + shorts + nhs + ipos + irs + rbs + krs + yes + gds:
         if s["side"] == "short" and (not s.get("margin_ok") or s.get("paused")):
             continue                                       # 海外投資家が大きく売り越し中は空売りを見送る                                       # 信用残が判定できない空売りは台帳に入れない
         if s.get("slot") != "枠あり":
@@ -1422,7 +1528,7 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
     info["ye_plan"] = ye_plan
     build_page(ledger, rows, buys, shorts, info, data_date, os.path.join(out_dir, "forward2.html"), nhs, ipos, irs, rbs, krs)
-    print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・新高値 {len(nhs)}件・IPO {len(ipos)}件・IR {len(irs)}件・リバウンド {len(rbs)}件・権利取り {len(krs)}件・年末の反発 {len(yes)}件（予定 {len(ye_plan)}件）・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
-    for lab, xs in (("75日線", buys), ("新高値", nhs), ("IPO", ipos), ("IR", irs), ("リバウンド", rbs), ("権利取り", krs), ("年末の反発", ye_plan), ("空売り", shorts)):
+    print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・新高値 {len(nhs)}件・IPO {len(ipos)}件・IR {len(irs)}件・リバウンド {len(rbs)}件・権利取り {len(krs)}件・年末の反発 {len(yes)}件（予定 {len(ye_plan)}件）・窓あけ下げ {len(gds)}件（急落の朝の数 {info.get("gd", {}).get("counts")}）・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
+    for lab, xs in (("75日線", buys), ("新高値", nhs), ("IPO", ipos), ("IR", irs), ("リバウンド", rbs), ("権利取り", krs), ("年末の反発", ye_plan), ("窓あけ下げ", gds), ("空売り", shorts)):
         for x in xs:   # 候補の中身をログにも残す（ページを見られない時の確認用）
             print("  候補", lab, {kk: x.get(kk) for kk in ("code", "name", "signal", "close", "score", "slot", "shares", "yen", "amount", "lot") if kk in x})
