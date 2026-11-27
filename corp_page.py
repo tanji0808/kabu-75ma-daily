@@ -1,6 +1,7 @@
 """法人用の「今日の売買」ページ（houjin.html）と台帳（data/forward_corp.json）。
 
-証券会社を通して少ない手間で回すための版（2026-11-27 作成）。手法は5つだけ：
+少ない手間で回すための版（2026-11-27 作成、11-28 資金5,000万円・リバウンド追加・eスマート証券のアプリで注文）。手法は6つ：
+  リバウンド   : 資金の9%・10銘柄まで。前日終値−3%に指値（当日だけ）。−10%逆指値と25日線×0.90の利確指値。3営業日目の引けで売る。
   IRトレード   : 資金の5%・20銘柄まで。寄りで成行買い＋買値−10%に逆指値。60営業日目の引けで売る。
   IPOセカンダリー: 資金の5%・10銘柄まで。寄りで成行買い＋−10%／+30%のOCO。120営業日で手じまい。
   新高値ブレイク : 資金の4%・12銘柄まで。寄りで成行買い＋−6%に逆指値。月1回（21営業日ごと）だけ見直し、
@@ -9,7 +10,7 @@
   年末の反発   : 20銘柄を資金の1%ずつ。大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る。
 1回の金額は、その銘柄の直前20日の売買代金の平均の5%まで（大きな注文で値段を動かさないため）。
 候補の判定は個人の「今日の売買」と同じ（同じ条件・同じ見送り条件）。
-10年の検証（1億円・単利）：1年平均 約2,700万円・最大の落ち込み 約−990万円・負けた年なし。
+10年の検証（5,000万円・単利）：1年平均 約2,080万円・最大の落ち込み 約−450万円・負けた年なし。
 """
 from __future__ import annotations
 
@@ -21,15 +22,15 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-CORP_CAPITAL = int(os.environ.get("CORP_CAPITAL", "100000000"))
-UNIT = {"ir": 0.05, "ipo": 0.05, "newhigh": 0.04, "kenri": 0.20, "yearend": 0.01}
-MAX_N = {"ir": 20, "ipo": 10, "newhigh": 12, "kenri": 1, "yearend": 20}
-ORDER = ["kenri", "ipo", "newhigh", "ir", "yearend"]
+CORP_CAPITAL = int(os.environ.get("CORP_CAPITAL", "50000000"))   # 2026-11-28：5,000万円に変更
+UNIT = {"ir": 0.05, "ipo": 0.05, "newhigh": 0.04, "rebound": 0.09, "kenri": 0.20, "yearend": 0.01}
+MAX_N = {"ir": 20, "ipo": 10, "newhigh": 12, "rebound": 10, "kenri": 1, "yearend": 20}
+ORDER = ["kenri", "rebound", "ipo", "newhigh", "ir", "yearend"]
 LIQ = 0.05
 NH_STOP, NH_ARM, NH_TRAIL, NH_REVIEW, NH_HOLD = 0.06, 0.25, 0.20, 21, 120
 COST = 0.002
 LEDGER = "data/forward_corp.json"
-NAME = {"ir": "IRトレード", "ipo": "IPO", "newhigh": "新高値", "kenri": "権利取り前", "yearend": "年末の反発"}
+NAME = {"ir": "IRトレード", "ipo": "IPO", "newhigh": "新高値", "rebound": "リバウンド", "kenri": "権利取り前", "yearend": "年末の反発"}
 
 
 def _tv20(df) -> float | None:
@@ -111,6 +112,9 @@ def evaluate_corp(ledger: dict, prices: dict) -> list[dict]:
 
 def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str) -> None:
     led = json.load(open(LEDGER, encoding="utf-8")) if os.path.exists(LEDGER) else {"start": data_date, "capital": CORP_CAPITAL, "signals": []}
+    if led.get("capital") != CORP_CAPITAL:
+        led.setdefault("capital_history", []).append({"date": data_date, "from": led.get("capital"), "to": CORP_CAPITAL})
+        led["capital"] = CORP_CAPITAL
     prev = evaluate_corp(led, prices)
     eq = CORP_CAPITAL + sum(r.get("pnl", 0) for r in prev if r.get("status") == "決済済み")
     open_ = [r for r in prev if r.get("status") == "保有中" or str(r.get("status", "")).startswith("明日")]
@@ -182,6 +186,11 @@ def page(rows, todays, info, eq, data_date, start, path):
             return f"明日の寄りで成行買い。約定したら −10%（目安 {p * 0.9:,.0f}円）／+30%（目安 {p * 1.3:,.0f}円）のOCO。120営業日で手じまい"
         if s == "newhigh":
             return f"明日の寄りで成行買い。約定したら買値−6%（目安 {p * 0.94:,.0f}円）に逆指値。月1回の見直しは保有中の表に出ます"
+        if s == "rebound":
+            lim = x.get("limit") or p
+            tp = x.get("last_close", 0) / (1 + x.get("dev", 0) / 100) * 0.90 if x.get("dev") is not None else 0
+            return (f"明日の朝、{lim:,.0f}円に指値で買う（当日だけ・届かなければ買わない）。買えたら買値−10%（目安 {lim * 0.9:,.0f}円）に逆指値と、"
+                    f"{tp:,.0f}円に利確の指値（OCO）。どちらも届かなければ3営業日目の引けで売る")
         if s == "kenri":
             return f"{x.get('buy_date', '明日')}の引けで買う（引け成行）。{x.get('sell_date', '')}（権利付き最終日）の引けで売る"
         if s == "yearend":
@@ -211,7 +220,7 @@ def page(rows, todays, info, eq, data_date, start, path):
     if yw:
         sched.append(f"年末の反発：{yw[0]}の引けで買い → {yw[1]}の引けで売る（20銘柄・各資金の1%）")
     html = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>法人の売買（少ない手間版）</title><style>
+<title>法人の売買</title><style>
 body{{font-family:'Noto Sans JP',system-ui,sans-serif;margin:0;background:#f5f4f0;color:#1d1d1b;font-size:14px;line-height:1.55}}
 main{{max-width:1100px;margin:0 auto;padding:16px}}h1{{font-size:18px;margin:4px 0 2px}}h2{{font-size:15px;margin:0 0 8px}}
 .card{{background:#fff;border:1px solid #e2e0d8;border-radius:10px;padding:12px 14px;margin:10px 0}}.sub{{font-size:12.5px;color:#6b6a65}}
@@ -220,14 +229,14 @@ main{{max-width:1100px;margin:0 auto;padding:16px}}h1{{font-size:18px;margin:4px
 th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{color:#999}}.warn{{background:#fff4e5;border:1px solid #f0c27b;border-radius:8px;padding:8px 10px}}a{{color:#1f4e79}}
 </style></head><body><main>
 <a href="forward2.html" class="sub">← 個人の今日の売買</a>　<a href="backtest.html" class="sub">バックテスト結果</a>　<a href="docs.html" class="sub">📘 まとめ資料</a>
-<h1>法人の売買（証券会社に頼む・少ない手間版）</h1>
-<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。IRトレード・IPO・新高値・権利取り前・年末の反発の5つだけ。毎日の細かい指値の入れ直しはなし。</div>
+<h1>法人の売買（eスマート証券・アプリで注文）</h1>
+<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。IRトレード・IPO・新高値・リバウンド・権利取り前・年末の反発の6つ。現物のみ（信用は使わない）。注文は朝9時前にアプリで入れる（SOR注文で手数料無料）。</div>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">資金（最初 {CORP_CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{eq / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円</div></div>
+<div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl_pnl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op_pnl)}</div></div></div>
-<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12銘柄。10年の検証（1億円・単利）：1年平均 約2,700万円・最大の落ち込み 約−990万円・負けた年なし。</p></div>
+<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。10年の検証（5,000万円・単利・税引き前）：1年平均 約2,080万円・最大の落ち込み 約−450万円・負けた年なし。</p></div>
 {('<p class="warn"><b>今日は新高値の見直しの日の銘柄があります</b>：' + "・".join(f"{r['code']} {h.escape(str(r.get('name', '')))}" for r in review) + '（下の保有中の表の「注文・予定」のとおりに逆指値を直す）</p>') if review else ''}
 <div class="card"><h2>明日お願いする注文（{len(buy)}件）</h2>{table(buy, cols)}
 <p class="sub">「目安」は今日の終値で計算。実際は約定した値段（買値）から計算し直す。</p></div>

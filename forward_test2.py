@@ -1577,9 +1577,9 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
     info["ye_plan"] = ye_plan
     build_page(ledger, rows, buys, shorts, info, data_date, os.path.join(out_dir, "forward2.html"), nhs, ipos, irs, rbs, krs)
-    try:                                                   # 法人用のページ（少ない手間版：IR・IPO・新高値・権利取り前・年末の反発）
+    try:                                                   # 法人用のページ（IR・IPO・新高値・リバウンド・権利取り前・年末の反発）
         import corp_page
-        corp_page.run_corp(allp, {"ir": irs, "ipo": ipos, "newhigh": nhs, "kenri": krs, "yearend": yes}, info, data_date, out_dir)
+        corp_page.run_corp(allp, {"ir": irs, "ipo": ipos, "newhigh": nhs, "rebound": rbs, "kenri": krs, "yearend": yes}, info, data_date, out_dir)
     except Exception as e:
         print(f"  法人ページの作成に失敗（{e}）")
     try:                                                   # ミニ株版のページ（注文は寄り付きだけ：逆指値なし・空売りなし）
