@@ -5,7 +5,7 @@
           窓あけ下げは「急落の朝」に寄りで買ったものとして、その日の夕方に記録する。
   売り  : 損切り・利確・新高値の追いかけは、すべてその日の終値で判定し、翌朝の寄りで売る。
   空売り・年末の反発はなし。資金 100万円（MINI_CAPITAL で変更可）。株数は1株単位。
-10年の検証（100万円・単利）：+355万円・最大の落ち込み −13万円・負けた年なし。
+10年の検証（100万円・単利）：+424万円・最大の落ち込み −13万円・負けた年なし。
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import pandas as pd
 
 MINI_CAPITAL = int(os.environ.get("MINI_CAPITAL", "1000000"))
 LEDGER = "data/forward_mini.json"
-UNIT = {"buy": None, "newhigh": 0.04, "ipo": 0.05, "ir": 0.05, "rebound": 0.05, "gapdown": 0.05, "kenri": 0.20}
+UNIT = {"buy": None, "newhigh": 0.04, "ipo": 0.07, "ir": 0.07, "rebound": 0.09, "gapdown": 0.07, "kenri": 0.20}   # 2026-11-28：個人と同じ割合に
 MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "gapdown": 10, "kenri": 1}
 ORDER = ["gapdown", "kenri", "rebound", "ipo", "newhigh", "ir", "buy"]
 NAME = {"buy": "75日線の買い", "newhigh": "新高値", "ipo": "IPO", "ir": "IRトレード", "rebound": "リバウンド", "gapdown": "窓あけ下げ", "kenri": "権利取り前"}
@@ -194,10 +194,10 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。逆指値・指値は使わず、買いも売りも翌朝の寄り付き。空売り・年末の反発はなし。</div>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">資金（最初 {MINI_CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{eq / 1e4:,.1f}万円</div></div>
-<div class="stat"><div class="k">1回の金額</div><div class="v">新高値 {eq * 0.04 / 1e4:,.1f}万円／ほか {eq * 0.05 / 1e4:,.1f}万円</div></div>
+<div class="stat"><div class="k">1回の金額</div><div class="v">新高値 {eq * 0.04 / 1e4:,.1f}万円／IR・IPO・窓あけ {eq * 0.07 / 1e4:,.1f}万円／リバウンド {eq * 0.09 / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op)}</div></div></div>
-<p class="sub">10年の検証（100万円・単利）：+355万円・最大の落ち込み −13万円・負けた年なし。税引き後の複利なら100万円→約1,138万円。</p></div>
+<p class="sub">10年の検証（100万円・単利・2026-11-28の1回の金額）：+424万円・最大の落ち込み −13万円・負けた年なし。税引き後の複利なら100万円→約1,685万円。</p></div>
 {gd_txt}
 <div class="card"><h2>明日の寄りで売る（{len(sell)}件）</h2>{table(sell, hcols)}</div>
 <div class="card"><h2>明日の寄りで買う（{len(buy)}件）</h2>{table(buy, bcols)}

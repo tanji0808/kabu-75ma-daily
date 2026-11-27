@@ -2,7 +2,7 @@
 フォワードテスト2（買い＋空売り・点数で金額を変える）と「今日の売買（買い＋空売り）」ページ
 
 採用ルール（10年のバックテスト・その時点の決算・上場廃止銘柄を含めた検証で選んだもの）
-  買い   : 75日線ブレイク（本日突破）＋5日+3%以下＋RSI60以下＋ファンダメンタルランク6以上＋ROE4%以上。翌営業日の始値で買う。
+  買い   : （2026-11-28から休止中・UNIT_BUY=0）75日線ブレイク（本日突破）＋5日+3%以下＋RSI60以下＋ファンダメンタルランク6以上＋ROE4%以上。翌営業日の始値で買う。
            市場全体の信用倍率（週次）が3.67倍未満の時期は見送り（2026-11-27 追加）。
            直近90日に大量保有者の保有割合が合計で減っている銘柄も見送り（2026-11-28 追加）。
            金額 ＝ ランク（6:50万・7:100万・8:150万・9〜10:200万）×点数の倍率（0点×1・1点×1.5・2点以上×2）
@@ -1309,7 +1309,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 .stats{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}}.stat{{background:#faf9f6;border:1px solid #efede7;border-radius:8px;padding:8px 10px}}
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
 <a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>　<a href="houjin.html" class="sub">🏢 法人の売買</a>　<a href="mini.html" class="sub">🪙 ミニ株の売買</a>　<a href="auto.html" class="sub">🤖 自動売買</a>
-<h1>今日の売買（8つの手法：75日線の買い・新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・空売り＋別枠の年末の反発）</h1>
+<h1>今日の売買（個人・信用1.3倍：新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・空売り＋別枠の年末の反発／75日線の買いは休止中）</h1>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
@@ -1322,8 +1322,8 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
-<div class="card"><h2 style="margin-top:0">明日の寄りで買う候補（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}
-<p class="sub">市場全体の信用倍率：<b>{"—" if info.get("mratio") is None else f"{info['mratio']:.2f}倍"}</b>（{h.escape(str(info.get("mratio_date") or "—"))}週）。{MKT_MRATIO_MIN}倍未満の時期は75日線の買いを見送り。</p></div>
+<div class="card"><h2 style="margin-top:0">75日線の買い（休止中・参考に表示）（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}
+<p class="sub">市場全体の信用倍率：<b>{"—" if info.get("mratio") is None else f"{info['mratio']:.2f}倍"}</b>（{h.escape(str(info.get("mratio_date") or "—"))}週）。{MKT_MRATIO_MIN}倍未満の時期は75日線の買いを見送り（75日線の買いは2026年11月28日から休止中）。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
 <p class="sub">市場全体の新高値ブレイクの件数（30〜6日前に買った分）：<b>{info.get('nb30', '—')}件・{h.escape(str(info.get('nb_state', '—')))}</b>
 （{NB_HOT}件超は過熱なので見送り）。米S&P500と200日線：<b>{h.escape(str(info.get('spx_info') or '—'))}・{'上（買える）' if info.get('spx_up') else ('下（見送り）' if info.get('spx_up') is False else '—')}</b>（200日線より下の時は新高値を買わない）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%に損切りの逆指値。利確はしない：終値で+20%に届いたら、毎日「終値の最高値の−20%（最低でも買値）」まで逆指値を引き上げる（値段は保有中の表）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
@@ -1333,16 +1333,16 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IRトレード（{len(today_ir)}件）</h2>{table(today_ir, ir_cols)}
 <p class="sub">今日が「発表を受けた最初の日」の決算・業績予想の修正のうち、良いニュース（上方修正+15%以上／決算で今期予想を+5%以上引き上げ／本決算の来期予想が前期実績の+20%以上）で、
 今日+5%以上上がって高値近くで引けたもの。TOPIXが50日線より上・発表前20日の上昇30%以下・時価総額700億円以下・営業利益率（直近の通期）4.6%以上・売買代金3,000万円以上・同じ銘柄は90日に1回。
-明日の寄りで買い、買値の−10%に損切りの逆指値を入れる。当たらなければ{IR_HOLD}営業日目の引けで売る（利確はしない）。1回は資金の5%、同時に20銘柄まで。</p></div>
+明日の寄りで買い、買値の−10%に損切りの逆指値を入れる。当たらなければ{IR_HOLD}営業日目の引けで売る（利確はしない）。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_IR * 100:.0f}%、同時に20銘柄まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の朝に指値で買う候補・リバウンド（{len(today_rb)}件）</h2>{table(today_rb, rb_cols)}
 <p class="sub">25日線から−20%以上下・5日で−20%以上の急落・安値近くで引けた銘柄（売買代金1億円以上）。直近5日に新高値ブレイクが2件以上あり、その日のTOPIXが−1%以上の時だけ
 （今日：新高値ブレイク {info.get("rb_brk5", "—")}件・TOPIX {"—" if info.get("rb_t1") is None else f'{info["rb_t1"] * 100:+.1f}%'}）。
-明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−10%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として3日目の引けで売る。1回は資金の5%、同時に10銘柄まで。</p></div>
+明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−10%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として3日目の引けで売る。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_RB * 100:.0f}%、同時に10銘柄まで。</p></div>
 <div class="card"><h2 style="margin-top:0">権利取り前（3月・9月）</h2><p>{kr_line}</p>
 <p class="sub">3月・9月の権利付き最終日の前は、配当目当ての買いで市場全体が上がりやすい（10年で20回中15回プラス）。資金の20%で、年2回・約2週間だけ持つ。</p></div>
 <div class="card"><h2 style="margin-top:0">窓あけ下げ（急落の朝のあと5営業日・寄りで買う）</h2>{gd_head}{gd_tbl}
 <p class="sub">監視リスト：前日終値が25日線の−5%以下・売買代金1億円以上・決算発表から3日以内でない銘柄。この中で−5%以下で始まった数（直近）：{h.escape(cnt_txt)}。
-{GD_CRASH}銘柄以上の朝が「急落の朝」。暴落の初日は負けやすいので見送り、そのあと5営業日のあいだだけ、−5%以下で始まった銘柄を下げの大きい順に買う。1回は資金の{UNIT_GD * 100:.0f}%、10銘柄まで。
+{GD_CRASH}銘柄以上の朝が「急落の朝」。暴落の初日は負けやすいので見送り、そのあと5営業日のあいだだけ、−5%以下で始まった銘柄を下げの大きい順に買う。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_GD * 100:.0f}%、10銘柄まで。
 外部要因41種類も確認済み（追加で効く条件はなし）。10年で258回・勝率70%・+462万円（1,000万円の場合）。</p></div>
 <div class="card"><h2 style="margin-top:0">年末の反発（別枠1,000万円・12月〜1月）</h2><p>{ye_line}</p>{ye_tbl}
 <p class="sub">その年に40%以上下げた銘柄（直前20日の売買代金の平均3,000万円以上）を、下げの大きい順に20銘柄・1銘柄50万円ずつ。年末の節税売りが終わったあとの反発をねらう。
