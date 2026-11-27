@@ -60,6 +60,14 @@ jobs:
       - name: JPXの公開ファイル（信用残・日々公表・投資部門別）をためる（失敗しても続ける）
         continue-on-error: true
         run: python tools/jpx_fetch.py
+      - name: 大量保有報告書を更新（失敗しても続ける）
+        continue-on-error: true
+        timeout-minutes: 8
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_WAIT: "1.1"
+          JQ_MAX_MINUTES: "5"
+        run: python tools/jq_large_holdings.py
       - name: 東証プライムを検索
         env:
           TZ: Asia/Tokyo

@@ -4,6 +4,7 @@
 採用ルール（10年のバックテスト・その時点の決算・上場廃止銘柄を含めた検証で選んだもの）
   買い   : 75日線ブレイク（本日突破）＋5日+3%以下＋RSI60以下＋ファンダメンタルランク6以上＋ROE4%以上。翌営業日の始値で買う。
            市場全体の信用倍率（週次）が3.67倍未満の時期は見送り（2026-11-27 追加）。
+           直近90日に大量保有者の保有割合が合計で減っている銘柄も見送り（2026-11-28 追加）。
            金額 ＝ ランク（6:50万・7:100万・8:150万・9〜10:200万）×点数の倍率（0点×1・1点×1.5・2点以上×2）
            点数：20日でTOPIXより8%以上強い／半年高値から45%以上下落／決算から10日以内／TOPIXが20日で3%以上下落／
                  直近の決算の増益率が−30%以下
@@ -48,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v13"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）
+RULE_ID = "combo_v14"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -73,6 +74,7 @@ NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 
 NH_STOP, NH_TP = 0.06, None          # 新高値：−6%損切り・利確なし
 NH_ARM, NH_TRAIL = 0.20, 0.20        # 終値で+20%に届いたら、終値の最高値−20%（最低でも買値）で追いかける（2026-11-27：+25%・−15%から変更）
 IR_OM_MIN = 0.046   # IR：営業利益率（直近の通期）4.6%未満は買わない（2026-11-27 外部要因の再チェックで追加）
+LH_DAYS = 90   # 75日線の買い：直近90日に大量保有者の保有割合が合計で減っていたら見送り（2026-11-28 追加）
 MKT_MRATIO_MIN = 3.67   # 75日線の買い：市場全体の信用倍率（週次）3.67倍未満の時期は買わない（同上）
 NB_HOT = 430   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り（102件以下で半分は 2026-11-25 に廃止：4つで枠を共有すると逆効果）
 NH_ITEMS = [("PBR1.07倍未満", 20), ("ランク6以上", 20), ("TOPIXも52週高値圏", 15), ("配当利回り2.3%以上", 10),
@@ -601,6 +603,27 @@ def gd_watch(prices: dict, fins: dict, upto: int = 0) -> tuple[list[dict], dict]
     return today_hits, {"counts": counts, "tomorrow": tomorrow}
 
 
+_LH = None
+
+
+def lh_dsum(code: str, day: str) -> float | None:
+    """大量保有報告書：提出日が day の前 LH_DAYS 日以内の書類について、保有割合の増減（今回−前回）の合計。データがなければ None。"""
+    global _LH
+    if _LH is None:
+        p = "data/jq/large_holdings.csv.gz"
+        if not os.path.exists(p):
+            _LH = pd.DataFrame(); return None
+        L = pd.read_csv(p, dtype=str, usecols=["DocId", "Code", "SubDate", "TotalShsRatio", "TotalShsRatioLast"]).drop_duplicates("DocId")
+        L["code"] = L.Code.str[:4]
+        L["d"] = pd.to_numeric(L.TotalShsRatio, errors="coerce") - pd.to_numeric(L.TotalShsRatioLast, errors="coerce")
+        _LH = L
+    if not len(_LH):
+        return None
+    s = pd.Timestamp(day)
+    x = _LH[(_LH.code == code) & (pd.to_datetime(_LH.SubDate) <= s) & (pd.to_datetime(_LH.SubDate) > s - pd.Timedelta(days=LH_DAYS))]
+    return float(x.d.fillna(0).sum()) if len(x) else 0.0
+
+
 def ye_window(today_: str) -> tuple[str, str] | None:
     """今日以降で一番近い年末の反発の (買う日, 売る日)。買う日＝大納会の5営業日前（12月の営業日の後ろから5番目）、売る日＝1月の5営業日目。"""
     y = int(today_[:4])
@@ -786,6 +809,10 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
                          "score": score, "lot": lot, "reasons": [n for n, ok in pts if ok], "eg": eg, "close": round(float(c[L]), 1)})
             if buy_why:
                 buys[-1].update(mult=0, why_mkt=buy_why)
+            else:
+                dlh = lh_dsum(code, sd_)
+                if dlh is not None and dlh < 0:                   # 大株主が直近90日で保有割合を減らしている（2026-11-28 追加）
+                    buys[-1].update(mult=0, why_mkt=f"大量保有者が直近{LH_DAYS}日で保有割合を合計{dlh * 100:+.1f}%（大株主の売り）")
         # ---- 新高値ブレイク
         brk, piv, base_len = nh_breakout(c, hi, v, L)
         if brk:
