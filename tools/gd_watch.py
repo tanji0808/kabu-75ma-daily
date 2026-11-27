@@ -49,7 +49,7 @@ def main():
     w["rank"] = w.groupby("date").dev25.rank(method="first")          # 1＝いちばん25日線から下
     w["n_watch"] = w.groupby("date").code.transform("size")
     f = w[(w.gap <= -0.05) & (w.gap > -0.5)].copy()
-    pp = pd.DataFrame([P[(d, c_)] for d, c_ in zip(f.date, f.code)], index=f.index)
+    pp = pd.DataFrame([P.get((d, c_), {}) for d, c_ in zip(f.date, f.code)], index=f.index)
     pd.concat([f, pp], axis=1).to_csv("backtest/gd_watch.csv.gz", index=False, compression="gzip")
     w.groupby("date").size().rename("n").to_csv("backtest/gd_watch_n.csv.gz", compression="gzip")
     print("保存しました", len(w), len(f))
