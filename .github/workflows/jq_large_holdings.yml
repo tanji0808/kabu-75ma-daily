@@ -1,0 +1,28 @@
+name: 大量保有報告書をためる
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q pandas requests
+      - name: 取得
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          JQ_WAIT: "1.1"
+          JQ_MAX_MINUTES: "100"
+        run: python tools/jq_large_holdings.py
+      - name: 保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/jq/large_holdings.csv.gz data/jq/large_holdings_dates.json
+          git commit -qm "大量保有報告書をためた" || exit 0
+          git pull --rebase -q origin main && git push -q
