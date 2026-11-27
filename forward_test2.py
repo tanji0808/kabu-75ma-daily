@@ -888,6 +888,12 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             r["status"] = "株価なし"
             out.append(r)
             continue
+        if s.get("entry_override"):                          # 実際に買った値段（手で入れたもの）：その日の始値をこの値段に置きかえて計算する
+            j_ = i if s["side"] == "gapdown" else i + 1
+            if j_ < len(df):
+                df.iloc[j_, df.columns.get_loc("Open")] = float(s["entry_override"])
+                df.iloc[j_, df.columns.get_loc("High")] = max(float(df["High"].iloc[j_]), float(s["entry_override"]))
+                df.iloc[j_, df.columns.get_loc("Low")] = min(float(df["Low"].iloc[j_]), float(s["entry_override"]))
         if s["side"] == "gapdown":
             oo_, hh_, ll_, cc_ = (df[x_].to_numpy(float) for x_ in ("Open", "High", "Low", "Close"))
             entry = float(oo_[i]); tp = entry * (1 + GD_TP); sl = entry * (1 - GD_STOP)
