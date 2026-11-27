@@ -1,0 +1,10 @@
+name: 日証金のデータを調べる
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -q requests
+      - run: python tools/probe_taisyaku.py
