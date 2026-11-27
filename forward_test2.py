@@ -30,7 +30,7 @@
   IPOセカンダリー（2026-11-23 採用）: 上場から250営業日以内に、終値が上場来高値を初めて上に抜けた日（上場から10営業日以上・その高値は5営業日以上前）。
            20日平均の売買代金1.43億円以上。4つのうち2つ以上：上場来高値からの下げが44%以内／決算から21日以内／上場来高値から21営業日以上／TOPIXが52週高値圏でない。
            さらに：信用取引の注意に載っていない・直近60日の上昇58%未満。翌営業日の始値で買い、−10%で損切り・+30%で利確・120営業日で手じまい。
-  資金の分け方 : 現物の3つ（75日線の買い・新高値・IPO）は1つの枠（今の資金）を共有し、同じ日はIPO→新高値→75日線の買いの順。
+  資金の分け方 : 現物の7つは1つの枠（今の資金）を共有し、同じ日は窓あけ下げ→権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順（2026-11-27 時点）。
            1回：75日線の買い＝上の金額×0.3×資金の規模／新高値＝資金の4%／IPO＝資金の5%。同時に持てる数は10・12・10銘柄。空売りは信用の建玉で別枠。
 信用残・決算データは J-Quants（data/jq/ と API）。信用残が取れない日は空売りの判定ができないので「判定できず」と記録する。
 台帳 data/forward2.json には合図だけを保存し、損益は毎回株価から計算し直す。
@@ -1280,11 +1280,11 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
 <div class="stat"><div class="k">1回の上限</div><div class="v">{CAP_PER / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">現物の枠（6つで共有）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.0f}万円まで</div></div>
+<div class="stat"><div class="k">現物の枠（7つで共有）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.0f}万円まで</div></div>
 <div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * UNIT_IPO / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) / BASE * 1000:,.0f}万円まで</div></div></div>
-<div class="sub" style="margin-top:6px">現物の6つは1つの枠を共有し、同じ日に枠が足りないときは権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10・IR20・リバウンド10銘柄まで。
-75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%。IPO・IR・リバウンド ＝ 資金の5%。権利取り前 ＝ 資金の20%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
+<div class="sub" style="margin-top:6px">現物の7つは1つの枠を共有し、同じ日に枠が足りないときは窓あけ下げ→権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10・IR20・リバウンド10・窓あけ下げ10銘柄まで。年末の反発は別枠（1,000万円）。
+75日線の買い ＝ 点数で決まる金額 × 0.3 × 資金の規模。新高値 ＝ 資金の4%。IPO・IR・リバウンド・窓あけ下げ ＝ 資金の5%。権利取り前 ＝ 資金の20%。空売り ＝ 点数で決まる金額 × 今の資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
@@ -1387,7 +1387,7 @@ SIDE_NAME = {"buy": "75日線の買い", "newhigh": "新高値", "ipo": "IPO", "
 
 
 def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
-    """現物の3つ（買い・新高値・IPO）を1つの枠（今の資金）で共有。cands はすでに枠を使う順に並んでいること。"""
+    """現物の7つを1つの枠（今の資金）で共有。cands はすでに枠を使う順に並んでいること。"""
     open_ = [r for r in rows if r["side"] in ("buy", "newhigh", "ipo", "ir", "rebound", "kenri", "gapdown") and (r["status"] == "保有中" or r["status"].startswith("明日"))]
     used = sum(r.get("amount") or 0 for r in open_)
     held = {r["code"] for r in open_}
