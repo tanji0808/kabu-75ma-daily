@@ -149,6 +149,9 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             todays.append(x)
     have = {(s["date"], s["side"], s["code"]) for s in led["signals"]}
     for x in todays:
+        if x.get("date", "") < led["start"]:
+            x["slot"], x["why"] = "記録開始より前の合図", "法人の記録は開始日以降の合図だけ（実際には買っていない）"
+            continue
         if x["slot"] == "枠あり" and (x["date"], x["side"], x["code"]) not in have:
             led["signals"].append({k: v for k, v in x.items() if k not in ("slot", "why")})
     os.makedirs("data", exist_ok=True)

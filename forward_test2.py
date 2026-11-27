@@ -862,8 +862,10 @@ def candidates(master: pd.DataFrame, prices: dict, ranks: dict) -> tuple[list[di
 def load_ledger() -> dict:
     if os.path.exists(LEDGER):
         led = json.load(open(LEDGER, encoding="utf-8"))
-        if led.get("rule_id") == RULE_ID:
-            return led
+        if led.get("rule_id") != RULE_ID:                 # ルールを変えても、これまでの記録（保有中の銘柄）は消さない
+            led.setdefault("rule_history", []).append({"rule_id": led.get("rule_id"), "until": datetime.now().strftime("%Y-%m-%d")})
+            led["rule_id"] = RULE_ID
+        return led
     return {"start": datetime.now().strftime("%Y-%m-%d"), "rule_id": RULE_ID, "signals": []}
 
 
