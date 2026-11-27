@@ -1,10 +1,10 @@
 import re, requests
 H={"User-Agent":"Mozilla/5.0 (kabu-75ma-daily)"}
-for url in ["https://www.taisyaku.jp/search/guide/","https://www.taisyaku.jp/about/report/","https://www.taisyaku.jp/app/stock/top","https://www.taisyaku.jp/app/stock/detail?code=7203"]:
-    r=requests.get(url,headers=H,timeout=40); r.encoding=r.apparent_encoding
-    t=re.sub(r'<script.*?</script>|<style.*?</style>','',r.text,flags=re.S); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
-    print("==",url,r.status_code); 
-    for kw in ("CSV","csv","ダウンロード","過去","期間","遡","日分","ヶ月","か月","年分"):
-        for m in re.finditer(kw,t):
-            print("  …",t[max(0,m.start()-80):m.start()+80])
-    print("  links:", sorted(set(re.findall(r'href=["\'](/app/[^"\']+)',r.text)))[:30])
+s=requests.Session()
+r=s.get("https://www.taisyaku.jp/app/stock/",headers=H,timeout=40); r.encoding=r.apparent_encoding
+print("==",r.status_code,len(r.text))
+for m in re.findall(r'<form[^>]*>',r.text): print(" form",m[:200])
+for m in re.findall(r'<input[^>]*>',r.text)[:40]: print(" input",m[:160])
+for m in sorted(set(re.findall(r'["\'](/app/[^"\'\s]+)["\']',r.text)))[:40]: print(" path",m)
+for m in sorted(set(re.findall(r'src=["\']([^"\']+\.js[^"\']*)',r.text))): print(" js",m)
+r2=s.get("https://www.taisyaku.jp/robots.txt",headers=H,timeout=20); print("robots:",r2.status_code,r2.text[:500])
