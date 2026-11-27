@@ -34,8 +34,14 @@ def main():
         g["pl"] = (g.P - cost) * g.LongVol; g["base"] = cost * g.LongVol
         parts.append(g[["Date", "code", "pl", "base"]].dropna())
     A = pd.concat(parts)
+    A["r"] = A.pl / A.base
     w = A.groupby("Date").agg(pl=("pl", "sum"), base=("base", "sum"), n=("code", "size"))
     w["rate"] = w.pl / w.base * 100
+    B = A[(A.r > -0.45) & (A.r < 0.8)]          # 株式分割などで株価と買い残の単位がずれた銘柄を外す
+    w2 = B.groupby("Date").agg(pl2=("pl", "sum"), base2=("base", "sum"), n2=("code", "size"))
+    w = w.join(w2); w["rate2"] = w.pl2 / w.base2 * 100
+    w["med"] = A.groupby("Date").r.median() * 100
+    print("外した行", len(A) - len(B), "／", len(A))
     w.reset_index().to_csv("backtest/margin_pl.csv.gz", index=False, compression="gzip")
     print("保存しました", len(w)); print(w.tail(10))
 
