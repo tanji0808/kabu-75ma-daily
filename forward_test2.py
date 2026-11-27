@@ -24,7 +24,7 @@
            100点満点の点数60点以上：PBR1.07倍未満20／ランク6以上20／TOPIXも52週高値圏15／配当利回り2.3%以上10／
            PERが業種の0.95倍未満10／業種の空売り比率40.6%未満10／決算から10日以内5／買い残が発行済の0.36%以上5／52週安値から60%以上上5。
            さらに：業績予想の下方修正なし・相対的株価強度50以上・空売り残高報告の合計4%未満・信用取引の注意に載っていない。
-           翌営業日の始値で買い、−6%で損切り。終値で+25%に届いたら、そこからは終値の最高値の−15%（最低でも買値）で追いかけ、利確はしない（2026-11-27 変更）。120営業日で手じまい。金額は全銘柄同じ（新高値の枠÷12）。同じ日は点数の高い順。
+           翌営業日の始値で買い、−6%で損切り。終値で+20%に届いたら、そこからは終値の最高値の−20%（最低でも買値）で追いかけ、利確はしない（2026-11-27 変更）。120営業日で手じまい。金額は全銘柄同じ（新高値の枠÷12）。同じ日は点数の高い順。
            市場全体の新高値ブレイクの件数（買った日が30〜6日前）が430件超なら見送り（2026-11-25：102件以下で半分のルールは廃止）。
            米S&P500の前日終値が200日線より下の時も見送り（2026-11-27 追加）。
   IPOセカンダリー（2026-11-23 採用）: 上場から250営業日以内に、終値が上場来高値を初めて上に抜けた日（上場から10営業日以上・その高値は5営業日以上前）。
@@ -48,7 +48,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v10"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加
+RULE_ID = "combo_v11"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -70,7 +70,7 @@ IR_HOLD, IR_STOP = 60, 0.10   # IRトレード：買値−10%に損切りの逆�
 IPO_STOP, IPO_TP = 0.10, 0.30
 NH_MAX = 12            # 新高値の同時保有数（1回 ＝ 新高値の枠 ÷ 12）
 NH_STOP, NH_TP = 0.06, None          # 新高値：−6%損切り・利確なし
-NH_ARM, NH_TRAIL = 0.25, 0.15        # 終値で+25%に届いたら、終値の最高値−15%（最低でも買値）で追いかける
+NH_ARM, NH_TRAIL = 0.20, 0.20        # 終値で+20%に届いたら、終値の最高値−20%（最低でも買値）で追いかける（2026-11-27：+25%・−15%から変更）
 IR_OM_MIN = 0.046   # IR：営業利益率（直近の通期）4.6%未満は買わない（2026-11-27 外部要因の再チェックで追加）
 MKT_MRATIO_MIN = 3.67   # 75日線の買い：市場全体の信用倍率（週次）3.67倍未満の時期は買わない（同上）
 NB_HOT = 430   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り（102件以下で半分は 2026-11-25 に廃止：4つで枠を共有すると逆効果）
@@ -1110,7 +1110,7 @@ function draw(){
     var s=st[r.id]||{}; var skip=!!s.skip; var px=(s.px>0)?s.px:r.entry;
     var sign=r.side==='short'?-1:1; var p=(r.now/px-1)*sign; var v=p*px*r.shares;
     if(!skip){tot+=px*r.shares; pl+=v; n++;}
-    var sl=r.stop?(Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+(r.tp?Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':(r.side=='ir'?'利確なし（60営業日目の引けで売る）':'利確なし（+25%から追いかけ・保有中の表を見る）'))):'ページの判定に従う';
+    var sl=r.stop?(Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+(r.tp?Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':(r.side=='ir'?'利確なし（60営業日目の引けで売る）':'利確なし（+20%から追いかけ・保有中の表を見る）'))):'ページの判定に従う';
     var end=r.entry_date?addBiz(r.entry_date,120):'';
     h+='<tr style="'+(skip?'opacity:.45':'')+'"><td><button data-id="'+r.id+'" class="tg" style="padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:'+(skip?'#fff':'#e8f0fb')+'">'+(skip?'買わなかった':'買った')+'</button></td>'
       +'<td>'+r.label+'</td><td>'+r.code+' '+r.name+'</td><td>'+r.shares.toLocaleString('ja-JP')+'株</td>'
@@ -1160,7 +1160,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
                 subs.append(dict(x, side_=side_))
     def sub_exit(x):
         if x["side_"] == "newhigh":
-            return f'損切り {x["close"] * (1 - NH_STOP):,.0f}円（買値−6%）。利確なし：終値で+25%に届いたら最高値−15%で追いかける'
+            return f'損切り {x["close"] * (1 - NH_STOP):,.0f}円（買値−6%）。利確なし：終値で+20%に届いたら最高値−20%で追いかける'
         if x["side_"] == "rebound":
             return f'翌朝 {x.get("limit", 0):,.0f}円に指値。買えたら−10%に損切り、3日目の引けで売る'
         if x["side_"] == "ir":
@@ -1185,7 +1185,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
     nh_cols = [("銘柄", link), ("終値", lambda x: f'{x.get("close", 0):,.1f}円'), ("購入金額", lambda x: man(x.get("amount", 0))),
                ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
                ("点数", lambda x: f'{x["score"]}点'), ("損切り目安", lambda x: f'{x["close"] * (1 - NH_STOP):,.0f}円'),
-               ("利確", lambda x: f'なし（+25%{x["close"] * 1.25:,.0f}円から追いかけ）'), ("点数の理由", lambda x: h.escape("・".join(x["reasons"]) or "—"))]
+               ("利確", lambda x: f'なし（+20%{x["close"] * 1.20:,.0f}円から追いかけ）'), ("点数の理由", lambda x: h.escape("・".join(x["reasons"]) or "—"))]
     ipo_cols = [("銘柄", link), ("上場日", lambda x: x.get("list_date", "")), ("終値", lambda x: f'{x.get("close", 0):,.1f}円'),
                 ("購入金額", lambda x: man(x.get("amount", 0))), ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
                 ("条件", lambda x: f'{x["score"]}/4'), ("損切り目安", lambda x: f'{x["close"] * (1 - IPO_STOP):,.0f}円'),
@@ -1263,8 +1263,8 @@ main{{max-width:1100px;margin:0 auto;padding:16px}}h1{{font-size:18px;margin:4px
 th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{background:#fff8ec;border:1px solid #f0d9b0;color:#b26b00;padding:8px 10px;border-radius:6px;font-size:12.5px}}
 .stats{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}}.stat{{background:#faf9f6;border:1px solid #efede7;border-radius:8px;padding:8px 10px}}
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
-<a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>
-<h1>今日の売買（7つの手法：75日線の買い・新高値・IPO・IR・リバウンド・権利取り前・空売り）</h1>
+<a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>　<a href="houjin.html" class="sub">🏢 法人の売買</a>
+<h1>今日の売買（8つの手法：75日線の買い・新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・空売り＋別枠の年末の反発）</h1>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
@@ -1281,7 +1281,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <p class="sub">市場全体の信用倍率：<b>{"—" if info.get("mratio") is None else f"{info['mratio']:.2f}倍"}</b>（{h.escape(str(info.get("mratio_date") or "—"))}週）。{MKT_MRATIO_MIN}倍未満の時期は75日線の買いを見送り。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
 <p class="sub">市場全体の新高値ブレイクの件数（30〜6日前に買った分）：<b>{info.get('nb30', '—')}件・{h.escape(str(info.get('nb_state', '—')))}</b>
-（{NB_HOT}件超は過熱なので見送り）。米S&P500と200日線：<b>{h.escape(str(info.get('spx_info') or '—'))}・{'上（買える）' if info.get('spx_up') else ('下（見送り）' if info.get('spx_up') is False else '—')}</b>（200日線より下の時は新高値を買わない）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%に損切りの逆指値。利確はしない：終値で+25%に届いたら、毎日「終値の最高値の−15%（最低でも買値）」まで逆指値を引き上げる（値段は保有中の表）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
+（{NB_HOT}件超は過熱なので見送り）。米S&P500と200日線：<b>{h.escape(str(info.get('spx_info') or '—'))}・{'上（買える）' if info.get('spx_up') else ('下（見送り）' if info.get('spx_up') is False else '—')}</b>（200日線より下の時は新高値を買わない）。購入金額はこれを反映済み。<br>損切り・利確の目安は今日の終値から計算。実際は明日の始値（買値）の−6%に損切りの逆指値。利確はしない：終値で+20%に届いたら、毎日「終値の最高値の−20%（最低でも買値）」まで逆指値を引き上げる（値段は保有中の表）。120営業日で手じまい。業種の空売り比率 {h.escape(str(info.get('sr_date')))}・空売り残高報告 {h.escape(str(info.get('ss_date')))} まで。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・IPOセカンダリー（{len(today_ipo)}件）</h2>{table(today_ipo, ipo_cols)}
 <p class="sub">直近1年のIPO {info.get('ipo_n', '—')}銘柄から判定。上場来高値を初めて抜け、20日平均の売買代金1.43億円以上、4つの条件のうち2つ以上、信用取引の注意なし、60日の上昇58%未満。
 明日の始値（買値）の−10%で損切り・+30%で利確（OCO注文）。120営業日で手じまい。</p></div>
@@ -1528,6 +1528,11 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
     data_date = max(df.index[-1] for df in prices.values()).strftime("%Y-%m-%d")
     info["ye_plan"] = ye_plan
     build_page(ledger, rows, buys, shorts, info, data_date, os.path.join(out_dir, "forward2.html"), nhs, ipos, irs, rbs, krs)
+    try:                                                   # 法人用のページ（少ない手間版：IR・IPO・新高値・権利取り前・年末の反発）
+        import corp_page
+        corp_page.run_corp(allp, {"ir": irs, "ipo": ipos, "newhigh": nhs, "kenri": krs, "yearend": yes}, info, data_date, out_dir)
+    except Exception as e:
+        print(f"  法人ページの作成に失敗（{e}）")
     print(f"フォワードテスト2: 今日の買い候補 {len(buys)}件・新高値 {len(nhs)}件・IPO {len(ipos)}件・IR {len(irs)}件・リバウンド {len(rbs)}件・権利取り {len(krs)}件・年末の反発 {len(yes)}件（予定 {len(ye_plan)}件）・窓あけ下げ {len(gds)}件（急落の朝の数 {info.get("gd", {}).get("counts")}）・空売り候補 {len(shorts)}件・台帳 {len(ledger['signals'])}件")
     for lab, xs in (("75日線", buys), ("新高値", nhs), ("IPO", ipos), ("IR", irs), ("リバウンド", rbs), ("権利取り", krs), ("年末の反発", ye_plan), ("窓あけ下げ", gds), ("空売り", shorts)):
         for x in xs:   # 候補の中身をログにも残す（ページを見られない時の確認用）
