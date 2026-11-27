@@ -34,7 +34,7 @@ def main():
         for t in range(200, n - 6):
             if dates[t] < "2016-12-01" or not (tv20[t] >= 1e8):
                 continue
-            if not (dev[t] <= -0.12 or rsi[t] <= 25 or drop5[t] <= -0.12 or z[t] <= -2.5):
+            if not (dev[t] <= -0.15 if os.environ.get("RB_PATH") else (dev[t] <= -0.12 or rsi[t] <= 25 or drop5[t] <= -0.12 or z[t] <= -2.5)):
                 continue
             e = t + 1
             if not (o[e] > 0):
@@ -47,12 +47,16 @@ def main():
                  "above200": c[t] > m200[t], "dev75": c[t] / m75[t] - 1, "tv20": tv20[t], "close": c[t],
                  "gap": o[e] / c[t] - 1, "oc0": c[e] / o[e] - 1, "oo1": o[e + 1] / o[e] - 1, "oc1": c[e + 1] / o[e] - 1,
                  "oc2": c[e + 2] / o[e] - 1, "oc4": c[e + 4] / o[e] - 1, "hi0": h[e] / o[e] - 1, "lo0": l[e] / o[e] - 1}
+            if os.environ.get("RB_PATH"):   # 5日分の値動き（買った日の寄りを1とした比）
+                for kk in range(5):
+                    r[f"o{kk}"], r[f"h{kk}"], r[f"l{kk}"], r[f"c{kk}"] = o[e + kk] / o[e], h[e + kk] / o[e], l[e + kk] / o[e], c[e + kk] / o[e]
+                r["prevlo"] = l[t] / o[e]
             for tp in (0.02, 0.03, 0.05):
                 r[f"tp{int(tp*100)}"] = tp if h[e] >= o[e] * (1 + tp) else c[e] / o[e] - 1
                 for st in (0.03, 0.05):
                     r[f"tp{int(tp*100)}s{int(st*100)}"] = -st if l[e] <= o[e] * (1 - st) else r[f"tp{int(tp*100)}"]
             out.append(r)
-    pd.DataFrame(out).to_csv("backtest/rebound.csv.gz", index=False, compression="gzip")
+    pd.DataFrame(out).to_csv("backtest/rebound_path.csv.gz" if os.environ.get("RB_PATH") else "backtest/rebound.csv.gz", index=False, compression="gzip")
     print("保存しました", len(out))
 
 
