@@ -1,6 +1,6 @@
 {
  "start": "2026-11-27",
- "rule_id": "combo_v12",
+ "rule_id": "combo_v13",
  "signals": [
   {
    "date": "2026-11-26",
@@ -25,6 +25,12 @@
    "eg": null,
    "entry_override": 7020.0,
    "note": "実際の買値 7,020円×100株（2026-11-27 寄り）"
+  }
+ ],
+ "rule_history": [
+  {
+   "rule_id": "combo_v12",
+   "until": "2026-11-27"
   }
  ]
 }
