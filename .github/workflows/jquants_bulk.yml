@@ -1,0 +1,35 @@
+name: J-Quants 一括ダウンロード（全データ・全期間）
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 一括ダウンロード（ファイルはリリース jq-bulk に保存）
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JQ_WAIT: "0.15"
+          JQ_MAX_MINUTES: "320"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python tools/jquants_bulk.py
+      - name: 一覧を保存
+        if: always()
+        run: |
+          git add data/jq_bulk_manifest.csv || true
+          git commit -m "J-Quants 一括データの一覧" || echo "変更なし"
+          git pull --rebase -q origin main && git push -q
