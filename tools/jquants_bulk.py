@@ -3,8 +3,9 @@
 J-Quants の一括ダウンロード（/bulk/list・/bulk/get）で、今のプランで取れるデータを全部・全期間取る（2026-11-28 作成）。
 プレミアムの間に使う（2008年〜・先物・オプション・売買内訳・財務諸表・配当なども含む）。
 
-ファイルは大きいので、リポジトリではなく GitHub の「リリース」（タグ jq-bulk）に置く。
-  一覧：data/jq_bulk_manifest.csv（キー・データ名・大きさ・更新日時・リリースの中の名前）
+ファイルは大きいので、リポジトリではなく GitHub の「リリース」に置く（1つのリリースは1,000ファイルまでなので、データの種類ごとに分ける：
+  タグ jq-<データ名>。最初の1,000ファイルは jq-bulk にある）。
+  一覧：data/jq_bulk_manifest.csv（キー・データ名・大きさ・更新日時・リリースの中の名前・タグ）
 取り直し：一覧にあって更新日時が同じものは飛ばすので、途中で止まっても続きから取れる。
 """
 from __future__ import annotations
@@ -81,9 +82,11 @@ def main():
     if not KEY:
         sys.exit("JQUANTS_API_KEY が設定されていません")
     os.makedirs(TMP, exist_ok=True)
-    if sh("gh", "release", "view", TAG).returncode != 0:
-        print(sh("gh", "release", "create", TAG, "--title", "J-Quants 一括データ", "--notes", "J-Quants の一括ダウンロードのファイル（data/jq_bulk_manifest.csv が一覧）").stderr)
-    man = pd.read_csv(MAN, dtype=str) if os.path.exists(MAN) else pd.DataFrame(columns=["key", "endpoint", "size", "modified", "asset"])
+    man = pd.read_csv(MAN, dtype=str) if os.path.exists(MAN) else pd.DataFrame(columns=["key", "endpoint", "size", "modified", "asset", "tag"])
+    if "tag" not in man:
+        man["tag"] = TAG
+    man["tag"] = man["tag"].fillna(TAG)
+    made = set()
     have = {(k, m) for k, m in zip(man.key, man.modified)}
     # 1) 月ごとに「その月の全データのファイル一覧」を取る
     st, j = api("/bulk/list", date="2010-01")
@@ -127,12 +130,21 @@ def main():
             with open(p, "wb") as f:
                 for ch in r.iter_content(1 << 20):
                     f.write(ch)
-        res = sh("gh", "release", "upload", TAG, p, "--clobber")
+        grp = k.split("/historical/")[0].split("/live/")[0].strip("/")
+        tag = "jq-" + grp.replace("/", "-")
+        old = [x for x in rows if x["key"] == k]
+        if old and old[0].get("tag"):
+            tag = old[0]["tag"]
+        if tag not in made:
+            if sh("gh", "release", "view", tag).returncode != 0:
+                sh("gh", "release", "create", tag, "--title", f"J-Quants {grp}", "--notes", "J-Quants の一括ダウンロードのファイル（data/jq_bulk_manifest.csv が一覧）")
+            made.add(tag)
+        res = sh("gh", "release", "upload", tag, p, "--clobber")
         os.remove(p)
         if res.returncode != 0:
             print("  リリースへの保存に失敗", k, res.stderr[:200]); continue
         rows = [x for x in rows if x["key"] != k]
-        rows.append({"key": k, "endpoint": field(it, "Endpoint", "endpoint") or "/".join(k.split("/")[:-1]), "size": str(field(it, "Size", "size") or ""), "modified": mod, "asset": asset})
+        rows.append({"key": k, "endpoint": field(it, "Endpoint", "endpoint") or "/".join(k.split("/")[:-1]), "size": str(field(it, "Size", "size") or ""), "modified": mod, "asset": asset, "tag": tag})
         n_new += 1
         if n_new % 50 == 0:
             pd.DataFrame(rows).to_csv(MAN, index=False)
