@@ -1,6 +1,6 @@
 {
  "start": "2026-11-27",
- "rule_id": "combo_v15",
+ "rule_id": "combo_v16",
  "signals": [
   {
    "date": "2026-11-26",
@@ -38,6 +38,10 @@
   },
   {
    "rule_id": "combo_v14",
+   "until": "2026-11-28"
+  },
+  {
+   "rule_id": "combo_v15",
    "until": "2026-11-28"
   }
  ]
