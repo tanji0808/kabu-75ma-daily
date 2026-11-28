@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v16"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで
+RULE_ID = "combo_v17"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -69,6 +69,7 @@ RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 3   # リバウンド（2026-11-27 追�
 YE_CAP, YE_N, YE_YTD, YE_TV = 10_000_000, 20, -0.40, 3e7   # 年末の反発（2026-11-27 追加・別枠1,000万円）：その年に40%以上下げた銘柄（売買代金3,000万円以上）を下げの大きい順に20銘柄
 YE_BUY, YE_SELL = 5, 5   # 大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る
 UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.07, 0.05, 0.05, 1e8, 0.10, 0.10   # 窓あけ下げ（2026-11-27 追加）
+GD_T60_MIN = -0.25        # 窓あけ下げ：TOPIXが60営業日で−25%以下まで下げている大暴落の最中は見送り（2008年5月〜の18年検証で採用 2026-11-28）
 GD_CRASH, GD_WIN = 20, 5   # 監視リストのうち20銘柄以上が−5%以下で始まった朝＝「急落の朝」。そのあと5営業日のあいだ買う（11/27変更）
 KR_DAYS = 10                                   # 権利取り前（2026-11-27 追加）：3月・9月の権利付き最終日の10営業日前の引けでTOPIX連動ETF（1306）を資金の20%買い、権利付き最終日の引けで売る
 IR_HOLD, IR_STOP = 60, 0.10   # IRトレード：買値−10%に損切りの逆指値（2026-11-27 追加）。当たらなければ反応の日から60営業日目の引けで売る。利確なし    # 同じ日に枠が足りないときの順番（バックテストと同じ）
@@ -1334,6 +1335,8 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
         gd_cols = [("銘柄", link), ("今日の終値", lambda x: f'{x["close"]:,.1f}円'), ("寄りがこれ以下なら買う", lambda x: f'{x["close"] * (1 - GD_GAP):,.0f}円'),
                    ("25日線から", lambda x: f'{x["dev"]:+.0f}%'), ("株数の目安", lambda x: f'{int(unit_ // (x["close"] * (1 - GD_GAP)) // 100 * 100):,}株'),
                    ("利確の円幅", lambda x: f'+{x["close"] * (1 - GD_GAP) * GD_TP:,.0f}円'), ("損切りの円幅", lambda x: f'−{x["close"] * (1 - GD_GAP) * GD_STOP:,.0f}円')]
+        if gi.get("t60_skip"):
+            gd_head = f'<p class="warn"><b>今は見送り</b>：TOPIXが60営業日で{gi["t60"] * 100:+.0f}%（{GD_T60_MIN * 100:.0f}%以下）の大暴落の最中。2008年からの18年の検証で、この時期の窓あけ下げは負けやすかったため買わない（参考に監視リストだけ表示）。</p>' + gd_head
         gd_tbl = table([dict(x, name=x.get("name", x["code"])) for x in tw], gd_cols) + (f'<p class="sub">売買代金の多い順に60銘柄まで表示（全部で{len(gi.get("tomorrow") or [])}銘柄）。円幅は「−5%の値段」で買えた場合の目安。</p>')
     else:
         gd_head = '<p>今は見送り（直近5営業日に「急落の朝」がない）。急落の朝が来ると、その翌日から5営業日だけ、ここに明日の監視リストが出ます。</p>'
@@ -1603,11 +1606,22 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         prev_crash = [d_ for d_ in last6[:-1] if cnt.get(d_, 0) >= GD_CRASH]
         info["gd"] = {"counts": {d_: cnt.get(d_, 0) for d_ in last6}, "crash": crash, "today": today_crash,
                       "active_tomorrow": bool([d_ for d_ in last6[-5:] if cnt.get(d_, 0) >= GD_CRASH]), "tomorrow": gw["tomorrow"]}
+        t60_prev = t60_now = None
+        try:
+            tq = topix()
+            tq = tq[tq.index <= pd.Timestamp(data_date)]
+            t60_now = float(tq.iloc[-1] / tq.iloc[-61] - 1)
+            t60_prev = float(tq.iloc[-2] / tq.iloc[-62] - 1)
+        except Exception:  # noqa
+            pass
+        info["gd"].update(t60=t60_now, t60_skip=t60_now is not None and t60_now <= GD_T60_MIN)
         if prev_crash:                                                     # 直前5営業日に急落の朝があった（対象期間）：−5%以下で始まった銘柄を寄りで買ったことにして記録（11/27：今朝の数の確認はやめた）
             names_ = dict(zip(master["コード"], master["銘柄名"]))
             for x in sorted(hits, key=lambda z: z["gap"]):
                 gds.append({"date": data_date, "side": "gapdown", "code": x["code"], "name": names_.get(x["code"], x["code"]), "close": x["open"],
                             "gap": round(x["gap"] * 100, 1), "score": round(-x["gap"] * 100, 1), "lot": 1.0, "reasons": [f"寄り {x['gap'] * 100:+.1f}%"]})
+                if t60_prev is not None and t60_prev <= GD_T60_MIN:
+                    gds[-1].update(mult=0, why_mkt=f"TOPIXが60営業日で{t60_prev * 100:+.0f}%（{GD_T60_MIN * 100:.0f}%以下の大暴落の最中は見送り）")
     except Exception as e:
         print(f"  窓あけ下げの判定に失敗（{e}）")
     yes, ye_plan = [], []
