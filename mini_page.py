@@ -111,6 +111,7 @@ def run_mini(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
     open_ = [r for r in prev if r.get("status") == "保有中" or str(r.get("status", "")).startswith("明日")]
     used = sum((r.get("amount") or 0) for r in open_)
     held = {r["code"] for r in open_}
+    _CAP, _cap_add = ft.SIDE_CAP, {}   # 2026-11-28：手法ごとの合計の上限（落ち込み対策）
     n = {k: sum(1 for r in open_ if r["side"] == k) for k in MAX_N}
     todays = []
     for side in ORDER:
@@ -130,6 +131,8 @@ def run_mini(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
                 x["slot"], x["why"] = "1株に届かない", ""
             elif x["code"] in held:
                 x["slot"], x["why"] = "すでに保有中", ""
+            elif side in _CAP and sum((r.get("amount") or 0) for r in open_ if r["side"] == side) + _cap_add.get(side, 0) + x["amount"] > eq * _CAP[side] * 1.0001:
+                x["slot"], x["why"] = "枠がいっぱい", f"{NAME[side]}は合計で資金の{_CAP[side] * 100:.0f}%まで（落ち込みを抑えるため）"
             elif n[side] >= MAX_N[side]:
                 x["slot"], x["why"] = "枠がいっぱい", f"{NAME[side]}は同時に{MAX_N[side]}銘柄まで"
             elif used + x["amount"] > eq:
@@ -137,6 +140,7 @@ def run_mini(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             else:
                 x["slot"], x["why"] = "枠あり", ""
                 n[side] += 1; used += x["amount"]; held.add(x["code"])
+                _cap_add[side] = _cap_add.get(side, 0) + x["amount"]
             todays.append(x)
     have = {(s["date"], s["side"], s["code"]) for s in led["signals"]}
     for x in todays:

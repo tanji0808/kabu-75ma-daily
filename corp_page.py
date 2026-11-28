@@ -10,7 +10,7 @@
   年末の反発   : 20銘柄を資金の1%ずつ。大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る。
 1回の金額は、その銘柄の直前20日の売買代金の平均の5%まで（大きな注文で値段を動かさないため）。
 候補の判定は個人の「今日の売買」と同じ（同じ条件・同じ見送り条件）。
-2008年からの18年半の検証（5,000万円・単利）：1年平均 約1,470万円・最大の落ち込み 約−1,500万円・負けた年2回。月末月初（1306・10%）も入る。
+2008年からの18年半の検証（5,000万円・単利）：1年平均 約1,360万円・最大の落ち込み 約−980万円・負けた年2回。月末月初（1306・10%）も入る。リバウンドは合計40%まで。
 """
 from __future__ import annotations
 
@@ -121,6 +121,7 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
     open_ = [r for r in prev if r.get("status") == "保有中" or str(r.get("status", "")).startswith("明日")]
     used = sum(r.get("amount") or 0 for r in open_)
     held = {r["code"] for r in open_}
+    _CAP, _cap_add = {"rebound": 0.40}, {}   # 2026-11-28：手法ごとの合計の上限（落ち込み対策）
     n = {k: sum(1 for r in open_ if r["side"] == k) for k in MAX_N}
     todays = []
     for side in ORDER:
@@ -146,6 +147,8 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
                 x["slot"], x["why"] = "100株に届かない", f"1回の上限 {want / 1e4:,.0f}万円"
             elif x["code"] in held:
                 x["slot"], x["why"] = "すでに保有中", ""
+            elif side in _CAP and sum((r.get("amount") or 0) for r in open_ if r["side"] == side) + _cap_add.get(side, 0) + x["amount"] > eq * _CAP[side] * 1.0001:
+                x["slot"], x["why"] = "枠がいっぱい", f"{NAME[side]}は合計で資金の{_CAP[side] * 100:.0f}%まで（落ち込みを抑えるため）"
             elif n[side] >= MAX_N[side]:
                 x["slot"], x["why"] = "枠がいっぱい", f"{NAME[side]}は同時に{MAX_N[side]}銘柄まで"
             elif used + x["amount"] > eq:
@@ -153,6 +156,7 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             else:
                 x["slot"], x["why"] = "枠あり", ""
                 n[side] += 1; used += x["amount"]; held.add(x["code"])
+                _cap_add[side] = _cap_add.get(side, 0) + x["amount"]
             todays.append(x)
     have = {(s["date"], s["side"], s["code"]) for s in led["signals"]}
     for x in todays:
@@ -239,7 +243,7 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 <div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 * (RB_VIX_MULT if (info.get('vix') or 0) >= 20 else 1) / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl_pnl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op_pnl)}</div></div></div>
-<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。2008年からの18年半の検証（5,000万円・単利・税引き前）：1年平均 約1,470万円・最大の落ち込み 約−1,500万円・負けた年2回（2008〜12年）。</p></div>
+<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。2008年からの18年半の検証（5,000万円・単利・税引き前）：1年平均 約1,360万円・最大の落ち込み 約−980万円・負けた年2回（2010・2012年）。リバウンドは合計で資金の40%まで、日経平均が200日線の下でじわじわ下げている時は見送り。</p></div>
 {('<p class="warn"><b>今日は新高値の見直しの日の銘柄があります</b>：' + "・".join(f"{r['code']} {h.escape(str(r.get('name', '')))}" for r in review) + '（下の保有中の表の「注文・予定」のとおりに逆指値を直す）</p>') if review else ''}
 <div class="card"><h2>明日お願いする注文（{len(buy)}件）</h2>{table(buy, cols)}
 <p class="sub">「目安」は今日の終値で計算。実際は約定した値段（買値）から計算し直す。</p></div>

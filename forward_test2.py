@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v18"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）。v18: 月末月初（1306・10%）を追加・リバウンドは5日目・25日線−5%で利確・窓あけ下げの利確+15%
+RULE_ID = "combo_v19"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）。v18: 月末月初（1306・10%）を追加・リバウンドは5日目・25日線−5%で利確・窓あけ下げの利確+15%。v19: 落ち込み対策（リバウンド合計30%・窓あけ40%まで、日経平均の200日線で見送り）
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -70,6 +70,9 @@ RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 5   # リバウンド（2026-11-27 追�
 YE_CAP, YE_N, YE_YTD, YE_TV = 10_000_000, 20, -0.40, 3e7   # 年末の反発（2026-11-27 追加・別枠1,000万円）：その年に40%以上下げた銘柄（売買代金3,000万円以上）を下げの大きい順に20銘柄
 YE_BUY, YE_SELL = 5, 5   # 大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る
 UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.07, 0.05, 0.05, 1e8, 0.15, 0.10   # 窓あけ下げ（2026-11-27 追加）
+SIDE_CAP = {"rebound": 0.30, "gapdown": 0.40}   # 落ち込みを抑える（2026-11-28・18年検証）：リバウンドは合計で資金の30%まで、窓あけ下げは40%まで
+RB_N225_RULE = True       # リバウンド：日経平均が200日線より下で、TOPIXの20日の下げが−3%より小さい（じわじわ下げ）時は見送り
+GD_N225_MIN = -0.20       # 窓あけ下げ：日経平均が200日線より20%以上下（深い下げ相場）の時は見送り
 GD_T60_MIN = -0.25        # 窓あけ下げ：TOPIXが60営業日で−25%以下まで下げている大暴落の最中は見送り（2008年5月〜の18年検証で採用 2026-11-28）
 GD_CRASH, GD_WIN = 20, 5   # 監視リストのうち20銘柄以上が−5%以下で始まった朝＝「急落の朝」。そのあと5営業日のあいだ買う（11/27変更）
 KR_DAYS = 10                                   # 権利取り前（2026-11-27 追加）：3月・9月の権利付き最終日の10営業日前の引けでTOPIX連動ETF（1306）を資金の20%買い、権利付き最終日の引けで売る
@@ -744,6 +747,26 @@ def spx_above200() -> tuple[bool | None, str | None]:
     ma = s.rolling(200).mean()
     s, ma = s[s.index < pd.Timestamp(date.today())], ma[ma.index < pd.Timestamp(date.today())]
     return bool(s.iloc[-1] > ma.iloc[-1]), f"{s.index[-1]:%Y-%m-%d} 終値 {s.iloc[-1]:,.0f}／200日線 {ma.iloc[-1]:,.0f}"
+
+
+def n225_dev200(before: str | None = None) -> tuple[float | None, str | None]:
+    """日経平均の、200日線からの離れ（前の営業日までの値。日本の引けの時点）。before を渡すとその日より前の値。"""
+    s = None
+    try:
+        import yfinance as yf
+        d = yf.download("^N225", period="2y", progress=False, auto_adjust=False)
+        if d is not None and len(d):
+            s = d["Close"].squeeze().dropna()
+    except Exception as e:
+        print(f"  日経平均の取得に失敗（{e}）")
+    if (s is None or len(s) < 210) and os.path.exists("data/macro.csv.gz"):
+        s = pd.read_csv("data/macro.csv.gz", index_col=0, parse_dates=True)["n225"].dropna()
+    if s is None or len(s) < 210:
+        return None, None
+    s.index = pd.to_datetime(s.index).tz_localize(None).normalize()
+    v = s / s.rolling(200).mean() - 1
+    v = v[v.index < pd.Timestamp(before or date.today())].dropna()
+    return (float(v.iloc[-1]), f"{v.index[-1]:%Y-%m-%d}") if len(v) else (None, None)
 
 
 def vix_now() -> tuple[float | None, str | None]:
@@ -1512,6 +1535,7 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
     used = sum(r.get("amount") or 0 for r in open_)
     held = {r["code"] for r in open_}
     n = {k: sum(1 for r in open_ if r["side"] == k) for k in MAX_N}
+    sused = {k: sum(r.get("amount") or 0 for r in open_ if r["side"] == k) for k in SIDE_CAP}
     eq = eq * LEVERAGE                                   # 信用取引で今の資金の LEVERAGE 倍までを枠にする
     for x in cands:
         if x["side"] == "buy":
@@ -1542,6 +1566,9 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
             x["why"] = f'1回の上限 {want / 1e4:,.1f}万円に対して、100株で {x["close"] * 100 / 1e4:,.1f}万円かかる'
         elif x["code"] in held:
             x["slot"] = "すでに保有中"
+        elif x["side"] in SIDE_CAP and sused[x["side"]] + x["amount"] > eq * SIDE_CAP[x["side"]] * 1.0001:
+            x["slot"] = "枠がいっぱい（見送り）"
+            x["why"] = f'{SIDE_NAME[x["side"]]}は合計で資金の{SIDE_CAP[x["side"]] * 100:.0f}%まで（落ち込みを抑えるため）'
         elif n[x["side"]] >= MAX_N[x["side"]] or used + x["amount"] > eq * x.get("capx", 1.0):
             x["slot"] = "枠がいっぱい（見送り）"
             x["why"] = (f'{SIDE_NAME[x["side"]]}の同時保有の上限（{MAX_N[x["side"]]}銘柄）に達している' if n[x["side"]] >= MAX_N[x["side"]]
@@ -1550,6 +1577,8 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
             x["slot"] = "枠あり"
             n[x["side"]] += 1
             used += x["amount"]
+            if x["side"] in sused:
+                sused[x["side"]] += x["amount"]
             held.add(x["code"])
 
 
@@ -1596,7 +1625,18 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         print(f"  信用評価損益率の計算に失敗（{e}）"); mpl, mpl_date = None, None
     info.update(vix=vix, vix_date=vix_date, mpl=mpl, mpl_date=mpl_date)
     print(f"  VIX {vix}（{vix_date}）・信用評価損益率（推定） {mpl}%（{mpl_date}週）")
+    n2, n2d = n225_dev200((pd.Timestamp(data_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d"))
+    t20_ = None
+    try:
+        tq_ = tpx[tpx.index <= pd.Timestamp(data_date)]
+        t20_ = float(tq_.iloc[-1] / tq_.iloc[-21] - 1)
+    except Exception:  # noqa
+        pass
+    info.update(n225_dev=n2, n225_date=n2d, tpx20=t20_)
+    rb_stop = RB_N225_RULE and n2 is not None and t20_ is not None and n2 < 0 and t20_ > -0.03
     for x in rbs:
+        if rb_stop:
+            x.update(mult=0, why_mkt=f"日経平均が200日線より下（{n2 * 100:+.1f}%）で、TOPIXの20日の下げが小さい（{t20_ * 100:+.1f}%）じわじわ下げの相場")
         x["vix_hi"] = bool(vix is not None and vix >= RB_VIX)
         x["rb_mult"] = RB_VIX_MULT if x["vix_hi"] else 1.0
         x["capx"] = RB_MPL_CAP if (mpl is not None and mpl <= RB_MPL) else 1.0
@@ -1639,12 +1679,15 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
             t60_prev = float(tq.iloc[-2] / tq.iloc[-62] - 1)
         except Exception:  # noqa
             pass
-        info["gd"].update(t60=t60_now, t60_skip=t60_now is not None and t60_now <= GD_T60_MIN)
+        n2g, _ = n225_dev200(data_date)                                 # 窓あけ下げは前の日までの日経平均で判定（買うのは今朝の寄り）
+        info["gd"].update(t60=t60_now, t60_skip=t60_now is not None and t60_now <= GD_T60_MIN, n225=n2g)
         if prev_crash:                                                     # 直前5営業日に急落の朝があった（対象期間）：−5%以下で始まった銘柄を寄りで買ったことにして記録（11/27：今朝の数の確認はやめた）
             names_ = dict(zip(master["コード"], master["銘柄名"]))
             for x in sorted(hits, key=lambda z: z["gap"]):
                 gds.append({"date": data_date, "side": "gapdown", "code": x["code"], "name": names_.get(x["code"], x["code"]), "close": x["open"],
                             "gap": round(x["gap"] * 100, 1), "score": round(-x["gap"] * 100, 1), "lot": 1.0, "reasons": [f"寄り {x['gap'] * 100:+.1f}%"]})
+                if n2g is not None and n2g <= GD_N225_MIN:
+                    gds[-1].update(mult=0, why_mkt=f"日経平均が200日線より{n2g * 100:+.0f}%（{GD_N225_MIN * 100:.0f}%以下の深い下げ相場は見送り）")
                 if t60_prev is not None and t60_prev <= GD_T60_MIN:
                     gds[-1].update(mult=0, why_mkt=f"TOPIXが60営業日で{t60_prev * 100:+.0f}%（{GD_T60_MIN * 100:.0f}%以下の大暴落の最中は見送り）")
     except Exception as e:
