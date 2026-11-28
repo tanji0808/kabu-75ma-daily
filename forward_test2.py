@@ -750,6 +750,12 @@ def vix_now() -> tuple[float | None, str | None]:
 def margin_pl_rate(prices: dict, entry_day: str) -> tuple[float | None, str | None]:
     """市場全体の信用評価損益率（推定・%）。tools/margin_pl.py と同じ計算：直近26週に増えた買い残をその週の株価で買ったとみなして平均の買値を出す。
     分割などで株価と買い残がずれた銘柄（−45%以下・+80%以上）は外す。週の日付の7日後から使う（バックテストと同じ）。"""
+    q = "backtest/margin_pl.csv.gz"                        # まずはバックテストと同じ計算の結果（毎週のワークフローで作る）を使う
+    if os.path.exists(q):
+        w = pd.read_csv(q).dropna(subset=["rate2"])
+        w = w[[pd.Timestamp(d) + pd.Timedelta(days=7) <= pd.Timestamp(entry_day) for d in w.Date]]
+        if len(w) and pd.Timestamp(w.Date.iloc[-1]) + pd.Timedelta(days=21) >= pd.Timestamp(entry_day):
+            return round(float(w.rate2.iloc[-1]), 1), str(w.Date.iloc[-1])
     p = "data/jq/margin_interest.csv.gz"
     if not os.path.exists(p):
         return None, None

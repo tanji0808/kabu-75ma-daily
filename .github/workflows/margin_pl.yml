@@ -2,6 +2,8 @@ name: 信用評価損益率（推定）
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * 2,3,4"   # 火〜木 21:00（日本時間）：信用残の公表のあとに作り直す
 
 permissions:
   contents: write
