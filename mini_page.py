@@ -27,8 +27,8 @@ COST = 0.002
 RULE = {"newhigh": dict(stop=0.06, arm=0.20, trail=0.20, hold=120),
         "ir": dict(stop=0.10, hold=60),
         "ipo": dict(stop=0.10, tp=0.30, hold=120),
-        "rebound": dict(stop=0.10, hold=3),
-        "gapdown": dict(stop=0.10, tp=0.10, hold=2)}
+        "rebound": dict(stop=0.10, hold=5),
+        "gapdown": dict(stop=0.10, tp=0.15, hold=2)}
 
 
 def _frame(df):
@@ -50,8 +50,8 @@ def _eval_one(s: dict, df: pd.DataFrame) -> dict:
     entry = float(s.get("entry_override") or o[e])
     p = RULE[s["side"]]
     stop, tp, arm, trail, hold = p["stop"], p.get("tp"), p.get("arm"), p.get("trail"), p["hold"]
-    if s["side"] == "rebound":                                  # 利確は合図の日の25日線の−10%
-        m25 = float(np.mean(c[max(0, i - 24):i + 1])); tp_px = max(m25 * 0.90, entry * 1.001)
+    if s["side"] == "rebound":                                  # 利確は合図の日の25日線の−5%
+        m25 = float(np.mean(c[max(0, i - 24):i + 1])); tp_px = max(m25 * 0.95, entry * 1.001)
     else:
         tp_px = entry * (1 + tp) if tp else None
     line = entry * (1 - stop); hc = 0.0
@@ -119,7 +119,7 @@ def run_mini(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             x["side"] = side
             px = float(x.get("last_close") or x.get("close") or 0)       # リバウンドは指値ではなく寄りで買うので今日の終値で計算
             x["close"] = px
-            want = x0.get("lot", 1.0) * 1e6 * ft.UNIT_BUY * eq / 1e7 if side == "buy" else eq * UNIT[side]
+            want = x0.get("lot", 1.0) * 1e6 * ft.UNIT_BUY * eq / 1e7 if side == "buy" else eq * (ft.UNIT_TM if x0.get("kind") == "monthend" else UNIT[side])
             sh = int(want // px) if px else 0
             x.update(want=want, shares=sh, amount=round(sh * px))
             if side == "buy" and ft.UNIT_BUY == 0:

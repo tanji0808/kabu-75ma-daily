@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v17"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）
+RULE_ID = "combo_v18"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）。v18: 月末月初（1306・10%）を追加・リバウンドは5日目・25日線−5%で利確・窓あけ下げの利確+15%
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -58,17 +58,18 @@ COST = 0.002           # 往復の売買コスト（値段のずれ・手数料�
 W_SHORT = [0.5, 1, 1.5, 2, 2]
 # 資金の分け方（2026-11-23 採用）：現物の3つ（75日線の買い・新高値・IPO）は1つの枠（今の資金）を共有して早い者勝ち。
 # 1回の金額（資金＝今の資金×LEVERAGE）：新高値＝4%／IR・IPO・窓あけ下げ＝7%／リバウンド＝9%／75日線の買い＝休止。空売りは信用の建玉で別枠
+UNIT_TM = 0.10            # 月末月初：月末の4営業日前の引けでTOPIX連動ETF（1306）を資金の10%買い、翌月3営業日目の引けで売る（2008年からの18年検証で採用 2026-11-28）
 UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR, UNIT_RB, UNIT_KR = 0.0, 0.04, 0.07, 0.07, 0.09, 0.20   # 2026-11-28：IR・IPO 7%、リバウンド 9%、75日線の買いは休止（0）
 RB_VIX, RB_VIX_MULT = 20.0, 2.0      # リバウンド：米VIXが20以上の時は1回の金額を2倍（1回の上限300万円は同じ）（2026-11-28 採用）
 RB_MPL, RB_MPL_CAP = -10.0, 2.0      # リバウンド：市場の信用評価損益率（推定）が−10%以下の大底では、リバウンドだけ枠を2倍まで使ってよい
 LEVERAGE = float(os.environ.get("FORWARD2_LEVERAGE", "1.3"))   # 信用取引で今の資金の1.3倍まで使う（2026-11-28 採用）
 MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "kenri": 1, "gapdown": 10}
 LONG_ORDER = {"gapdown": -3, "kenri": -2, "rebound": -1, "ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
-RB_TP_DEV = -0.10   # リバウンドの利確：合図の日の25日線の−10%の値段（2026-11-27 追加）
-RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 3   # リバウンド（2026-11-27 追加）：前日終値−3%に指値、買値−10%で損切り、買った日を1日目として3日目の引けで売る
+RB_TP_DEV = -0.05   # リバウンドの利確：合図の日の25日線の−5%の値段（11-27 追加、11-28 18年検証で −10%→−5%）
+RB_LIMIT, RB_STOP, RB_HOLD = 0.03, 0.10, 5   # リバウンド（2026-11-27 追加）：前日終値−3%に指値、買値−10%で損切り、買った日を1日目として3日目の引けで売る
 YE_CAP, YE_N, YE_YTD, YE_TV = 10_000_000, 20, -0.40, 3e7   # 年末の反発（2026-11-27 追加・別枠1,000万円）：その年に40%以上下げた銘柄（売買代金3,000万円以上）を下げの大きい順に20銘柄
 YE_BUY, YE_SELL = 5, 5   # 大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る
-UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.07, 0.05, 0.05, 1e8, 0.10, 0.10   # 窓あけ下げ（2026-11-27 追加）
+UNIT_GD, GD_GAP, GD_DEV, GD_TV, GD_TP, GD_STOP = 0.07, 0.05, 0.05, 1e8, 0.15, 0.10   # 窓あけ下げ（2026-11-27 追加）
 GD_T60_MIN = -0.25        # 窓あけ下げ：TOPIXが60営業日で−25%以下まで下げている大暴落の最中は見送り（2008年5月〜の18年検証で採用 2026-11-28）
 GD_CRASH, GD_WIN = 20, 5   # 監視リストのうち20銘柄以上が−5%以下で始まった朝＝「急落の朝」。そのあと5営業日のあいだ買う（11/27変更）
 KR_DAYS = 10                                   # 権利取り前（2026-11-27 追加）：3月・9月の権利付き最終日の10営業日前の引けでTOPIX連動ETF（1306）を資金の20%買い、権利付き最終日の引けで売る
@@ -555,6 +556,22 @@ def jp_bdays(start: str, end: str) -> list[str]:
     except Exception:  # noqa
         days = list(days)
     return [d.strftime("%Y-%m-%d") for d in days if not ((d.month == 12 and d.day == 31) or (d.month == 1 and d.day <= 3))]
+
+
+def monthend_window(today_: str) -> tuple[str, str] | None:
+    """今日以降で一番近い「月末月初」の (買う日, 売る日)。買う日＝月末の4営業日前、売る日＝翌月の3営業日目。"""
+    y, m = int(today_[:4]), int(today_[5:7])
+    for k in range(3):
+        mm = (m - 1 + k) % 12 + 1; yy = y + (m - 1 + k) // 12
+        n_m = mm % 12 + 1; n_y = yy + (1 if mm == 12 else 0)
+        days = jp_bdays(f"{yy}-{mm:02d}-01", (pd.Timestamp(yy, mm, 1) + pd.offsets.MonthEnd(0)).strftime("%Y-%m-%d"))
+        nxt = jp_bdays(f"{n_y}-{n_m:02d}-01", f"{n_y}-{n_m:02d}-12")
+        if len(days) < 6 or len(nxt) < 3:
+            continue
+        buy, sell = days[-5], nxt[2]
+        if sell >= today_:
+            return buy, sell
+    return None
 
 
 def kenri_window(today_: str) -> tuple[str, str] | None:
@@ -1053,7 +1070,7 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
                 continue
             sl = entry * (1 - RB_STOP); hit = None
             m25_ = float(np.mean(cc_[max(0, i - 24):i + 1]))                   # 合図の日の25日線
-            tp_ = max(m25_ * (1 + RB_TP_DEV), entry * 1.001)                   # 25日線−10%まで戻ったら利確（B・N・F流の戻り売り。2026-11-27 追加）
+            tp_ = max(m25_ * (1 + RB_TP_DEV), entry * 1.001)                   # 25日線−5%まで戻ったら利確（B・N・F流の戻り売り。2026-11-27 追加）
             r["tp_px"] = round(tp_, 1)
             for kk in range(RB_HOLD):
                 j = j0 + kk
@@ -1064,9 +1081,9 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
                 if (kk > 0 or atopen) and ll_[j] <= sl:
                     hit = (j, sl, f"損切り（−{RB_STOP * 100:.0f}%）"); break
                 if kk > 0 and oo_[j] >= tp_:
-                    hit = (j, oo_[j], "25日線−10%まで戻ったので利確（寄りで）"); break
+                    hit = (j, oo_[j], "25日線−5%まで戻ったので利確（寄りで）"); break
                 if (kk > 0 or atopen) and hh_[j] >= tp_:
-                    hit = (j, tp_, "25日線−10%まで戻ったので利確"); break
+                    hit = (j, tp_, "25日線−5%まで戻ったので利確"); break
                 if kk == RB_HOLD - 1:
                     hit = (j, cc_[j], f"{RB_HOLD}日目の引けで売り")
             sh_ = int(s.get("amount", 0) / max(s.get("limit", L_), 1) // 100 * 100) if s.get("amount") else 0
@@ -1079,7 +1096,7 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
                 left = RB_HOLD - (len(dates) - j0)
                 plan = np.busday_offset(np.datetime64(dates[-1]), left, roll="forward")
                 r.update(status="保有中", entry=round(entry, 1), entry_date=dates[j0], now=round(cc_[-1], 1), ret=round((cc_[-1] / entry - 1) * 100, 2),
-                         order=f"損切り {sl:,.0f}円（逆指値）・利確 {tp_:,.0f}円（指値・25日線−10%）のOCO。届かなければ{str(plan)}の引けで売る")
+                         order=f"損切り {sl:,.0f}円（逆指値）・利確 {tp_:,.0f}円（指値・25日線−5%）のOCO。届かなければ{str(plan)}の引けで売る")
             r["pnl"] = round(amt * r["ret"] / 100 - amt * COST)
         elif s["side"] in ("kenri", "yearend"):
             cc_ = df["Close"].to_numpy(float)
@@ -1088,10 +1105,10 @@ def evaluate(ledger: dict, prices: dict) -> list[dict]:
             js = bisect.bisect_left(dates, sell)
             if js < len(dates) and dates[js] == sell:
                 r.update(status="決済済み", entry=round(entry, 1), entry_date=dates[i + 1], exit_date=sell, ret=round((cc_[js] / entry - 1) * 100, 2),
-                         why="権利付き最終日の引けで売り" if s["side"] == "kenri" else "1月の5営業日目の引けで売り")
+                         why=("翌月3営業日目の引けで売り（月末月初）" if s.get("kind") == "monthend" else "権利付き最終日の引けで売り") if s["side"] == "kenri" else "1月の5営業日目の引けで売り")
             else:
                 r.update(status="保有中", entry=round(entry, 1), entry_date=dates[i + 1], now=round(cc_[-1], 1), ret=round((cc_[-1] / entry - 1) * 100, 2),
-                         order=f"{sell}（権利付き最終日）の引けで売る" if s["side"] == "kenri" else f"{sell}の引けで売る（別枠）")
+                         order=(f"{sell}（翌月3営業日目）の引けで売る" if s.get("kind") == "monthend" else f"{sell}（権利付き最終日）の引けで売る") if s["side"] == "kenri" else f"{sell}の引けで売る（別枠）")
             amt = s.get("amount") or 0
             r["pnl"] = round(amt * r["ret"] / 100 - amt * (0.001 if s["side"] == "kenri" else COST))
         elif s["side"] == "ir":
@@ -1269,7 +1286,7 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
         if x["side_"] == "newhigh":
             return f'損切り {x["close"] * (1 - NH_STOP):,.0f}円（買値−6%）。利確なし：終値で+20%に届いたら最高値−20%で追いかける'
         if x["side_"] == "rebound":
-            return f'翌朝 {x.get("limit", 0):,.0f}円に指値。買えたら−10%に損切り、3日目の引けで売る'
+            return f'翌朝 {x.get("limit", 0):,.0f}円に指値。買えたら−10%に損切り、5日目の引けで売る'
         if x["side_"] == "ir":
             return f'損切り {x["close"] * (1 - IR_STOP):,.0f}円（買値−10%・買値で計算し直す）。利確なし。{IR_HOLD}営業日目の引けで売る'
         if x["side_"] == "ipo":
@@ -1306,10 +1323,13 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
                ("購入金額", lambda x: man(x.get("amount", 0))), ("株数", lambda x: f'{x.get("shares", 0):,}株'), ("枠", lambda x: h.escape(x.get("slot", ""))),
                ("25日線から", lambda x: f'{x.get("dev", 0):+.0f}%'), ("5日で", lambda x: f'{x.get("drop5", 0):+.0f}%'),
                ("損切り目安", lambda x: f'{x.get("limit", 0) * (1 - RB_STOP):,.0f}円'),
-               ("利確（25日線−10%）", lambda x: f'{x.get("last_close", 0) / (1 + x.get("dev", 0) / 100) * (1 + RB_TP_DEV):,.0f}円'), ("売り", lambda x: "届かなければ3日目の引け")]
+               ("利確（25日線−5%）", lambda x: f'{x.get("last_close", 0) / (1 + x.get("dev", 0) / 100) * (1 + RB_TP_DEV):,.0f}円'), ("売り", lambda x: "届かなければ3日目の引け")]
     kw_ = info.get("kenri")
     kr_line = (f"次の権利取り前：<b>{kw_[0]}の引け</b>でTOPIX連動ETF（1306）を資金の20%買い、<b>{kw_[1]}（権利付き最終日）の引け</b>で売る。"
                if kw_ else "次の権利取り前の日付を計算できませんでした。")
+    mw_ = info.get("monthend")
+    if mw_:
+        kr_line += f"<br>次の月末月初：<b>{mw_[0]}の引け</b>で1306を資金の{UNIT_TM * 100:.0f}%買い、<b>{mw_[1]}の引け</b>で売る（3月・9月は権利取り前と重なるので、そちらを優先）。"
     if today_kr:
         k0 = today_kr[0]
         kr_line = (f"<b>明日（{k0['buy_date']}）の引けで</b>TOPIX連動ETF（1306）を {k0.get('shares', 0):,}口（約{man(k0.get('amount', 0))}）買う"
@@ -1402,7 +1422,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="card"><h2 style="margin-top:0">明日の朝に指値で買う候補・リバウンド（{len(today_rb)}件）</h2>{table(today_rb, rb_cols)}
 <p class="sub">25日線から−20%以上下・5日で−20%以上の急落・安値近くで引けた銘柄（売買代金1億円以上）。直近5日に新高値ブレイクが2件以上あり、その日のTOPIXが−1%以上の時だけ
 （今日：新高値ブレイク {info.get("rb_brk5", "—")}件・TOPIX {"—" if info.get("rb_t1") is None else f'{info["rb_t1"] * 100:+.1f}%'}）。
-明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−10%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として3日目の引けで売る。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_RB * 100:.0f}%、同時に10銘柄まで。<br><b>増額（2026-11-28）</b>：米VIXが{RB_VIX:g}以上の時は1回の金額を{RB_VIX_MULT:g}倍（上限{CAP_PER / 1e4:,.0f}万円）、市場の信用評価損益率（推定）が{RB_MPL:g}%以下の大底ではリバウンドだけ枠を{RB_MPL_CAP:g}倍まで使う。
+明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−5%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として5日目の引けで売る（11/28：18年の検証で3日→5日・25日線−10%→−5%）。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_RB * 100:.0f}%、同時に10銘柄まで。<br><b>増額（2026-11-28）</b>：米VIXが{RB_VIX:g}以上の時は1回の金額を{RB_VIX_MULT:g}倍（上限{CAP_PER / 1e4:,.0f}万円）、市場の信用評価損益率（推定）が{RB_MPL:g}%以下の大底ではリバウンドだけ枠を{RB_MPL_CAP:g}倍まで使う。
 今は VIX <b>{"—" if info.get("vix") is None else f'{info["vix"]:.1f}'}</b>（{h.escape(str(info.get("vix_date") or "—"))}）→ {"<b>2倍</b>" if info.get("vix") is not None and info["vix"] >= RB_VIX else "通常"}／信用評価損益率 <b>{"—" if info.get("mpl") is None else f'{info["mpl"]:+.1f}%'}</b>（{h.escape(str(info.get("mpl_date") or "—"))}週）→ {"<b>枠2倍まで</b>" if info.get("mpl") is not None and info["mpl"] <= RB_MPL else "枠は通常"}。</p></div>
 <div class="card"><h2 style="margin-top:0">権利取り前（3月・9月）</h2><p>{kr_line}</p>
 <p class="sub">3月・9月の権利付き最終日の前は、配当目当ての買いで市場全体が上がりやすい（10年で20回中15回プラス）。資金の20%で、年2回・約2週間だけ持つ。</p></div>
@@ -1503,7 +1523,7 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
         elif x["side"] == "rebound":
             want = eq * UNIT_RB * x.get("rb_mult", 1.0)
         elif x["side"] == "kenri":
-            want = eq * UNIT_KR
+            want = eq * (UNIT_TM if x.get("kind") == "monthend" else UNIT_KR)
         elif x["side"] == "gapdown":
             want = eq * UNIT_GD
         else:
@@ -1587,6 +1607,11 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         if win and nxt and nxt[0] == win[0] and tpx is not None:
             krs = [{"date": data_date, "side": "kenri", "code": "1306", "name": "TOPIX連動ETF（1306）", "close": float(tpx.iloc[-1]), "score": 0, "lot": 1.0,
                     "buy_date": win[0], "sell_date": win[1], "reasons": [f"{win[1]}が権利付き最終日"]}]
+        mw = monthend_window(data_date)
+        info["monthend"] = mw
+        if mw and nxt and nxt[0] == mw[0] and tpx is not None and not krs:
+            krs = [{"date": data_date, "side": "kenri", "kind": "monthend", "code": "1306", "name": "TOPIX連動ETF（1306）・月末月初", "close": float(tpx.iloc[-1]), "score": 0, "lot": 1.0,
+                    "buy_date": mw[0], "sell_date": mw[1], "reasons": [f"月末月初（{mw[1]}まで）"]}]
         if tpx is not None:
             et = yf_df("1306")
             if et is not None:

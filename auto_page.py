@@ -94,7 +94,7 @@ def run_auto(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             px = float(x.get("limit") or x.get("close") or 0)
             if side == "kenri" and prices.get("1306") is not None:
                 px = float(prices["1306"]["Close"].iloc[-1]); x["close"] = px
-            want = min(eq * _unit(side), ft.CAP_PER if side != "kenri" else 1e12)
+            want = min(eq * (ft.UNIT_TM if x0.get("kind") == "monthend" else _unit(side)), ft.CAP_PER if side != "kenri" else 1e12)
             sh = _shares(want, px, side)
             x.update(want=want, shares=sh, amount=round(sh * px))
             if x0.get("mult") == 0:

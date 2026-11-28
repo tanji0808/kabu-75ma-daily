@@ -1,7 +1,7 @@
 """法人用の「今日の売買」ページ（houjin.html）と台帳（data/forward_corp.json）。
 
 少ない手間で回すための版（2026-11-27 作成、11-28 資金5,000万円・リバウンド追加・eスマート証券のアプリで注文）。手法は6つ：
-  リバウンド   : 資金の9%・10銘柄まで。前日終値−3%に指値（当日だけ）。−10%逆指値と25日線×0.90の利確指値。3営業日目の引けで売る。
+  リバウンド   : 資金の9%・10銘柄まで。前日終値−3%に指値（当日だけ）。−10%逆指値と25日線×0.95の利確指値。5営業日目の引けで売る。
   IRトレード   : 資金の5%・20銘柄まで。寄りで成行買い＋買値−10%に逆指値。60営業日目の引けで売る。
   IPOセカンダリー: 資金の5%・10銘柄まで。寄りで成行買い＋−10%／+30%のOCO。120営業日で手じまい。
   新高値ブレイク : 資金の4%・12銘柄まで。寄りで成行買い＋−6%に逆指値。月1回（21営業日ごと）だけ見直し、
@@ -130,7 +130,7 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             px = x.get("close") or 0
             if side == "kenri" and prices.get("1306") is not None:
                 px = float(prices["1306"]["Close"].iloc[-1]); x["close"] = px
-            want = eq * UNIT[side]
+            want = eq * (0.10 if x0.get("kind") == "monthend" else UNIT[side])   # 月末月初は資金の10%
             if side == "rebound" and x0.get("vix_hi"):
                 want *= RB_VIX_MULT
             tv = None if side == "kenri" else _tv20(prices.get(x["code"]))
@@ -191,11 +191,11 @@ def page(rows, todays, info, eq, data_date, start, path):
             return f"明日の寄りで成行買い。約定したら買値−6%（目安 {p * 0.94:,.0f}円）に逆指値。月1回の見直しは保有中の表に出ます"
         if s == "rebound":
             lim = x.get("limit") or p
-            tp = x.get("last_close", 0) / (1 + x.get("dev", 0) / 100) * 0.90 if x.get("dev") is not None else 0
+            tp = x.get("last_close", 0) / (1 + x.get("dev", 0) / 100) * 0.95 if x.get("dev") is not None else 0
             return (f"明日の朝、{lim:,.0f}円に指値で買う（当日だけ・届かなければ買わない）。買えたら買値−10%（目安 {lim * 0.9:,.0f}円）に逆指値と、"
-                    f"{tp:,.0f}円に利確の指値（OCO）。どちらも届かなければ3営業日目の引けで売る")
+                    f"{tp:,.0f}円に利確の指値（OCO）。どちらも届かなければ5営業日目の引けで売る")
         if s == "kenri":
-            return f"{x.get('buy_date', '明日')}の引けで買う（引け成行）。{x.get('sell_date', '')}（権利付き最終日）の引けで売る"
+            return f"{x.get('buy_date', '明日')}の引けで買う（引け成行）。{x.get('sell_date', '')}（{'翌月3営業日目・月末月初' if x.get('kind') == 'monthend' else '権利付き最終日'}）の引けで売る"
         if s == "yearend":
             return f"{x.get('buy_date', '明日')}の引けで買う（引け成行）。{x.get('sell_date', '')}の引けで売る"
         return ""
