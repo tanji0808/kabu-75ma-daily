@@ -10,7 +10,10 @@
   年末の反発   : 20銘柄を資金の1%ずつ。大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る。
 1回の金額は、その銘柄の直前20日の売買代金の平均の5%まで（大きな注文で値段を動かさないため）。
 候補の判定は個人の「今日の売買」と同じ（同じ条件・同じ見送り条件）。
-2008年からの18年半の検証（5,000万円・単利）：1年平均 約1,360万円・最大の落ち込み 約−980万円・負けた年2回。月末月初（1306・10%）も入る。リバウンドは合計40%まで。
+2008年からの18年半の検証（5,000万円・単利）：1年平均 約1,420万円・最大の落ち込み 約−980万円・負けた年2回。月末月初（1306・10%）も入る。リバウンドは合計40%まで。
+下げ切りの2516（2026-11-28 追加）：グロース250ETF（2516）の終値が25日線より15%以上下の日の翌朝、余っているお金で2516を現物で買う
+  （資金の20%か2,000万円の少ない方まで）。合図の日から20営業日目の引けで売る。18年半で+1,097万円（2018年から）。複利で7.29億→7.53億円。
+  法人で信用口座ができたら、個人と同じ「持ち株の半分の2516を売る保険」も入れる（複利で8.84億円・2019年以降の含み損 最悪−9%）。
 """
 from __future__ import annotations
 
@@ -226,6 +229,22 @@ def page(rows, todays, info, eq, data_date, start, path):
         sched.append(f"権利取り前：{kw[0]}の引けで買い → {kw[1]}の引けで売る（資金の20%）")
     if yw:
         sched.append(f"年末の反発：{yw[0]}の引けで買い → {yw[1]}の引けで売る（20銘柄・各資金の1%）")
+    g = info.get("g2516") or {}
+    used_ = sum((r.get("entry") or 0) * (r.get("shares") or 0) for r in hold)
+    free_ = max(eq - used_, 0)
+    gbuy = min(eq * 0.20, 20_000_000, free_)
+    if not g.get("close"):
+        g_card = '<div class="card"><h2>下げ切りの2516（グロース250ETF）</h2><p class="sub">2516の値段が取れませんでした。</p></div>'
+    elif g.get("active"):
+        g_card = (f'<div class="card" style="border:2px solid #e0a040"><h2>下げ切りの2516（グロース250ETF）：<b>買う期間です</b></h2>'
+                  f'<p class="warn">合図 {h.escape(g.get("sig_date", ""))}（2516の終値が25日線より15%以上下）。<b>{"明日の寄りで" if g.get("new_today") else "まだ買っていなければ、明日の寄りで"}</b>'
+                  f'2516を約{gbuy / 1e4:,.0f}万円（約{int(gbuy // g["close"] // 10 * 10):,}株・10株単位）買う（余っているお金 約{free_ / 1e4:,.0f}万円・資金の20%か2,000万円の少ない方まで）。'
+                  f'<b>{h.escape(g.get("end", ""))}の引け</b>で売る（引け成行）。</p></div>')
+    else:
+        g_card = (f'<div class="card"><h2>下げ切りの2516（グロース250ETF）</h2><p>今は待つ：2516の終値 {g["close"]:,.1f}円（{h.escape(g.get("date", ""))}）・25日線から{g["dev"] * 100:+.1f}%。'
+                  f'終値が <b>{g["trigger"]:,.0f}円</b>（25日線−15%）以下になったら、翌朝この欄に「買う」が出ます。</p>'
+                  '<p class="sub">グロース株が急落し切った所で反発をねらう（18年半で15回・損をしたのは2008年の1回だけ）。買う金額は余っているお金で、資金の20%か2,000万円の少ない方まで。20営業日目の引けで売る。'
+                  '信用口座ができたら、個人と同じ「持ち株の半分の2516を信用で売る保険」も入れる。</p></div>')
     html = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>法人の売買</title><style>
 body{{font-family:'Noto Sans JP',system-ui,sans-serif;margin:0;background:#f5f4f0;color:#1d1d1b;font-size:14px;line-height:1.55}}
@@ -237,13 +256,14 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 </style></head><body><main>
 <a href="forward2.html" class="sub">← 個人の今日の売買</a>　<a href="backtest.html" class="sub">バックテスト結果</a>　<a href="docs.html" class="sub">📘 まとめ資料</a>
 <h1>法人の売買（eスマート証券・アプリで注文）</h1>
-<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。IRトレード・IPO・新高値・リバウンド・権利取り前・年末の反発の6つ。現物のみ（信用は使わない）。注文は朝9時前にアプリで入れる（SOR注文で手数料無料）。</div>
+<div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。IRトレード・IPO・新高値・リバウンド・権利取り前・月末月初・年末の反発＋下げ切りの2516。現物のみ（信用は使わない）。注文は朝9時前にアプリで入れる（SOR注文で手数料無料）。</div>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">資金（最初 {CORP_CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{eq / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 * (RB_VIX_MULT if (info.get('vix') or 0) >= 20 else 1) / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl_pnl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op_pnl)}</div></div></div>
-<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。2008年からの18年半の検証（5,000万円・単利・税引き前）：1年平均 約1,360万円・最大の落ち込み 約−980万円・負けた年2回（2010・2012年）。リバウンドは合計で資金の40%まで、日経平均が200日線の下でじわじわ下げている時は見送り。</p></div>
+<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。2008年からの18年半の検証（5,000万円・単利・税引き前）：1年平均 約1,420万円（下げ切りの2516を含む）・最大の落ち込み 約−980万円・負けた年2回（2010・2012年）。リバウンドは合計で資金の40%まで、日経平均が200日線の下でじわじわ下げている時は見送り。</p></div>
+{g_card}
 {('<p class="warn"><b>今日は新高値の見直しの日の銘柄があります</b>：' + "・".join(f"{r['code']} {h.escape(str(r.get('name', '')))}" for r in review) + '（下の保有中の表の「注文・予定」のとおりに逆指値を直す）</p>') if review else ''}
 <div class="card"><h2>明日お願いする注文（{len(buy)}件）</h2>{table(buy, cols)}
 <p class="sub">「目安」は今日の終値で計算。実際は約定した値段（買値）から計算し直す。</p></div>

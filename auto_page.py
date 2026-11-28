@@ -5,7 +5,8 @@
   auto.html              : 人が見る確認用ページ
 
 ルールは個人の「今日の売買」と同じ（候補・損切り・利確・追いかけ）。違うのは：
-  - 100株単位。1回の金額で100株に届かない時は、1回の金額の1.5倍までなら100株買う（10年の検証で 300万円→+1,214万円・空売りと75日線の買いなし・2026-11-28の1回の金額で）。
+  - 100株単位。1回の金額で100株に届かない時は、1回の金額の1.5倍までなら100株買う（2008年からの18年半の検証・目安：300万円→単利+1,875万円（1年平均 約100万円）・最大の落ち込み −68万円・負けた年2回・税引き後の複利で約1.6億円。100株単位の端数は入れていない）。
+  - 下げ切りの2516（2026-11-28 追加）：2516の終値が25日線より15%以上下の日の翌朝、余っているお金で資金の20%まで2516を買い、20営業日目の引けで売る（今は手で注文。プログラムには入れていない）。
   - 最初は空売りと75日線の買いはなし（毎日の細かい判定が多いため。慣れたら足す）。年末の反発もなし。
 注文の種類（kabuステーションAPIの言葉）：寄成＝寄りで成行、寄指＝寄りで指値、指値、逆指値（損切り）、引成＝引けで成行。
 """
@@ -154,12 +155,14 @@ def run_auto(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
                limits=dict(max_order_yen=int(min(eq * 0.05 * OVER, ft.CAP_PER * OVER)), max_day_buy_yen=int(eq), max_buy_orders=15, min_tv20=3e7))
     out["sig"] = sign(out)
     json.dump(out, open(ORDERS, "w", encoding="utf-8"), ensure_ascii=False, indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))
-    page(rows, todays, out, eq, data_date, led["start"], os.path.join(out_dir, "auto.html"))
+    page(rows, todays, out, eq, data_date, led["start"], os.path.join(out_dir, "auto.html"), info)
     print(f"自動売買版：明日の買い {sum(1 for o in orders if o['action'] == 'buy')}件・保有 {sum(1 for o in orders if o['action'] == 'hold')}件・"
           f"窓あけ下げ {'対象期間' if gd else 'なし'}・台帳 {len(led['signals'])}件")
 
 
-def page(rows, todays, out, eq, data_date, start, path):
+def page(rows, todays, out, eq, data_date, start, path, info=None):
+    import forward_test2 as ft
+    info = info or {}
     yen = lambda v: f"{v / 1e4:+,.1f}万円"
     man = lambda v: f"{v / 1e4:,.1f}万円"
     link = lambda x: f'<a href="https://finance.yahoo.co.jp/quote/{x["code"]}.T/chart" target="_blank" rel="noopener">{x["code"]} {h.escape(str(x.get("name", "")))}</a>'
@@ -189,6 +192,7 @@ def page(rows, todays, out, eq, data_date, start, path):
     gd = out.get("gapdown")
     gd_txt = (f"<p class='warn'>窓あけ下げの対象期間：明日8:50〜8:58に、プログラムが下の監視リスト{len(gd['watch'])}銘柄の気配を見て、"
               f"−5%以下の銘柄を下げの大きい順に{gd['max_n']}銘柄まで寄指で注文します。</p>") if gd else ""
+    g_card = ft.g_buy_card(info.get("g2516"), eq, eq - sum((r.get("amount") or 0) for r in rows if r.get("status") == "保有中"), "の引けで売る", "今は手で注文（自動売買のプログラムには入れていない）。")
     html = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>自動売買（eスマート証券）</title><style>
 body{{font-family:'Noto Sans JP',system-ui,sans-serif;margin:0;background:#f5f4f0;color:#1d1d1b;font-size:14px;line-height:1.55}}
@@ -206,7 +210,8 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 <div class="stat"><div class="k">1回の注文の上限（安全装置）</div><div class="v">{man(out['limits']['max_order_yen'])}</div></div>
 <div class="stat"><div class="k">決済済みの損益</div><div class="v">{yen(cl)}</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op)}</div></div></div>
-<p class="sub">100株単位（100株に届かなくても1回の金額の1.5倍までなら100株）。手法は新高値・IR・IPO・リバウンド・窓あけ下げ・権利取り前。1回の金額は個人と同じ割合（新高値4%・IR／IPO／窓あけ下げ7%・リバウンド9%、信用は使わない）。空売りは慣れたら足す（75日線の買いは休止中）。</p></div>
+<p class="sub">100株単位（100株に届かなくても1回の金額の1.5倍までなら100株）。手法は新高値・IR・IPO・リバウンド・窓あけ下げ・権利取り前。1回の金額は個人と同じ割合（新高値4%・IR／IPO／窓あけ下げ7%・リバウンド9%、信用は使わない）。空売りは慣れたら足す（75日線の買いは休止中）。<br>2008年からの18年半の検証（300万円・単利・目安）：+1,875万円（1年平均 約100万円・下げ切りの2516を含む）・最大の落ち込み −68万円・負けた年2回（2010・2012年）。税引き後の複利なら約1.6億円。100株単位の端数は入れていないので、実際は少し変わります。</p></div>
+{g_card}
 {gd_txt}
 <div class="card"><h2>明日出す買い注文（{len(buy)}件）</h2>{table(buy, bcols)}</div>
 <div class="card"><h2>保有中と、入れておく売り注文（{len(hold)}件）</h2>{table(hold, hcols)}

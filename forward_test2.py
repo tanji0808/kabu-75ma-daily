@@ -21,6 +21,12 @@
            見送り：海外投資家の直近4週の差引（東証・名証）が約3,240億円以上の売り越しの時は空売りしない
            買い戻し（2026-11-24 変更）：終値が−1σを割ったら、毎日「25日線に買い戻しの逆指値」と「−2σに買い戻しの指値」を入れる／それまでは終値が+1σ超えで翌朝損切り。
            同時10銘柄・建玉1,000万円まで（同じ日は点数の高い順）。
+           休む（2026-11-28）：米VIXが32以上の時は新しい空売りをしない。
+  2516の保険（2026-11-28・18年検証で採用）: 持っている株の金額の半分だけ、東証グロース250ETF（2516）を制度信用で売る（10株単位）。
+           週1回（月曜の朝）、目標との差が±20%を超えたら合わせる。期日（6か月）の1か月前に返済買い→同じ数を新規売り。
+           下げ切りの合図：2516の終値が25日線より15%以上下の日 → 翌朝、売りを全部返済買いし、資金の20%（上限2,000万円）で2516を現物で買う。
+           合図の日から20営業日目の引けで売り、半分の売りに戻す。
+  サイト前の信用の買い（data/manual_positions.json）: 75日線のルール（引き上げ式ロスカット・終値で判断・翌朝の寄りで返済売り）で毎日判定して表示。
   新高値ブレイク（2026-11-23 採用）: 終値が52週高値を初めて上に抜けた日（その高値は5営業日以上前・20日平均の売買代金3,000万円以上）。
            100点満点の点数60点以上：PBR1.07倍未満20／ランク6以上20／TOPIXも52週高値圏15／配当利回り2.3%以上10／
            PERが業種の0.95倍未満10／業種の空売り比率40.6%未満10／決算から10日以内5／買い残が発行済の0.36%以上5／52週安値から60%以上上5。
@@ -49,7 +55,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v19"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）。v18: 月末月初（1306・10%）を追加・リバウンドは5日目・25日線−5%で利確・窓あけ下げの利確+15%。v19: 落ち込み対策（リバウンド合計30%・窓あけ40%まで、日経平均の200日線で見送り）
+RULE_ID = "combo_v20"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで。v17: 窓あけ下げはTOPIX60日−25%以下で見送り（2008年からの18年検証）。v18: 月末月初（1306・10%）を追加・リバウンドは5日目・25日線−5%で利確・窓あけ下げの利確+15%。v19: 落ち込み対策（リバウンド合計30%・窓あけ40%まで、日経平均の200日線で見送り）。v20: VIX32以上は空売りを休む・2516（グロース250ETF）の保険の売りと下げ切りの買い・サイト前の信用の買いを表示
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -85,6 +91,14 @@ IR_OM_MIN = 0.046   # IR：営業利益率（直近の通期）4.6%未満は買�
 LH_DAYS = 90   # 75日線の買い：直近90日に大量保有者の保有割合が合計で減っていたら見送り（2026-11-28 追加）
 MKT_MRATIO_MIN = 3.67   # 75日線の買い：市場全体の信用倍率（週次）3.67倍未満の時期は買わない（同上）
 NB_HOT = 430   # 市場全体の新高値ブレイクの件数（買った日が30〜6日前のもの）：430件超は過熱で見送り（102件以下で半分は 2026-11-25 に廃止：4つで枠を共有すると逆効果）
+SHORT_VIX_MAX = 32.0     # 休む（2026-11-28・18年検証）：米VIXが32以上の時は新しい空売りをしない（落ち込み −483万→−402万・利益+100万）
+# グロース250（2516）の保険（2026-11-28・18年検証）：持っている株の金額の半分だけ、東証グロース250ETF（2516）を制度信用で売る。
+#   週1回（月曜の朝）、目標との差が±20%を超えたら株数を合わせる。制度信用は6か月で期日なので、期日の1か月前に返済買い→同じ数を新規売り。
+#   下げ切りの合図：2516の終値が25日線より15%以上下の日 → 翌朝、2516の売りを全部返済買いし、さらに資金の20%（上限2,000万円）で2516を買う。
+#   20営業日目の引けで売って、いつもの「半分の売り」に戻す。
+G_HEDGE, G_BAND, G_DUE_WARN = 0.5, 0.20, 30
+G_RB_DEV, G_RB_DAYS, G_RB_UNIT, G_RB_CAP = -0.15, 20, 0.20, 20_000_000
+MANUAL_PATH = "data/manual_positions.json"   # サイトを作る前に自分で建てた信用の買い（75日線のルールで手じまう）
 NH_ITEMS = [("PBR1.07倍未満", 20), ("ランク6以上", 20), ("TOPIXも52週高値圏", 15), ("配当利回り2.3%以上", 10),
             ("PERが業種の0.95倍未満", 10), ("業種の空売り比率が低い", 10), ("決算から10日以内", 5),
             ("買い残が発行済の0.36%以上", 5), ("52週安値から60%以上上", 5)]
@@ -788,6 +802,118 @@ def vix_now() -> tuple[float | None, str | None]:
     return (float(s.iloc[-1]), f"{s.index[-1]:%Y-%m-%d}") if len(s) else (None, None)
 
 
+def g2516_state(df: pd.DataFrame | None = None) -> dict:
+    """グロース250ETF（2516）の今の値段と、下げ切りの合図（終値が25日線より15%以上下）の状態。"""
+    df = df if df is not None else yf_df("2516")
+    if df is None or len(df) < 30:
+        return {}
+    c = df["Close"].astype(float)
+    m25 = c.rolling(25).mean()
+    dev = c / m25 - 1
+    idx = list(df.index)
+    sig = [i for i in range(len(c)) if dev.iloc[i] <= G_RB_DEV]
+    L = len(c) - 1
+    st = {"close": float(c.iloc[-1]), "date": f"{idx[-1]:%Y-%m-%d}", "m25": float(m25.iloc[-1]), "dev": float(dev.iloc[-1]),
+          "trigger": float(m25.iloc[-1] * (1 + G_RB_DEV)), "active": False}
+    last = [i for i in sig if i >= L - (G_RB_DAYS - 1)]   # 直近20営業日（今日を含む）に合図 → 明日も「下げ切りの買い」の期間
+    if last:
+        s = last[-1]
+        end = np.busday_offset(np.datetime64(idx[s].date()), G_RB_DAYS, roll="forward")
+        try:   # 日本の休日を入れて数える
+            bd = jp_bdays((idx[s] + pd.Timedelta(days=1)).strftime("%Y-%m-%d"), (idx[s] + pd.Timedelta(days=45)).strftime("%Y-%m-%d"))
+            if len(bd) >= G_RB_DAYS:
+                end = bd[G_RB_DAYS - 1]
+        except Exception:  # noqa
+            pass
+        st.update(active=True, sig_date=f"{idx[s]:%Y-%m-%d}", end=str(end), new_today=(s == L))
+    return st
+
+
+def g_buy_card(g: dict | None, eq: float, free: float, sell_txt: str, note: str = "") -> str:
+    """現物だけの版（法人以外：ミニ株・自動売買）用の「下げ切りの2516」の欄。"""
+    g = g or {}
+    if not g.get("close"):
+        return '<div class="card"><h2>下げ切りの2516（グロース250ETF）</h2><p class="sub">2516の値段が取れませんでした。</p></div>'
+    amt = min(eq * G_RB_UNIT, G_RB_CAP, max(free, 0))
+    if g.get("active"):
+        return (f'<div class="card" style="border:2px solid #e0a040"><h2>下げ切りの2516（グロース250ETF）：<b>買う期間です</b></h2>'
+                f'<p class="warn">合図 {h.escape(g.get("sig_date", ""))}（2516の終値が25日線より15%以上下）。{"明日の寄りで" if g.get("new_today") else "まだ買っていなければ、明日の寄りで"}'
+                f'2516を約{amt / 1e4:,.1f}万円（余っているお金で、資金の20%まで）買う。{h.escape(g.get("end", ""))}{h.escape(sell_txt)}。{h.escape(note)}</p></div>')
+    return (f'<div class="card"><h2>下げ切りの2516（グロース250ETF）</h2><p>今は待つ：2516の終値 {g["close"]:,.1f}円（{h.escape(g.get("date", ""))}）・25日線から{g["dev"] * 100:+.1f}%。'
+            f'終値が <b>{g["trigger"]:,.0f}円</b>（25日線−15%）以下になったら、翌朝この欄に「買う」が出ます。</p>'
+            f'<p class="sub">グロース株が急落し切った所で反発をねらう（18年半で15回・損をしたのは2008年の1回だけ）。余っているお金で資金の20%まで買い、合図の日から20営業日目{h.escape(sell_txt)}。{h.escape(note)}</p></div>')
+
+
+def manual_positions(prices: dict) -> list[dict]:
+    """サイトを作る前に自分で建てた信用の買い（data/manual_positions.json）を、75日線のルール（引き上げ式ロスカット）で毎日判定する。
+    ① 最初は−1σ ② 終値が「買値＋幅」（幅＝買値−合図の日の−1σ）以上で、ロスカットを「買値＋幅」へ ③ その後、終値が+1σより上の日は+1σまで引き上げ。
+    終値がロスカットを割ったら翌営業日の寄りで返済売り。最長120営業日。"""
+    if not os.path.exists(MANUAL_PATH):
+        return []
+    try:
+        items = json.load(open(MANUAL_PATH, encoding="utf-8")).get("positions", [])
+    except Exception as e:
+        print(f"  {MANUAL_PATH} を読めませんでした（{e}）")
+        return []
+    out = []
+    for p in items:
+        r = dict(p)
+        df = prices.get(p["code"])
+        if df is None or len(df) < 30 or df.index[-1] < pd.Timestamp(p["entry_date"]):
+            df = yf_df(p["code"])
+        if df is None or len(df) < 30:
+            r["status"] = "株価が取れない"
+            out.append(r)
+            continue
+        c = df["Close"].to_numpy(float)
+        m25 = pd.Series(c).rolling(25).mean()
+        sd = pd.Series(c).rolling(25).std(ddof=0)
+        d1, u1 = (m25 - sd).to_numpy(), (m25 + sd).to_numpy()
+        dates = [f"{x:%Y-%m-%d}" for x in df.index]
+        e = bisect.bisect_left(dates, p["entry_date"])
+        if e >= len(c) or e < 1:
+            r["status"] = "株価が取れない"
+            out.append(r)
+            continue
+        buy = float(p["entry"])
+        width = buy - d1[e - 1] if d1[e - 1] < buy else buy * 0.03
+        lock = stop = None
+        exit_j = None
+        for j in range(e, min(len(c), e + 120)):
+            if stop is None:
+                if c[j] < d1[j]:
+                    exit_j, why = j, "−1σ割れ（損切り）"
+                    break
+                if c[j] >= buy + width:
+                    lock = stop = buy + width
+            else:
+                if c[j] < stop:
+                    exit_j, why = j, ("利益確保ライン割れ" if stop == lock else "+1σ引き上げライン割れ")
+                    break
+                if c[j] > u1[j]:
+                    stop = max(stop, u1[j])
+        L = len(c) - 1
+        if exit_j is None and e + 119 <= L:
+            exit_j, why = e + 119, "120営業日の期間満了"
+        r.update(now=float(c[L]), ret=(c[L] / buy - 1) * 100, pnl=(c[L] - buy) * p["shares"], lock_px=buy + width,
+                 d1=float(d1[L]), u1=float(u1[L]), data_date=dates[L],
+                 end120=str(np.busday_offset(np.datetime64(p["entry_date"]), 119, roll="forward")))
+        if exit_j is not None:
+            r.update(status="売り", stage="売りの合図", stop=None,
+                     order=f"{dates[exit_j]}の終値で{why}。次の寄りで返済売り（成行）")
+        elif stop is None:
+            r.update(status="保有", stage="① 損切りライン（−1σ）", stop=float(d1[L]),
+                     order=f"終値が {d1[L]:,.0f}円（−1σ・毎日動く）を割ったら翌朝の寄りで返済売り。終値が {buy + width:,.0f}円 以上になったら②へ")
+        elif stop == lock:
+            r.update(status="保有", stage="② 利益確保ライン", stop=float(stop),
+                     order=f"終値が {stop:,.0f}円を割ったら翌朝の寄りで返済売り。終値が+1σ（今日 {u1[L]:,.0f}円）より上なら③へ")
+        else:
+            r.update(status="保有", stage="③ +1σ引き上げ", stop=float(stop),
+                     order=f"終値が {stop:,.0f}円を割ったら翌朝の寄りで返済売り。終値が+1σ（今日 {u1[L]:,.0f}円）より上ならそこまで引き上げ")
+        out.append(r)
+    return out
+
+
 def margin_pl_rate(prices: dict, entry_day: str) -> tuple[float | None, str | None]:
     """市場全体の信用評価損益率（推定・%）。tools/margin_pl.py と同じ計算：直近26週に増えた買い残をその週の株価で買ったとみなして平均の買値を出す。
     分割などで株価と買い残がずれた銘柄（−45%以下・+80%以上）は外す。週の日付の7日後から使う（バックテストと同じ）。"""
@@ -1223,8 +1349,9 @@ def stats(rows: list[dict], side: str) -> dict:
 
 
 # ------------------------------------------------------------------ ページ
-def my_holdings(hold: list[dict]) -> str:
-    """「自分の保有」：システムの保有中の記録から、買わなかったものを外し、買値を直せる欄（スマホのブラウザに保存）。"""
+def my_holdings(hold: list[dict], manual: list[dict] | None = None, g: dict | None = None, eq: float = CAPITAL) -> str:
+    """「自分の保有」：システムの保有中の記録から、買わなかったものを外し、買値を直せる欄（スマホのブラウザに保存）。
+    サイト前に建てた信用の買い（75日線）も入れる。下に「2516の保険（売り）」の株数の計算を付ける。"""
     import json as _j
     SIDE = {"buy": "買い（75日線）", "newhigh": "買い（新高値）", "ipo": "買い（IPO）", "ir": "買い（IR）", "rebound": "買い（リバウンド）", "kenri": "買い（権利取り）", "yearend": "買い（年末の反発・別枠）", "gapdown": "買い（窓あけ下げ）", "short": "空売り"}
     items = []
@@ -1235,42 +1362,81 @@ def my_holdings(hold: list[dict]) -> str:
         stop, tp = {"newhigh": (NH_STOP, NH_TP), "ipo": (IPO_STOP, IPO_TP), "ir": (IR_STOP, None)}.get(r["side"], (None, None))
         items.append({"id": f'{r["date"]}|{r["side"]}|{r["code"]}', "side": r["side"], "label": SIDE.get(r["side"], r["side"]),
                       "code": r["code"], "name": r.get("name", ""), "shares": int(r.get("shares") or 0), "entry": round(e, 1),
-                      "now": round(now, 1), "entry_date": r.get("entry_date") or "", "stop": stop, "tp": tp})
+                      "now": round(now, 1), "entry_date": r.get("entry_date") or "", "stop": stop, "tp": tp,
+                      "end": str(np.busday_offset(np.datetime64(r["entry_date"]), 120, roll="forward")) if r.get("entry_date") else ""})
+    for m in manual or []:
+        if m.get("now") is None:
+            continue
+        items.append({"id": f'manual|{m["code"]}|{m["entry_date"]}', "side": "m75", "label": "<b>信用買い</b>（75日線・制度・半年）",
+                      "code": m["code"], "name": m.get("name", ""), "shares": int(m["shares"]), "entry": round(float(m["entry"]), 2),
+                      "now": round(float(m["now"]), 1), "entry_date": m["entry_date"], "stop": None, "tp": None,
+                      "order": m.get("order", ""), "end": f'{m.get("end120", "")}（期日 {m.get("due", "")}）'})
+    g = g or {}
+    gd = {"px": round(g.get("close") or 0, 1), "date": g.get("date", ""), "active": bool(g.get("active")), "end": g.get("end", ""),
+          "sig": g.get("sig_date", ""), "buy": round(min(eq * G_RB_UNIT, G_RB_CAP))}
     data = _j.dumps(items, ensure_ascii=False)
     return """<div class="card"><h2 style="margin-top:0">自分の保有</h2>
 <p class="sub">システムの「保有中」から、<b>買わなかったものは「買わなかった」</b>に切り替え、買値が違うときは直してください（このスマホのブラウザに保存されます）。
-損切り・利確は直した買値から計算します。75日線の買いと空売りは、毎日このページの判定（保有中の表）に従ってください。</p>
+損切り・利確は直した買値から計算します。75日線の買い（信用）と空売りは、毎日このページの判定に従ってください。</p>
 <div id="mysum" class="stats"></div><div class="tw"><table id="mytab"></table></div>
 <p class="sub" id="mynote"></p></div>
+<div class="card" id="g2516"><h2 style="margin-top:0">グロース250ETF（2516）の保険・下げ切りの買い</h2><div id="gbox"></div>
+<div class="tw"><table id="glots"></table></div>
+<p style="margin:6px 0">売っている2516を記録：建てた日 <input id="gd" type="date" style="width:140px"> 株数 <input id="gn" type="number" inputmode="numeric" step="10" style="width:90px"> <button id="gadd" style="padding:4px 10px">追加</button></p>
+<p class="sub">ルール：持っている株（上の「買った」の合計）の<b>半分の金額</b>だけ、2516を<b>制度信用で新規売り（半年）</b>。株数は10株単位。週1回（月曜の朝）、目標との差が±20%を超えたら売り増し・返済買いで合わせる（±20%以内なら何もしない）。
+制度信用は6か月で期日なので、<b>期日の1か月前</b>になった分は返済買いして、同じ日に同じ数を新規売りし直す。注文は寄付か引けの指値で、量が多い時は2〜3回に分ける。2516が上がって売りが損をしていても、保険なので2516だけで損切りはしない。<br>
+<b>下げ切りの合図</b>：2516の終値が25日線より15%以上下の日。翌朝、2516の売りを<b>全部返済買い</b>し、さらに資金の20%（上限2,000万円）で<b>2516を現物で買う</b>。合図の日から20営業日目の引けで売り、いつもの半分の売りに戻す。
+18年半の検証（1,500万円・複利）：保険だけで5.13億円、下げ切りの買いも入れて5.68億円（入れないと4.95億円）。資金が少ない時の1年の含み損の最悪 −24%→−18%。</p></div>
 <script>
 (function(){
 var D=""" + data + """;
+var G=""" + _j.dumps(gd, ensure_ascii=False) + """;
 var KEY='kabu_mypos_v1', st={};
 try{st=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){st={};}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+var GK='kabu_2516_v1', gl=[];
+try{gl=JSON.parse(localStorage.getItem(GK)||'[]')||[];}catch(e){gl=[];}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(GK,JSON.stringify(gl));}catch(e){}}
 function yen(v){return (v>=0?'+':'')+Math.round(v).toLocaleString('ja-JP')+'円';}
-function addBiz(d,n){var x=new Date(d+'T00:00:00');var k=0;while(k<n){x.setDate(x.getDate()+1);var w=x.getDay();if(w!==0&&w!==6)k++;}return x.toISOString().slice(0,10);}
+function num(v){return Math.round(v).toLocaleString('ja-JP');}
+function addMonth(d,n){var x=new Date(d+'T00:00:00');x.setMonth(x.getMonth()+n);return x.toISOString().slice(0,10);}
 function draw(){
   var tb=document.getElementById('mytab'); var h='<tr><th>買った？</th><th>売買</th><th>銘柄</th><th>株数</th><th>買値</th><th>今</th><th>損益</th><th>損切り／利確</th><th>手じまい予定</th></tr>';
-  var tot=0,pl=0,n=0;
+  var tot=0,pl=0,n=0,lng=0;
   D.forEach(function(r){
     var s=st[r.id]||{}; var skip=!!s.skip; var px=(s.px>0)?s.px:r.entry;
     var sign=r.side==='short'?-1:1; var p=(r.now/px-1)*sign; var v=p*px*r.shares;
-    if(!skip){tot+=px*r.shares; pl+=v; n++;}
-    var sl=r.stop?(Math.round(px*(1-r.stop)).toLocaleString('ja-JP')+'円／'+(r.tp?Math.round(px*(1+r.tp)).toLocaleString('ja-JP')+'円':(r.side=='ir'?'利確なし（60営業日目の引けで売る）':'利確なし（+20%から追いかけ・保有中の表を見る）'))):'ページの判定に従う';
-    var end=r.entry_date?addBiz(r.entry_date,120):'';
-    h+='<tr style="'+(skip?'opacity:.45':'')+'"><td><button data-id="'+r.id+'" class="tg" style="padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:'+(skip?'#fff':'#e8f0fb')+'">'+(skip?'買わなかった':'買った')+'</button></td>'
+    if(!skip){tot+=px*r.shares; pl+=v; n++; if(r.side!=='short')lng+=r.now*r.shares;}
+    var sl=r.side==='m75'?r.order:(r.stop?(num(px*(1-r.stop))+'円／'+(r.tp?num(px*(1+r.tp))+'円':(r.side=='ir'?'利確なし（60営業日目の引けで売る）':'利確なし（+20%から追いかけ・保有中の表を見る）'))):'ページの判定に従う');
+    h+='<tr style="'+(skip?'opacity:.45':'')+(r.side==='m75'?';background:#fff6e5':'')+'"><td><button data-id="'+r.id+'" class="tg" style="padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:'+(skip?'#fff':'#e8f0fb')+'">'+(skip?'買わなかった':'買った')+'</button></td>'
       +'<td>'+r.label+'</td><td>'+r.code+' '+r.name+'</td><td>'+r.shares.toLocaleString('ja-JP')+'株</td>'
       +'<td><input data-id="'+r.id+'" class="px" type="number" inputmode="decimal" value="'+px+'" style="width:84px"></td>'
-      +'<td>'+r.now.toLocaleString('ja-JP')+'</td><td>'+(p*100).toFixed(2)+'%（'+yen(v)+'）</td><td>'+sl+'</td><td>'+end+'</td></tr>';
+      +'<td>'+r.now.toLocaleString('ja-JP')+'</td><td>'+(p*100).toFixed(2)+'%（'+yen(v)+'）</td><td style="white-space:normal;min-width:220px">'+sl+'</td><td>'+(r.end||'')+'</td></tr>';
   });
   tb.innerHTML=D.length?h:'<tr><td class="none">保有中の記録はまだありません</td></tr>';
   document.getElementById('mysum').innerHTML='<div class="stat"><div class="k">実際に持っている銘柄</div><div class="v">'+n+'銘柄</div></div>'
-    +'<div class="stat"><div class="k">買った金額の合計</div><div class="v">'+Math.round(tot).toLocaleString('ja-JP')+'円</div></div>'
+    +'<div class="stat"><div class="k">買った金額の合計</div><div class="v">'+num(tot)+'円</div></div>'
     +'<div class="stat"><div class="k">含み損益</div><div class="v">'+yen(pl)+'</div></div>';
   Array.prototype.forEach.call(document.querySelectorAll('#mytab .tg'),function(b){b.onclick=function(){var id=b.dataset.id;st[id]=st[id]||{};st[id].skip=!st[id].skip;save();draw();};});
   Array.prototype.forEach.call(document.querySelectorAll('#mytab .px'),function(i){i.onchange=function(){var id=i.dataset.id;var v=parseFloat(i.value);st[id]=st[id]||{};if(v>0)st[id].px=v;else delete st[id].px;save();draw();};});
+  // 2516
+  var have=gl.reduce(function(a,x){return a+(+x.n||0);},0), today=new Date().toISOString().slice(0,10), soon=addMonth(today,1);
+  var tgt=G.px>0?Math.floor(lng*0.5/G.px/10)*10:0, msg='';
+  if(!(G.px>0)){msg='2516の値段が取れませんでした。';}
+  else if(G.active){msg='<p class="warn"><b>下げ切りの期間中</b>（合図 '+G.sig+'）：2516の売りは<b>全部返済買い</b>（今 '+num(have)+'株）。さらに資金の20%（約'+num(G.buy)+'円・約'+num(Math.floor(G.buy/G.px/10)*10)+'株）で2516を<b>現物で買う</b>。<b>'+G.end+'の引け</b>で売って、いつもの半分の売りに戻す。</p>';}
+  else{var diff=tgt-have, band=Math.abs(diff)>Math.max(tgt,10)*0.2;
+    msg='<div class="stats"><div class="stat"><div class="k">持っている株の金額（買った分）</div><div class="v">'+num(lng)+'円</div></div>'
+     +'<div class="stat"><div class="k">2516の売りの目標（半分）</div><div class="v">'+num(tgt)+'株（約'+num(tgt*G.px)+'円）</div></div>'
+     +'<div class="stat"><div class="k">今売っている2516</div><div class="v">'+num(have)+'株</div></div>'
+     +'<div class="stat"><div class="k">次の月曜の朝</div><div class="v">'+(band?(diff>0?'新規売り '+num(diff)+'株':'返済買い '+num(-diff)+'株'):'調整なし（±20%以内）')+'</div></div></div>'
+     +'<p class="sub">2516の終値 '+G.px+'円（'+G.date+'）。終値が25日線より15%以上下がると「下げ切りの合図」。</p>';}
+  document.getElementById('gbox').innerHTML=msg;
+  var t='<tr><th>建てた日</th><th>株数</th><th>期日（6か月）</th><th></th><th></th></tr>';
+  gl.forEach(function(x,i){var due=addMonth(x.d,6); var w=due<=soon;
+    t+='<tr'+(w?' style="background:#fff8ec"':'')+'><td>'+x.d+'</td><td>'+num(x.n)+'株</td><td>'+due+'</td><td>'+(w?'<b>期日が近い：返済買い→同じ数を新規売り</b>':'')+'</td><td><button data-i="'+i+'" class="gdel" style="padding:2px 8px">消す</button></td></tr>';});
+  document.getElementById('glots').innerHTML=gl.length?t:'<tr><td class="none">売っている2516の記録はまだありません（売ったら下で追加）</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll('#glots .gdel'),function(b){b.onclick=function(){gl.splice(+b.dataset.i,1);save();draw();};});
 }
+document.getElementById('gadd').onclick=function(){var d=document.getElementById('gd').value,n=parseInt(document.getElementById('gn').value,10);if(d&&n){gl.push({d:d,n:n});gl.sort(function(a,b){return a.d<b.d?-1:1;});save();draw();}};
 draw();
 })();
 </script>"""
@@ -1406,6 +1572,30 @@ def build_page(ledger: dict, rows: list[dict], today_buy: list, today_short: lis
     elif info.get("short_paused"):
         warn += (f'<p class="warn">海外投資家が直近4週で大きく売り越し中（約{-f4 * 1000:,.0f}億円・{h.escape(str(info.get("frgn_date")))}までの週）。'
                  '下げ余地が小さい時期なので、空売りは見送ります。</p>')
+    if info.get("short_vix"):
+        warn += (f'<p class="warn">米VIXが{info.get("vix") or 0:.1f}（{SHORT_VIX_MAX:g}以上）なので、新しい空売りは休みます（18年の検証で、VIXが高い時の空売りは負けやすかった）。'
+                 '持っている空売りは、いつもどおり保有中の表の買い戻し注文に従う。</p>')
+    man_ = [dict(m, stop_txt="—" if m.get("stop") is None else f'{m["stop"]:,.0f}円') for m in (info.get("manual") or [])]
+    if man_:
+        mrows = "".join(
+            f'<div style="border:1px solid {"#e05050" if m.get("status") == "売り" else "#efd9b0"};background:{"#fde8e8" if m.get("status") == "売り" else "#fffaf0"};border-radius:8px;padding:10px 12px;margin:8px 0">'
+            f'<div style="font-size:15px;font-weight:700">{link(m)}　<span style="background:#e0a040;color:#fff;border-radius:4px;padding:1px 6px;font-size:12px">信用買い・{h.escape(m.get("kind", "").replace("信用買い", "").strip("（）"))}</span></div>'
+            f'<div class="stats" style="margin-top:6px">'
+            f'<div class="stat"><div class="k">株数・建値（建日 {m["entry_date"]}）</div><div class="v">{m["shares"]:,}株・{float(m["entry"]):,.1f}円</div><div class="k">{h.escape(m.get("lots", ""))}</div></div>'
+            f'<div class="stat"><div class="k">今（{h.escape(m.get("data_date", ""))}の終値）・損益</div><div class="v">{m.get("now", 0):,.1f}円・{m.get("ret", 0):+.2f}%</div><div class="k">{yen(m.get("pnl", 0))}</div></div>'
+            f'<div class="stat" style="border-color:#e0a040"><div class="k">ロスカット（終値で判断）・{h.escape(m.get("stage", m.get("status", "")))}</div><div class="v" style="color:#b03030">{m["stop_txt"]}</div></div>'
+            f'<div class="stat"><div class="k">利益確保ライン（終値でここ以上→ロスカットをここへ）</div><div class="v">{m.get("lock_px", 0):,.0f}円</div></div>'
+            f'<div class="stat"><div class="k">手じまいの期限</div><div class="v" style="font-size:14px">{m.get("end120", "")}（120営業日）</div><div class="k">制度信用の期日 {h.escape(m.get("due", ""))}</div></div></div>'
+            f'<p style="margin:6px 0 0"><b>{"売り：" if m.get("status") == "売り" else "明日の判断："}</b>{h.escape(m.get("order", ""))}</p></div>'
+            for m in man_)
+        manual_card = (f'<div class="card" style="border:2px solid #e0a040"><h2 style="margin-top:0">信用で持っている株（サイトを作る前に75日線で買った分・現物ではありません）（{len(man_)}銘柄）</h2>'
+                       f'{mrows}'
+                       '<p class="sub">75日線のルール（引き上げ式ロスカット・終値で判断）：① 最初は−1σ（毎日動く）。② 終値が「利益確保ライン」（建値＋（建値−合図の日の−1σ））以上になったら、ロスカットをそこへ上げる。'
+                       '③ その後、終値が+1σより上で終わった日は、ロスカットをその日の+1σまで引き上げる（下げない）。<b>終値がロスカットを割ったら、翌朝の寄りで返済売り（成行）</b>。逆指値は使わない。'
+                       '利確の指値はなし（ロスカットを引き上げて利益を守る）。最長120営業日で、制度信用の期日（6か月）より前に手じまう。<b>返済したら教えてください</b>（ここから消します）。'
+                       '金利（買方金利）がかかるので、損益は金利の分だけ少し下がります。</p></div>')
+    else:
+        manual_card = ""
     frgn_txt = "—" if f4 is None else (f"{f4 * 1000:+,.0f}億円（{'見送り中' if info.get('short_paused') else '空売りOK'}）")
     page = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>今日の売買（買い＋新高値＋IPO＋空売り）</title><style>
@@ -1417,19 +1607,23 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 .stats{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}}.stat{{background:#faf9f6;border:1px solid #efede7;border-radius:8px;padding:8px 10px}}
 .stat .k{{font-size:11px;color:#6b6a65}}.stat .v{{font-size:16px;font-weight:700}}a{{color:#1f4e79}}</style></head><body><main>
 <a href="./" class="sub">← スクリーナーに戻る</a>　<a href="docs.html" class="sub">📘 まとめ資料（PDF）</a>　<a href="houjin.html" class="sub">🏢 法人の売買</a>　<a href="mini.html" class="sub">🪙 ミニ株の売買</a>　<a href="auto.html" class="sub">🤖 自動売買</a>
-<h1>今日の売買（個人・信用1.3倍：新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・空売り＋別枠の年末の反発／75日線の買いは休止中）</h1>
+<h1>今日の売買（個人・信用1.3倍：新高値・IPO・IR・リバウンド・窓あけ下げ・権利取り前・月末月初・空売り・2516の保険＋別枠の年末の反発／75日線の買いは休止中）</h1>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">今の資金（最初 {CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{info.get('equity', CAPITAL) / 1e4:,.1f}万円</div></div>
 <div class="stat"><div class="k">規模（元のルールの1,300万円に対して）</div><div class="v">{info.get('equity', CAPITAL) / BASE * 100:.0f}%</div></div>
 <div class="stat"><div class="k">1回の上限</div><div class="v">{CAP_PER / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">現物の枠（信用で今の資金の{LEVERAGE:g}倍）</div><div class="v">{info.get('equity', CAPITAL) * LEVERAGE / 1e4:,.0f}万円まで</div></div>
 <div class="stat"><div class="k">1回の金額：新高値／IPO</div><div class="v">{info.get('equity', CAPITAL) * LEVERAGE * UNIT_NH / 1e4:,.0f}万円／{info.get('equity', CAPITAL) * LEVERAGE * UNIT_IPO / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) * LEVERAGE / BASE * 1000:,.0f}万円まで</div></div></div>
+<div class="stat"><div class="k">空売りの枠（信用の建玉）</div><div class="v">10銘柄・{info.get('equity', CAPITAL) * LEVERAGE / BASE * 1000:,.0f}万円まで</div></div>
+<div class="stat"><div class="k">空売り（VIX {"—" if info.get("vix") is None else f'{info["vix"]:.1f}'}）</div><div class="v">{"休む（32以上）" if info.get("short_vix") else "通常"}</div></div>
+<div class="stat"><div class="k">2516の保険</div><div class="v">{"下げ切りの買い（" + info["g2516"].get("end", "") + "まで）" if (info.get("g2516") or {}).get("active") else "持ち株の半分を売り"}</div></div></div>
 <div class="sub" style="margin-top:6px">現物の7つは1つの枠を共有し、同じ日に枠が足りないときは窓あけ下げ→権利取り前→リバウンド→IPO→新高値→IR→75日線の買いの順。同時に持てる数は75日線の買い10・新高値12・IPO10・IR20・リバウンド10・窓あけ下げ10銘柄まで。年末の反発は別枠（1,000万円）。
 「資金」は今の資金×{LEVERAGE:g}（信用取引）。新高値 ＝ 資金の4%。IR・IPO・窓あけ下げ ＝ 資金の7%。リバウンド ＝ 資金の9%。権利取り前 ＝ 資金の20%。75日線の買いは休止中。空売り ＝ 点数で決まる金額 × 資金の規模。1回{CAP_PER / 1e4:,.0f}万円まで。株数は購入金額 ÷ 終値を100株単位で切り捨て。
 明日の始値で買う（空売りする）ので、実際の金額は少し変わります。損益は往復{COST * 100:.1f}%の費用を引いた額。</div></div>
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(ledger['start'])}。信用残 {h.escape(str(info.get('margin_date')))}・海外投資家の直近4週 {frgn_txt}（{h.escape(str(info.get('frgn_date')))}までの週）・信用取引の注意 {info.get('alert_n', 0)}銘柄・決算データ {h.escape(str(info.get('fins_last')))} まで。</div>
 {warn}
+{manual_card}
+<p class="sub">2516（グロース250ETF）の保険の株数と期日は、下の<a href="#g2516">「2516の保険・下げ切りの買い」</a>に毎日出ます。</p>
 <div class="card"><h2 style="margin-top:0">75日線の買い（休止中・参考に表示）（{len(today_buy)}件）</h2>{table(today_buy, today_cols)}
 <p class="sub">市場全体の信用倍率：<b>{"—" if info.get("mratio") is None else f"{info['mratio']:.2f}倍"}</b>（{h.escape(str(info.get("mratio_date") or "—"))}週）。{MKT_MRATIO_MIN}倍未満の時期は75日線の買いを見送り（75日線の買いは2026年11月28日から休止中）。</p></div>
 <div class="card"><h2 style="margin-top:0">明日の寄りで買う候補・新高値ブレイク（{len(today_nh)}件）</h2>{table(today_nh, nh_cols)}
@@ -1476,7 +1670,7 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="stat"><div class="k">空売り：合図／決済済み</div><div class="v">{ss_['n']}／{ss_['closed']}件</div></div>
 <div class="stat"><div class="k">空売り：決済済みの損益（勝率）</div><div class="v">{yen(ss_['pnl_closed'])}（{ss_['win'] if ss_['win'] is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">空売り：保有中の含み損益</div><div class="v">{yen(ss_['pnl_open'])}</div></div></div></div>
-{my_holdings(hold)}
+{my_holdings(hold, info.get("manual"), info.get("g2516"), info.get("equity", CAPITAL))}
 <div class="card"><h2 style="margin-top:0">保有中（システムの記録・{len(hold)}件）</h2>{table(hold, hold_cols)}</div>
 <div class="card"><h2 style="margin-top:0">決済済み（{len(closed)}件）</h2>{table(closed, cl_cols)}</div>
 <p class="sub">ルール：{h.escape(__doc__.split('採用ルール')[1].split('信用残・決算データ')[0].strip()).replace(chr(10), '<br>')}</p>
@@ -1506,8 +1700,12 @@ def size(cands: list[dict], rows: list[dict], eq: float, side: str) -> None:
         sh = int(want // x["close"] // 100 * 100) if x.get("close") else 0
         x["shares"], x["amount"], x["cap"], x["want"] = sh, round(sh * x["close"]) if sh else 0, cap, want
         if x.get("paused"):
-            x["slot"] = "見送り（海外投資家が売り越し中）"
-            x["why"] = "海外投資家の直近4週の売り越しが大きく、空売りを止める期間"
+            if x.get("vix_pause"):
+                x["slot"] = f"見送り（VIXが{SHORT_VIX_MAX:g}以上）"
+                x["why"] = f"米VIXが{x['vix_pause']:.1f}。{SHORT_VIX_MAX:g}以上の時は空売りを休む（18年検証）"
+            else:
+                x["slot"] = "見送り（海外投資家が売り越し中）"
+                x["why"] = "海外投資家の直近4週の売り越しが大きく、空売りを止める期間"
         elif x.get("mult") == 0:
             x["slot"] = "見送り（新高値が多すぎる過熱相場）"
         elif not sh:
@@ -1625,6 +1823,24 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         print(f"  信用評価損益率の計算に失敗（{e}）"); mpl, mpl_date = None, None
     info.update(vix=vix, vix_date=vix_date, mpl=mpl, mpl_date=mpl_date)
     print(f"  VIX {vix}（{vix_date}）・信用評価損益率（推定） {mpl}%（{mpl_date}週）")
+    # 休む（2026-11-28）：VIXが32以上の時は新しい空売りをしない
+    info["short_vix"] = bool(vix is not None and vix >= SHORT_VIX_MAX)
+    if info["short_vix"]:
+        for x in shorts:
+            x.update(paused=True, vix_pause=vix)
+    # グロース250ETF（2516）の保険と下げ切りの合図、サイト前に建てた信用の買い
+    try:
+        g_df = yf_df("2516")
+        info["g2516"] = g2516_state(g_df)
+        print(f"  2516 {info['g2516']}")
+    except Exception as e:
+        print(f"  2516の判定に失敗（{e}）"); info["g2516"] = {}
+    try:
+        info["manual"] = manual_positions(prices)
+        for m_ in info["manual"]:
+            print("  信用の持ち株", {k: m_.get(k) for k in ("code", "name", "shares", "entry", "now", "stage", "stop", "order")})
+    except Exception as e:
+        print(f"  信用の持ち株の判定に失敗（{e}）"); info["manual"] = []
     n2, n2d = n225_dev200((pd.Timestamp(data_date) + pd.Timedelta(days=1)).strftime("%Y-%m-%d"))
     t20_ = None
     try:
