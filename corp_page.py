@@ -10,7 +10,7 @@
   年末の反発   : 20銘柄を資金の1%ずつ。大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る。
 1回の金額は、その銘柄の直前20日の売買代金の平均の5%まで（大きな注文で値段を動かさないため）。
 候補の判定は個人の「今日の売買」と同じ（同じ条件・同じ見送り条件）。
-10年の検証（5,000万円・単利）：1年平均 約2,190万円・最大の落ち込み 約−450万円・負けた年なし。
+10年の検証（5,000万円・単利）：1年平均 約2,200万円・最大の落ち込み 約−450万円・負けた年なし。
 """
 from __future__ import annotations
 
@@ -239,7 +239,7 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 <div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 * (RB_VIX_MULT if (info.get('vix') or 0) >= 20 else 1) / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl_pnl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op_pnl)}</div></div></div>
-<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。リバウンドは米VIXが20以上の時は1.5倍（今のVIX {'—' if info.get('vix') is None else f'{info["vix"]:.1f}'}）。10年の検証（5,000万円・単利・税引き前）：1年平均 約2,190万円・最大の落ち込み 約−450万円・負けた年なし。</p></div>
+<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。リバウンドは米VIXが20以上の時は1.5倍（今のVIX {'—' if info.get('vix') is None else f'{info["vix"]:.1f}'}）。10年の検証（5,000万円・単利・税引き前）：1年平均 約2,200万円・最大の落ち込み 約−450万円・負けた年なし。</p></div>
 {('<p class="warn"><b>今日は新高値の見直しの日の銘柄があります</b>：' + "・".join(f"{r['code']} {h.escape(str(r.get('name', '')))}" for r in review) + '（下の保有中の表の「注文・予定」のとおりに逆指値を直す）</p>') if review else ''}
 <div class="card"><h2>明日お願いする注文（{len(buy)}件）</h2>{table(buy, cols)}
 <p class="sub">「目安」は今日の終値で計算。実際は約定した値段（買値）から計算し直す。</p></div>
