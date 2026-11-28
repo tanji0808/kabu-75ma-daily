@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 LEDGER = os.environ.get("FORWARD2_PATH", "data/forward2.json")
-RULE_ID = "combo_v15"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止
+RULE_ID = "combo_v16"   # v2: 空売りはランク5以下→割高点数1以上、買いはROE4%未満を除く。v3: 空売りに海外投資家の見送り・信用取引の注意の加点・貸借銘柄だけ。v4: 新高値ブレイクを追加。v5: IPOを追加・現物3つで枠を共有（2026-11-23から）。v6: IRトレードを追加・現物4つで枠を共有・資金1,500万円（2026-11-27から）。v7: リバウンドと権利取り前を追加（2026-11-27から）。v8: 外部要因の再チェック：IRは営業利益率4.6%以上・新高値はS&P500が200日線より上・75日線の買いは市場の信用倍率3.67倍以上（2026-11-27から）。v9: 年末の反発（別枠1,000万円）を追加。v10: 窓あけ下げ（急落の2日目から）を追加。v11: 新高値の追いかけを+20%・−20%に。v12: リバウンドに25日線−10%での利確を追加。v13: 窓あけ下げは急落の朝のあと5営業日、毎朝買う（今朝の数の確認をやめた）。v14: 75日線の買いは大株主が売っている銘柄を見送り。v15: 信用1.3倍・IR/IPO/窓あけ7%・リバウンド9%・75日線の買いは休止。v16: リバウンドはVIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで
 LOT_BUY = {6: 0.5, 7: 1.0, 8: 1.5}
 CAPITAL = float(os.environ.get("FORWARD2_CAPITAL", "15000000"))   # 最初の資金
 BASE = 13_000_000      # 元のルール（買い1,000万円＋空売りの保証金300万円）の規模。資金がこの何倍かで金額を変える
@@ -59,6 +59,8 @@ W_SHORT = [0.5, 1, 1.5, 2, 2]
 # 資金の分け方（2026-11-23 採用）：現物の3つ（75日線の買い・新高値・IPO）は1つの枠（今の資金）を共有して早い者勝ち。
 # 1回の金額（資金＝今の資金×LEVERAGE）：新高値＝4%／IR・IPO・窓あけ下げ＝7%／リバウンド＝9%／75日線の買い＝休止。空売りは信用の建玉で別枠
 UNIT_BUY, UNIT_NH, UNIT_IPO, UNIT_IR, UNIT_RB, UNIT_KR = 0.0, 0.04, 0.07, 0.07, 0.09, 0.20   # 2026-11-28：IR・IPO 7%、リバウンド 9%、75日線の買いは休止（0）
+RB_VIX, RB_VIX_MULT = 20.0, 2.0      # リバウンド：米VIXが20以上の時は1回の金額を2倍（1回の上限300万円は同じ）（2026-11-28 採用）
+RB_MPL, RB_MPL_CAP = -10.0, 2.0      # リバウンド：市場の信用評価損益率（推定）が−10%以下の大底では、リバウンドだけ枠を2倍まで使ってよい
 LEVERAGE = float(os.environ.get("FORWARD2_LEVERAGE", "1.3"))   # 信用取引で今の資金の1.3倍まで使う（2026-11-28 採用）
 MAX_N = {"buy": 10, "newhigh": 12, "ipo": 10, "ir": 20, "rebound": 10, "kenri": 1, "gapdown": 10}
 LONG_ORDER = {"gapdown": -3, "kenri": -2, "rebound": -1, "ipo": 0, "newhigh": 1, "ir": 2, "buy": 3}
@@ -726,6 +728,60 @@ def spx_above200() -> tuple[bool | None, str | None]:
     return bool(s.iloc[-1] > ma.iloc[-1]), f"{s.index[-1]:%Y-%m-%d} 終値 {s.iloc[-1]:,.0f}／200日線 {ma.iloc[-1]:,.0f}"
 
 
+def vix_now() -> tuple[float | None, str | None]:
+    """米VIXの最新の終値（日本の朝の時点で分かっている分。バックテストと同じ）。"""
+    s = None
+    try:
+        import yfinance as yf
+        d = yf.download("^VIX", period="1mo", progress=False, auto_adjust=False)
+        if d is not None and len(d):
+            s = d["Close"].squeeze().dropna()
+    except Exception as e:
+        print(f"  VIXの取得に失敗（{e}）")
+    if (s is None or not len(s)) and os.path.exists("data/macro.csv.gz"):
+        s = pd.read_csv("data/macro.csv.gz", index_col=0, parse_dates=True)["vix"].dropna()
+    if s is None or not len(s):
+        return None, None
+    s.index = pd.to_datetime(s.index).tz_localize(None).normalize()
+    s = s[s.index < pd.Timestamp(date.today())]
+    return (float(s.iloc[-1]), f"{s.index[-1]:%Y-%m-%d}") if len(s) else (None, None)
+
+
+def margin_pl_rate(prices: dict, entry_day: str) -> tuple[float | None, str | None]:
+    """市場全体の信用評価損益率（推定・%）。tools/margin_pl.py と同じ計算：直近26週に増えた買い残をその週の株価で買ったとみなして平均の買値を出す。
+    分割などで株価と買い残がずれた銘柄（−45%以下・+80%以上）は外す。週の日付の7日後から使う（バックテストと同じ）。"""
+    p = "data/jq/margin_interest.csv.gz"
+    if not os.path.exists(p):
+        return None, None
+    M = pd.read_csv(p, dtype={"Code": str}, usecols=["Date", "Code", "LongVol"])
+    M = M[M.Date >= (pd.Timestamp(entry_day) - pd.Timedelta(days=420)).strftime("%Y-%m-%d")]
+    M["code"] = M.Code.str[:4]; M["LongVol"] = pd.to_numeric(M.LongVol, errors="coerce")
+    M = M.groupby(["code", "Date"], as_index=False).LongVol.sum()
+    ok = sorted(d for d in M.Date.unique() if pd.Timestamp(d) + pd.Timedelta(days=7) <= pd.Timestamp(entry_day))
+    if not ok:
+        return None, None
+    last = ok[-1]; pl = base = 0.0
+    for code, g in M[M.Date <= last].groupby("code"):
+        df = prices.get(code)
+        if df is None or len(df) < 60:
+            continue
+        c = df["Close"].astype(float).copy(); c.index = pd.to_datetime(c.index).tz_localize(None).normalize()
+        g = g.sort_values("Date"); d = pd.to_datetime(g.Date)
+        P = c.reindex(c.index.union(d)).ffill().reindex(d).to_numpy()
+        L = g.LongVol.to_numpy(float)
+        if g.Date.iloc[-1] != last or len(g) < 10 or np.isnan(P[-27:]).any():
+            continue
+        dl = np.clip(np.diff(L, prepend=np.nan), 0, None)
+        dl, PP = dl[-26:], P[-26:]
+        dl = np.nan_to_num(dl)
+        cost = (dl * PP).sum() / dl.sum() if dl.sum() > 0 else np.nanmean(PP)
+        r = P[-1] / cost - 1
+        if not np.isfinite(r) or r <= -0.45 or r >= 0.8:
+            continue
+        pl += (P[-1] - cost) * L[-1]; base += cost * L[-1]
+    return (round(pl / base * 100, 1), last) if base > 0 else (None, None)
+
+
 def mkt_margin_ratio() -> tuple[float | None, str | None]:
     """市場全体の信用倍率（買い残÷売り残の合計、週次）。バックテストと同じく、週の日付の5日後から使う。"""
     p = "data/jq/margin_interest.csv.gz"
@@ -1337,7 +1393,8 @@ th{{color:#6b6a65;font-weight:500;font-size:12px}}.none{{color:#6b6a65}}.warn{{b
 <div class="card"><h2 style="margin-top:0">明日の朝に指値で買う候補・リバウンド（{len(today_rb)}件）</h2>{table(today_rb, rb_cols)}
 <p class="sub">25日線から−20%以上下・5日で−20%以上の急落・安値近くで引けた銘柄（売買代金1億円以上）。直近5日に新高値ブレイクが2件以上あり、その日のTOPIXが−1%以上の時だけ
 （今日：新高値ブレイク {info.get("rb_brk5", "—")}件・TOPIX {"—" if info.get("rb_t1") is None else f'{info["rb_t1"] * 100:+.1f}%'}）。
-明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−10%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として3日目の引けで売る。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_RB * 100:.0f}%、同時に10銘柄まで。</p></div>
+明日の朝、今日の終値の−3%に指値で買う（届かなければ買わない）。買えたら−10%に損切りの逆指値と、今日の25日線の−10%の値段に利確の指値（OCO）。どちらにも届かなければ、買った日を1日目として3日目の引けで売る。1回は資金（今の資金×{LEVERAGE:g}）の{UNIT_RB * 100:.0f}%、同時に10銘柄まで。<br><b>増額（2026-11-28）</b>：米VIXが{RB_VIX:g}以上の時は1回の金額を{RB_VIX_MULT:g}倍（上限{CAP_PER / 1e4:,.0f}万円）、市場の信用評価損益率（推定）が{RB_MPL:g}%以下の大底ではリバウンドだけ枠を{RB_MPL_CAP:g}倍まで使う。
+今は VIX <b>{"—" if info.get("vix") is None else f'{info["vix"]:.1f}'}</b>（{h.escape(str(info.get("vix_date") or "—"))}）→ {"<b>2倍</b>" if info.get("vix") is not None and info["vix"] >= RB_VIX else "通常"}／信用評価損益率 <b>{"—" if info.get("mpl") is None else f'{info["mpl"]:+.1f}%'}</b>（{h.escape(str(info.get("mpl_date") or "—"))}週）→ {"<b>枠2倍まで</b>" if info.get("mpl") is not None and info["mpl"] <= RB_MPL else "枠は通常"}。</p></div>
 <div class="card"><h2 style="margin-top:0">権利取り前（3月・9月）</h2><p>{kr_line}</p>
 <p class="sub">3月・9月の権利付き最終日の前は、配当目当ての買いで市場全体が上がりやすい（10年で20回中15回プラス）。資金の20%で、年2回・約2週間だけ持つ。</p></div>
 <div class="card"><h2 style="margin-top:0">窓あけ下げ（急落の朝のあと5営業日・寄りで買う）</h2>{gd_head}{gd_tbl}
@@ -1435,7 +1492,7 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
         elif x["side"] == "ir":
             want = eq * UNIT_IR
         elif x["side"] == "rebound":
-            want = eq * UNIT_RB
+            want = eq * UNIT_RB * x.get("rb_mult", 1.0)
         elif x["side"] == "kenri":
             want = eq * UNIT_KR
         elif x["side"] == "gapdown":
@@ -1456,10 +1513,10 @@ def size_long(cands: list[dict], rows: list[dict], eq: float) -> None:
             x["why"] = f'1回の上限 {want / 1e4:,.1f}万円に対して、100株で {x["close"] * 100 / 1e4:,.1f}万円かかる'
         elif x["code"] in held:
             x["slot"] = "すでに保有中"
-        elif n[x["side"]] >= MAX_N[x["side"]] or used + x["amount"] > eq:
+        elif n[x["side"]] >= MAX_N[x["side"]] or used + x["amount"] > eq * x.get("capx", 1.0):
             x["slot"] = "枠がいっぱい（見送り）"
             x["why"] = (f'{SIDE_NAME[x["side"]]}の同時保有の上限（{MAX_N[x["side"]]}銘柄）に達している' if n[x["side"]] >= MAX_N[x["side"]]
-                        else f"資金の枠の残り {max(eq - used, 0) / 1e4:,.1f}万円では、{x['amount'] / 1e4:,.1f}万円が足りない")
+                        else f"資金の枠の残り {max(eq * x.get('capx', 1.0) - used, 0) / 1e4:,.1f}万円では、{x['amount'] / 1e4:,.1f}万円が足りない")
         else:
             x["slot"] = "枠あり"
             n[x["side"]] += 1
@@ -1501,6 +1558,19 @@ def run(master: pd.DataFrame, prices: dict, ranks: dict, out_dir: str) -> None:
         rbs = rb_candidates(master, prices, tpx, info)
     except Exception as e:
         print(f"  リバウンドの判定に失敗（{e}）")
+    # リバウンドの増額（2026-11-28）：VIX20以上で2倍・信用評価損益率−10%以下で枠2倍まで
+    vix, vix_date = vix_now()
+    entry_day = (pd.Timestamp(data_date) + pd.offsets.BDay(1)).strftime("%Y-%m-%d")
+    try:
+        mpl, mpl_date = margin_pl_rate(prices, entry_day)
+    except Exception as e:
+        print(f"  信用評価損益率の計算に失敗（{e}）"); mpl, mpl_date = None, None
+    info.update(vix=vix, vix_date=vix_date, mpl=mpl, mpl_date=mpl_date)
+    print(f"  VIX {vix}（{vix_date}）・信用評価損益率（推定） {mpl}%（{mpl_date}週）")
+    for x in rbs:
+        x["vix_hi"] = bool(vix is not None and vix >= RB_VIX)
+        x["rb_mult"] = RB_VIX_MULT if x["vix_hi"] else 1.0
+        x["capx"] = RB_MPL_CAP if (mpl is not None and mpl <= RB_MPL) else 1.0
     try:
         win = kenri_window(data_date)
         info["kenri"] = win

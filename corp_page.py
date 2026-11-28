@@ -1,7 +1,7 @@
 """法人用の「今日の売買」ページ（houjin.html）と台帳（data/forward_corp.json）。
 
 少ない手間で回すための版（2026-11-27 作成、11-28 資金5,000万円・リバウンド追加・eスマート証券のアプリで注文）。手法は6つ：
-  リバウンド   : 資金の9%・10銘柄まで。前日終値−3%に指値（当日だけ）。−10%逆指値と25日線×0.90の利確指値。3営業日目の引けで売る。
+  リバウンド   : 資金の9%（米VIXが20以上の時は1.5倍）・10銘柄まで。前日終値−3%に指値（当日だけ）。−10%逆指値と25日線×0.90の利確指値。3営業日目の引けで売る。
   IRトレード   : 資金の5%・20銘柄まで。寄りで成行買い＋買値−10%に逆指値。60営業日目の引けで売る。
   IPOセカンダリー: 資金の5%・10銘柄まで。寄りで成行買い＋−10%／+30%のOCO。120営業日で手じまい。
   新高値ブレイク : 資金の4%・12銘柄まで。寄りで成行買い＋−6%に逆指値。月1回（21営業日ごと）だけ見直し、
@@ -10,7 +10,7 @@
   年末の反発   : 20銘柄を資金の1%ずつ。大納会の5営業日前の引けで買い、1月の5営業日目の引けで売る。
 1回の金額は、その銘柄の直前20日の売買代金の平均の5%まで（大きな注文で値段を動かさないため）。
 候補の判定は個人の「今日の売買」と同じ（同じ条件・同じ見送り条件）。
-10年の検証（5,000万円・単利）：1年平均 約2,080万円・最大の落ち込み 約−450万円・負けた年なし。
+10年の検証（5,000万円・単利）：1年平均 約2,190万円・最大の落ち込み 約−450万円・負けた年なし。
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ UNIT = {"ir": 0.05, "ipo": 0.05, "newhigh": 0.04, "rebound": 0.09, "kenri": 0.20
 MAX_N = {"ir": 20, "ipo": 10, "newhigh": 12, "rebound": 10, "kenri": 1, "yearend": 20}
 ORDER = ["kenri", "rebound", "ipo", "newhigh", "ir", "yearend"]
 LIQ = 0.05
+RB_VIX_MULT = 1.5   # リバウンド：米VIXが20以上の時は1回の金額を1.5倍（法人は信用を使わないので枠はそのまま）（2026-11-28 採用）
 NH_STOP, NH_ARM, NH_TRAIL, NH_REVIEW, NH_HOLD = 0.06, 0.25, 0.20, 21, 120
 COST = 0.002
 LEDGER = "data/forward_corp.json"
@@ -130,6 +131,8 @@ def run_corp(prices: dict, cands: dict, info: dict, data_date: str, out_dir: str
             if side == "kenri" and prices.get("1306") is not None:
                 px = float(prices["1306"]["Close"].iloc[-1]); x["close"] = px
             want = eq * UNIT[side]
+            if side == "rebound" and x0.get("vix_hi"):
+                want *= RB_VIX_MULT
             tv = None if side == "kenri" else _tv20(prices.get(x["code"]))
             if tv:
                 want = min(want, tv * LIQ)
@@ -233,10 +236,10 @@ th{{font-size:12px;color:#6b6a65;font-weight:500;white-space:nowrap}}.none{{colo
 <div class="sub">{h.escape(data_date)} 終値時点。記録開始 {h.escape(start)}。IRトレード・IPO・新高値・リバウンド・権利取り前・年末の反発の6つ。現物のみ（信用は使わない）。注文は朝9時前にアプリで入れる（SOR注文で手数料無料）。</div>
 <div class="card"><div class="stats">
 <div class="stat"><div class="k">資金（最初 {CORP_CAPITAL / 1e4:,.0f}万円＋決済済みの損益）</div><div class="v">{eq / 1e4:,.0f}万円</div></div>
-<div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 / 1e4:,.0f}万円</div></div>
+<div class="stat"><div class="k">1回の金額</div><div class="v">IR・IPO {eq * 0.05 / 1e4:,.0f}万円／新高値 {eq * 0.04 / 1e4:,.0f}万円／リバウンド {eq * 0.09 * (RB_VIX_MULT if (info.get('vix') or 0) >= 20 else 1) / 1e4:,.0f}万円</div></div>
 <div class="stat"><div class="k">決済済みの損益（勝率）</div><div class="v">{yen(cl_pnl)}（{win if win is not None else '—'}%）</div></div>
 <div class="stat"><div class="k">保有中の含み損益</div><div class="v">{yen(op_pnl)}</div></div></div>
-<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。10年の検証（5,000万円・単利・税引き前）：1年平均 約2,080万円・最大の落ち込み 約−450万円・負けた年なし。</p></div>
+<p class="sub">1回の金額は、その銘柄の1日の売買代金（20日平均）の5%まで。同時に持てる数は IR20・IPO10・新高値12・リバウンド10銘柄。リバウンドは米VIXが20以上の時は1.5倍（今のVIX {'—' if info.get('vix') is None else f'{info["vix"]:.1f}'}）。10年の検証（5,000万円・単利・税引き前）：1年平均 約2,190万円・最大の落ち込み 約−450万円・負けた年なし。</p></div>
 {('<p class="warn"><b>今日は新高値の見直しの日の銘柄があります</b>：' + "・".join(f"{r['code']} {h.escape(str(r.get('name', '')))}" for r in review) + '（下の保有中の表の「注文・予定」のとおりに逆指値を直す）</p>') if review else ''}
 <div class="card"><h2>明日お願いする注文（{len(buy)}件）</h2>{table(buy, cols)}
 <p class="sub">「目安」は今日の終値で計算。実際は約定した値段（買値）から計算し直す。</p></div>
